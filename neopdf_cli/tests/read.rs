@@ -72,7 +72,7 @@ fn help() {
 fn read_metadata_lhapdf() {
     Command::cargo_bin("neopdf")
         .unwrap()
-        .args(["read", "metadata", "--pdf-name", "NNPDF40_nnlo_as_01180"])
+        .args(["read", "metadata", "NNPDF40_nnlo_as_01180"])
         .assert()
         .success()
         .stdout(METADATA);
@@ -82,12 +82,7 @@ fn read_metadata_lhapdf() {
 fn read_metadata_neopdf() {
     Command::cargo_bin("neopdf")
         .unwrap()
-        .args([
-            "read",
-            "metadata",
-            "--pdf-name",
-            "NNPDF40_nnlo_as_01180.neopdf.lz4",
-        ])
+        .args(["read", "metadata", "NNPDF40_nnlo_as_01180.neopdf.lz4"])
         .assert()
         .success()
         .stdout(METADATA);
@@ -97,12 +92,7 @@ fn read_metadata_neopdf() {
 fn read_gitversion_neopdf() {
     Command::cargo_bin("neopdf")
         .unwrap()
-        .args([
-            "read",
-            "git-version",
-            "--pdf-name",
-            "NNPDF40_nnlo_as_01180.neopdf.lz4",
-        ])
+        .args(["read", "git-version", "NNPDF40_nnlo_as_01180.neopdf.lz4"])
         .assert()
         .success()
         .stdout("v0.2.0-alpha1-22-gfb6af13-dirty\n");
@@ -112,12 +102,7 @@ fn read_gitversion_neopdf() {
 fn read_num_subgrids_lhapdf() {
     Command::cargo_bin("neopdf")
         .unwrap()
-        .args([
-            "read",
-            "num_subgrids",
-            "--pdf-name",
-            "NNPDF40_nnlo_as_01180",
-        ])
+        .args(["read", "num_subgrids", "NNPDF40_nnlo_as_01180"])
         .assert()
         .success()
         .stdout("2\n");
@@ -127,12 +112,7 @@ fn read_num_subgrids_lhapdf() {
 fn read_num_subgrids_neopdf() {
     Command::cargo_bin("neopdf")
         .unwrap()
-        .args([
-            "read",
-            "num_subgrids",
-            "--pdf-name",
-            "NNPDF40_nnlo_as_01180.neopdf.lz4",
-        ])
+        .args(["read", "num_subgrids", "NNPDF40_nnlo_as_01180.neopdf.lz4"])
         .assert()
         .success()
         .stdout("2\n");
@@ -145,7 +125,6 @@ fn read_num_subgrid_info_lhapdf() {
         .args([
             "read",
             "subgrid-info",
-            "--pdf-name",
             "NNPDF40_nnlo_as_01180",
             "--member",
             "0",
@@ -164,7 +143,6 @@ fn read_num_subgrid_info_neopdf() {
         .args([
             "read",
             "subgrid-info",
-            "--pdf-name",
             "NNPDF40_nnlo_as_01180.neopdf.lz4",
             "--member",
             "0",

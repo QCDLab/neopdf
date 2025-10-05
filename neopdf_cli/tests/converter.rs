@@ -71,7 +71,6 @@ fn convert_lhapdf() {
         .args([
             "write",
             "convert",
-            "--pdf-name",
             "NNPDF40_nnlo_as_01180",
             "--output",
             output.path().to_str().unwrap(),
@@ -84,7 +83,6 @@ fn convert_lhapdf() {
         .args([
             "compute",
             "xfx_q2",
-            "--pdf-name",
             output.path().to_str().unwrap(),
             "--member",
             "0",
@@ -114,12 +112,7 @@ fn convert_lhapdf() {
 
     Command::cargo_bin("neopdf")
         .unwrap()
-        .args([
-            "read",
-            "metadata",
-            "--pdf-name",
-            output.path().to_str().unwrap(),
-        ])
+        .args(["read", "metadata", output.path().to_str().unwrap()])
         .assert()
         .success()
         .stdout(MODIFIED_METADATA);
@@ -157,7 +150,6 @@ fn combine_nuclear_pdfs() {
         .args([
             "compute",
             "xfx_q2",
-            "--pdf-name",
             output.path().to_str().unwrap(),
             "--member",
             "10",
@@ -204,7 +196,6 @@ fn combine_alphas_pdfs() {
         .args([
             "compute",
             "xfx_q2",
-            "--pdf-name",
             output.path().to_str().unwrap(),
             "--member",
             "10",
@@ -288,12 +279,7 @@ number_flavors = 4
 
     Command::cargo_bin("neopdf")
         .unwrap()
-        .args([
-            "read",
-            "metadata",
-            "--pdf-name",
-            output.path().to_str().unwrap(),
-        ])
+        .args(["read", "metadata", output.path().to_str().unwrap()])
         .assert()
         .success()
         .stdout(predicates::str::contains("MAP22 TMDs"));

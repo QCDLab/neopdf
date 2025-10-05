@@ -34,7 +34,6 @@ fn xfxq2_lhapdf() {
         .args([
             "compute",
             "xfx_q2",
-            "--pdf-name",
             "NNPDF40_nnlo_as_01180",
             "--member",
             "0",
@@ -55,7 +54,6 @@ fn xfxq2_neopdf() {
         .args([
             "compute",
             "xfx_q2",
-            "--pdf-name",
             "NNPDF40_nnlo_as_01180.neopdf.lz4",
             "--member",
             "0",
@@ -76,7 +74,6 @@ fn xfxq2_neopdf_combined_npdfs() {
         .args([
             "compute",
             "xfx_q2",
-            "--pdf-name",
             "nNNPDF30_nlo_as_0118.neopdf.lz4",
             "--member",
             "0",
@@ -98,7 +95,6 @@ fn xfxq2_neopdf_combined_npdfs_interpolation() {
         .args([
             "compute",
             "xfx_q2",
-            "--pdf-name",
             "nNNPDF30_nlo_as_0118.neopdf.lz4",
             "--member",
             "0",
@@ -120,7 +116,6 @@ fn alphasq2_lhapdf() {
         .args([
             "compute",
             "alphas_q2",
-            "--pdf-name",
             "NNPDF40_nnlo_as_01180",
             "--member",
             "0",
@@ -139,7 +134,6 @@ fn alphasq2_neopdf() {
         .args([
             "compute",
             "alphas_q2",
-            "--pdf-name",
             "NNPDF40_nnlo_as_01180.neopdf.lz4",
             "--member",
             "0",
@@ -159,7 +153,6 @@ fn xfxq2_kt_tmdlib() {
         .args([
             "compute",
             "xfx_q2_kt",
-            "--pdf-name",
             "MAP22_grids_FF_Km_N3LL",
             "--member",
             "0",
@@ -182,7 +175,6 @@ fn xfxq2_kt_neopdf_tmdlib() {
         .args([
             "compute",
             "xfx_q2",
-            "--pdf-name",
             "MAP22_grids_FF_Km_N3LL.neopdf.lz4",
             "--member",
             "0",

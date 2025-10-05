@@ -25,7 +25,7 @@ feature.
 To read the metadata for a given PDF set:
 
 ```bash
-neopdf read metadata --pdf-name NNPDF40_nnlo_as_01180
+neopdf read metadata NNPDF40_nnlo_as_01180
 ```
 
 - `--pdf-name`: Name of the PDF set (can be a `NeoPDF` or `LHAPDF` set).
@@ -54,7 +54,7 @@ Interpolator Type: LogBicubic
 To get the number of subgrids a PDF contains:
 
 ```bash
-neopdf read num_subgrids --pdf-name NNPDF40_nnlo_as_01180
+neopdf read num_subgrids NNPDF40_nnlo_as_01180
 ```
 
 - `--pdf-name`: Name of the PDF set.
@@ -64,7 +64,7 @@ neopdf read num_subgrids --pdf-name NNPDF40_nnlo_as_01180
 To get the knot values for a given subgrid:
 
 ```bash
-neopdf read subgrid-info --pdf-name NNPDF40_nnlo_as_01180 --member=0 --subgrid-index=1
+neopdf read subgrid-info NNPDF40_nnlo_as_01180 --member=0 --subgrid-index=1
 ```
 
 - `--pdf-name`: Name of the PDF set.
@@ -109,7 +109,7 @@ neopdf write metadata --path NNPDF40_nnlo_as_01180.neopdf.lz4 --key SetType --va
 To compute the interpolated function $xf(x, Q^2)$ for a given PDF set, member, and flavor:
 
 ```bash
-neopdf compute xfx_q2 --pdf-name NNPDF40_nnlo_as_01180 --member=0 --pid=21 1e-3 10.0
+neopdf compute xfx_q2 NNPDF40_nnlo_as_01180 --member=0 --pid=21 1e-3 10.0
 ```
 
 - `--pdf-name`: Name of the PDF set (can be a `NeoPDF` or `LHAPDF` set).
@@ -131,7 +131,7 @@ neopdf compute xfx_q2 --pdf-name NNPDF40_nnlo_as_01180 --member=0 --pid=21 1e-3 
 To compute the strong coupling constant $\alpha_s(Q^2)$ for a given PDF set and member:
 
 ```bash
-neopdf compute alphas_q2 --pdf-name NNPDF40_nnlo_as_01180 --member=0 --q2=10
+neopdf compute alphas_q2 NNPDF40_nnlo_as_01180 --member=0 --q2=10
 ```
 
 - `--q2`: The $Q^2$ value at which to evaluate $\alpha_s$.
@@ -145,7 +145,7 @@ neopdf compute alphas_q2 --pdf-name NNPDF40_nnlo_as_01180 --member=0 --q2=10
 To convert a standard LHAPDF set into the new, compressed `NeoPDF` format:
 
 ```bash
-neopdf write convert --pdf-name NNPDF40_nnlo_as_01180 --output NNPDF40_nnlo_as_01180.neopdf.lz4
+neopdf write convert NNPDF40_nnlo_as_01180 --output NNPDF40_nnlo_as_01180.neopdf.lz4
 ```
 
 - `--output`: The output file name for the `NeoPDF` grid (should end with `.neopdf.lz4`).
@@ -197,7 +197,7 @@ This will generate a `nNNPDF30_nlo_as_0118.neopdf.lz4` PDF grid that also contai
 dependence. One can now check the value of $xf(A, x, Q^2)$ for the Iron $^{56}_{26}\mathrm{Fe}$:
 
 ```bash
-neopdf compute xfx_q2 --pdf-name nNNPDF30_nlo_as_0118.neopdf.lz4 --member=0 --pid=21 56 1e-3 10.0
+neopdf compute xfx_q2 nNNPDF30_nlo_as_0118.neopdf.lz4 --member=0 --pid=21 56 1e-3 10.0
 ```
 
 ### Combine multiple  $\alpha_s$ LHAPDF sets
@@ -225,7 +225,7 @@ Note that the names of the PDF sets can be passed via the command line using the
 `--pdf--name`. We can then interpolate the $\alpha_s = 0.1180$ value:
 
 ```bash
-neopdf compute xfx_q2 --pdf-name NNPDF40_nnlo.neopdf.lz4 --member=0 --pid=21 0.1180 1e-3 10.0
+neopdf compute xfx_q2 NNPDF40_nnlo.neopdf.lz4 --member=0 --pid=21 0.1180 1e-3 10.0
 ```
 
 !!! danger "Warning"
@@ -257,7 +257,7 @@ multiple subgrids (as we have seen before using the `subgrid-info` command), it 
 first how many subgrids a given set member contains.
 
 ```bash
-> neopdf read num_subgrids --pdf-name NNPDF40_nnlo_as_01180.neopdf.lz4
+> neopdf read num_subgrids NNPDF40_nnlo_as_01180.neopdf.lz4
 
 2
 ```
@@ -265,7 +265,7 @@ first how many subgrids a given set member contains.
 We can look at the contents of the first subgrid for the **gluon** PDF:
 
 ```bash
-> neopdf read subgrid --pdf-name NNPDF40_nnlo_as_01180.neopdf.lz4 --member=0 --subgrid-index=0 --pid=21
+> neopdf read subgrid NNPDF40_nnlo_as_01180.neopdf.lz4 --member=0 --subgrid-index=0 --pid=21
 
   [x | Q2]   2.72250e0   3.19494e0   3.77488e0   4.49175e0   5.38430e0   6.50400e0   7.91974e0
 1.00000e-9  1.48441e-1  -1.47266e0  -3.42816e0  -5.57841e0  -7.73893e0  -9.65268e0  -1.10375e1

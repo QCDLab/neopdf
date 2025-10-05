@@ -36,7 +36,6 @@ pub enum ReadCommands {
 #[derive(Args, Clone)]
 pub struct MetadataArgs {
     /// Name of the PDF set (LHAPDF or `NeoPDF` file)
-    #[arg(short, long)]
     pub pdf_name: String,
 }
 
@@ -44,7 +43,6 @@ pub struct MetadataArgs {
 #[derive(Args, Clone)]
 pub struct PdfNameArgs {
     /// Name of the PDF set (LHAPDF or `NeoPDF` file)
-    #[arg(short, long)]
     pub pdf_name: String,
 }
 
@@ -52,7 +50,6 @@ pub struct PdfNameArgs {
 #[derive(Args, Clone)]
 pub struct SubgridInfoArgs {
     /// Name of the PDF set (LHAPDF or `NeoPDF` file)
-    #[arg(short, long)]
     pub pdf_name: String,
     /// Member index (0-based)
     #[arg(short, long)]
@@ -66,7 +63,6 @@ pub struct SubgridInfoArgs {
 #[derive(Args, Clone)]
 pub struct SubgridArgs {
     /// Name of the PDF set (LHAPDF or `NeoPDF` file)
-    #[arg(short, long)]
     pub pdf_name: String,
     /// Member index (0-based)
     #[arg(short, long, default_value_t = 0)]

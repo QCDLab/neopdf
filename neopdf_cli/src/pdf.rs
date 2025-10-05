@@ -33,7 +33,6 @@ pub enum PdfCommands {
 #[derive(Args, Clone)]
 pub struct XfxQ2Args {
     /// Name of the PDF set (`LHAPDF` or `NeoPDF` file)
-    #[arg(short, long)]
     pub pdf_name: String,
     /// Member index (0-based)
     #[arg(short, long)]
@@ -50,7 +49,6 @@ pub struct XfxQ2Args {
 #[derive(Args, Clone)]
 pub struct AlphasQ2Args {
     /// Name of the PDF set (LHAPDF or `NeoPDF` file)
-    #[arg(short, long)]
     pub pdf_name: String,
     /// Member index (0-based)
     #[arg(short, long)]
@@ -65,7 +63,6 @@ pub struct AlphasQ2Args {
 #[derive(Args, Clone)]
 pub struct XfxQ2KtArgs {
     /// Name of the TMD PDF set
-    #[arg(short, long)]
     pub pdf_name: String,
     /// Member index (0-based)
     #[arg(short, long)]

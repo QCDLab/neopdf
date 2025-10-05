@@ -9,7 +9,6 @@ use neopdf::manage::{ManageData, PdfSetFormat};
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
     /// Name of the PDF set to install (e.g. `NNPDF40_nnlo_as_01180`)
-    #[arg(short, long)]
     pub pdf_name: String,
 }
 

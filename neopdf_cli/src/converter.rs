@@ -25,7 +25,6 @@ pub enum Commands {
     /// Convert a single LHAPDF set to `NeoPDF` format.
     Convert {
         /// Name of the LHAPDF set (e.g. `NNPDF40_nnlo_as_01180`)
-        #[arg(short, long)]
         pdf_name: String,
         /// Output path for the `NeoPDF` file.
         #[arg(short, long)]

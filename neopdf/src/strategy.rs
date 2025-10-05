@@ -77,32 +77,26 @@ where
     ) -> Result<f64, InterpolateError> {
         let [x, y] = *point;
 
-        // Get the coordinate arrays and data values
         let x_coords = data.grid[0].as_slice().unwrap();
         let y_coords = data.grid[1].as_slice().unwrap();
         let values = &data.values;
 
-        // Find the indices for interpolation
         let x_idx = utils::find_interval_index(x_coords, x)?;
         let y_idx = utils::find_interval_index(y_coords, y)?;
 
-        // Get the four corner points
         let x1 = x_coords[x_idx];
         let x2 = x_coords[x_idx + 1];
         let y1 = y_coords[y_idx];
         let y2 = y_coords[y_idx + 1];
 
-        // Get the four corner values
         let q11 = values[[x_idx, y_idx]]; // f(x1, y1)
         let q12 = values[[x_idx, y_idx + 1]]; // f(x1, y2)
         let q21 = values[[x_idx + 1, y_idx]]; // f(x2, y1)
         let q22 = values[[x_idx + 1, y_idx + 1]]; // f(x2, y2)
 
-        // Perform bilinear interpolation
         let r1 = Self::linear_interpolate(x1, x2, q11, q21, x);
         let r2 = Self::linear_interpolate(x1, x2, q12, q22, x);
 
-        // Then interpolate in y-direction
         let result = Self::linear_interpolate(y1, y2, r1, r2, y);
 
         Ok(result)
@@ -157,32 +151,26 @@ where
     ) -> Result<f64, InterpolateError> {
         let [x, y] = *point;
 
-        // Get the coordinate arrays and data values
         let x_coords = data.grid[0].as_slice().unwrap();
         let y_coords = data.grid[1].as_slice().unwrap();
         let values = &data.values;
 
-        // Find the indices for interpolation
         let x_idx = utils::find_interval_index(x_coords, x)?;
         let y_idx = utils::find_interval_index(y_coords, y)?;
 
-        // Get the four corner points
         let x1 = x_coords[x_idx];
         let x2 = x_coords[x_idx + 1];
         let y1 = y_coords[y_idx];
         let y2 = y_coords[y_idx + 1];
 
-        // Get the four corner values
         let q11 = values[[x_idx, y_idx]]; // f(x1, y1)
         let q12 = values[[x_idx, y_idx + 1]]; // f(x1, y2)
         let q21 = values[[x_idx + 1, y_idx]]; // f(x2, y1)
         let q22 = values[[x_idx + 1, y_idx + 1]]; // f(x2, y2)
 
-        // Perform bilinear interpolation
         let r1 = BilinearInterpolation::linear_interpolate(x1, x2, q11, q21, x);
         let r2 = BilinearInterpolation::linear_interpolate(x1, x2, q12, q22, x);
 
-        // Then interpolate in y-direction
         let result = BilinearInterpolation::linear_interpolate(y1, y2, r1, r2, y);
 
         Ok(result)
@@ -326,7 +314,6 @@ impl LogBicubicInterpolation {
     {
         let nq2knots = data.grid[1].len();
 
-        // Get the coefficients for the current cell (x-interpolation)
         let base_idx_vl = (ix * nq2knots + iq2) * 4;
         let coeffs_vl: [f64; 4] = self.coeffs[base_idx_vl..base_idx_vl + 4]
             .try_into()
@@ -339,7 +326,6 @@ impl LogBicubicInterpolation {
             .unwrap();
         let vh = Self::hermite_cubic_interpolate_from_coeffs(u, &coeffs_vh);
 
-        // Derivatives in Q2 (y-interpolation)
         let q2_grid: &[f64] = data.grid[1].as_slice().unwrap();
 
         let dq_1 = q2_grid[iq2 + 1] - q2_grid[iq2];
@@ -348,9 +334,7 @@ impl LogBicubicInterpolation {
         let vdh: f64;
 
         if iq2 == 0 {
-            // Forward difference for lower q
             vdl = vh - vl;
-            // Central difference for higher q
             let vhh_base_idx = (ix * nq2knots + iq2 + 2) * 4;
             let coeffs_vhh: [f64; 4] = self.coeffs[vhh_base_idx..vhh_base_idx + 4]
                 .try_into()
@@ -359,9 +343,7 @@ impl LogBicubicInterpolation {
             let dq_2 = 1.0 / (q2_grid[iq2 + 2] - q2_grid[iq2 + 1]);
             vdh = (vdl + (vhh - vh) * dq_1 * dq_2) * 0.5;
         } else if iq2 == nq2knots - 2 {
-            // Backward difference for higher q
             vdh = vh - vl;
-            // Central difference for lower q
             let vll_base_idx = (ix * nq2knots + iq2 - 1) * 4;
             let coeffs_vll: [f64; 4] = self.coeffs[vll_base_idx..vll_base_idx + 4]
                 .try_into()
@@ -370,7 +352,6 @@ impl LogBicubicInterpolation {
             let dq_0 = 1.0 / (q2_grid[iq2] - q2_grid[iq2 - 1]);
             vdl = (vdh + (vl - vll) * dq_1 * dq_0) * 0.5;
         } else {
-            // Central difference for both q
             let vll_base_idx = (ix * nq2knots + iq2 - 1) * 4;
             let coeffs_vll: [f64; 4] = self.coeffs[vll_base_idx..vll_base_idx + 4]
                 .try_into()
@@ -398,11 +379,9 @@ where
     D: Data<Elem = f64> + RawDataClone + Clone,
 {
     fn init(&mut self, data: &InterpData2D<D>) -> Result<(), ValidateError> {
-        // Get the coordinate arrays and data values
         let x_coords = data.grid[0].as_slice().unwrap();
         let y_coords = data.grid[1].as_slice().unwrap();
 
-        // Check that we have at least 4x4 grid for bicubic interpolation
         if x_coords.len() < 4 || y_coords.len() < 4 {
             return Err(ValidateError::Other(
                 "Need at least 4x4 grid for bicubic interpolation".to_string(),
@@ -420,15 +399,12 @@ where
     ) -> Result<f64, InterpolateError> {
         let [x, y] = *point;
 
-        // Get the coordinate arrays and data values
         let x_coords = data.grid[0].as_slice().unwrap();
         let y_coords = data.grid[1].as_slice().unwrap();
 
-        // Find the grid cell containing the point
         let i = Self::find_bicubic_interval(x_coords, x)?;
         let j = Self::find_bicubic_interval(y_coords, y)?;
 
-        // Normalize coordinates to [0,1] within the central cell
         let dx = x_coords[i + 1] - x_coords[i];
         let dy = y_coords[j + 1] - y_coords[j];
 
@@ -439,7 +415,6 @@ where
         let u = (x - x_coords[i]) / dx;
         let v = (y - y_coords[j]) / dy;
 
-        // Perform bicubic interpolation using pre-computed coefficients
         let result = self.interpolate_with_coeffs(data, i, j, u, v);
 
         Ok(result)
@@ -464,8 +439,7 @@ where
 pub struct LogTricubicInterpolation;
 
 impl LogTricubicInterpolation {
-    /// Find the interval for tricubic interpolation
-    /// Returns the index i such that we can use points [i-1, i, i+1, i+2] for interpolation
+    /// Returns the index i such that we can use points [i-1, i, i+1, i+2] for interpolation.
     fn find_tricubic_interval(coords: &[f64], x: f64) -> Result<usize, InterpolateError> {
         // Find the interval [i, i+1] such that coords[i] <= x < coords[i+1]
         let i = utils::find_interval_index(coords, x)?;
@@ -590,13 +564,11 @@ impl LogTricubicInterpolation {
         let (u, v, w) = coords;
         let (dx, dy, dz) = derivatives;
 
-        // Helper closures for cleaner indexing
         let get = |dx, dy, dz| data.values[[ix + dx, iq2 + dy, iz + dz]];
         let ddx = |dx, dy, dz| Self::calculate_ddx(data, ix + dx, iq2 + dy, iz + dz);
         let ddy = |dx, dy, dz| Self::calculate_ddy(data, ix + dx, iq2 + dy, iz + dz);
         let ddz = |dx, dy, dz| Self::calculate_ddz(data, ix + dx, iq2 + dy, iz + dz);
 
-        // Step 1: X-interpolation for each (y, z) pair
         let interp_y: [[f64; 2]; 4] = [0, 1]
             .iter()
             .flat_map(|&y_offset| {
@@ -621,7 +593,6 @@ impl LogTricubicInterpolation {
             .try_into()
             .unwrap();
 
-        // Step 2: Y-interpolation for each z
         let interp_z: [[f64; 2]; 2] = [0, 1]
             .iter()
             .enumerate()
@@ -645,7 +616,6 @@ impl LogTricubicInterpolation {
             .try_into()
             .unwrap();
 
-        // Step 3: Z-interpolation
         let (f0, f1) = (interp_z[0][0], interp_z[1][0]);
         let (d0, d1) = (interp_z[0][1], interp_z[1][1]);
         Self::cubic_interpolate(w, f0, d0, f1, d1)
@@ -671,20 +641,18 @@ where
     D: Data<Elem = f64> + RawDataClone + Clone,
 {
     fn init(&mut self, data: &InterpData3D<D>) -> Result<(), ValidateError> {
-        // Get the coordinate arrays
         let x_coords = data.grid[0].as_slice().unwrap();
         let y_coords = data.grid[1].as_slice().unwrap();
         let z_coords = data.grid[2].as_slice().unwrap();
 
-        // Check that we have at least 4x4x4 grid for tricubic interpolation
         if x_coords.len() < 4 || y_coords.len() < 4 || z_coords.len() < 4 {
             return Err(ValidateError::Other(
                 "Need at least 4x4x4 grid for tricubic interpolation".to_string(),
             ));
         }
 
-        // Use the Hermite approach instead of coefficient precomputation
-        // This is more straightforward and avoids the complex 64x64 matrix
+        // Uses the Hermite approach instead of coefficient precomputation.
+        // This is more straightforward and avoids the complex 64x64 matrix.
         Ok(())
     }
 
@@ -695,17 +663,14 @@ where
     ) -> Result<f64, InterpolateError> {
         let [x, y, z] = *point;
 
-        // Get the coordinate arrays
         let x_coords = data.grid[0].as_slice().unwrap();
         let y_coords = data.grid[1].as_slice().unwrap();
         let z_coords = data.grid[2].as_slice().unwrap();
 
-        // Find the grid cell containing the point
         let i = Self::find_tricubic_interval(x_coords, x)?;
         let j = Self::find_tricubic_interval(y_coords, y)?;
         let k = Self::find_tricubic_interval(z_coords, z)?;
 
-        // Normalize coordinates to [0,1] within the cell
         let dx = x_coords[i + 1] - x_coords[i];
         let dy = y_coords[j + 1] - y_coords[j];
         let dz = z_coords[k + 1] - z_coords[k];
@@ -718,7 +683,6 @@ where
         let v = (y - y_coords[j]) / dy;
         let w = (z - z_coords[k]) / dz;
 
-        // Use the corrected Hermite tricubic interpolation
         let result = self.hermite_tricubic_interpolate(data, (i, j, k), (u, v, w), (dx, dy, dz));
 
         Ok(result)
@@ -745,7 +709,6 @@ impl AlphaSCubicInterpolation {
         D: Data<Elem = f64> + RawDataClone + Clone,
     {
         let logq2s = data.grid[0].as_slice().unwrap();
-        // Test that Q2 is in the grid range
         if logq2 < *logq2s.first().unwrap() {
             panic!(
                 "Q2 value {} is lower than lowest-Q2 grid point at {}",
@@ -761,7 +724,6 @@ impl AlphaSCubicInterpolation {
             );
         }
 
-        // Find the closest knot below the requested value
         let idx = logq2s.partition_point(|&x| x < logq2);
 
         if idx == logq2s.len() {
@@ -959,7 +921,6 @@ impl<const DIM: usize> LogChebyshevInterpolation<DIM> {
 
         for (j, &t_j) in t_coords.iter().enumerate() {
             if (t - t_j).abs() < 1e-15 {
-                // t is exactly at grid point j - return unit vector
                 coeffs[j] = 1.0;
                 return coeffs;
             }
@@ -1481,7 +1442,6 @@ mod tests {
     use ninterp::strategy::Linear;
     use std::f64::consts::PI;
 
-    // Helper constants for commonly used values
     const EPSILON: f64 = 1e-9;
 
     fn assert_close(actual: f64, expected: f64, tolerance: f64) {
@@ -1494,14 +1454,12 @@ mod tests {
         );
     }
 
-    // Create the target test data in 2D by multiplying the indices.
     fn create_target_data_2d(max_num: i32) -> Vec<f64> {
         (1..=max_num)
             .flat_map(|i| (1..=max_num).map(move |j| (i * j) as f64))
             .collect()
     }
 
-    // Create a logarithmically spaced vector of floating numbers.
     fn create_logspaced(start: f64, stop: f64, n: usize) -> Vec<f64> {
         (0..n)
             .map(|value| {
@@ -1511,7 +1469,6 @@ mod tests {
             .collect()
     }
 
-    // Create an instance of `create_test_data_1d` for 1-dimensional interpolations.
     fn create_test_data_1d(
         q2_values: Vec<f64>,
         alphas_vals: Vec<f64>,
@@ -1519,7 +1476,6 @@ mod tests {
         InterpData1D::new(Array1::from(q2_values), Array1::from(alphas_vals)).unwrap()
     }
 
-    // Create an instance of `create_test_data_2d` for 2-dimensional interpolations.
     fn create_test_data_2d(
         x_coords: Vec<f64>,
         y_coords: Vec<f64>,
@@ -1530,7 +1486,6 @@ mod tests {
         InterpData2D::new(x_coords.into(), y_coords.into(), values_array).unwrap()
     }
 
-    // Create an instance of `create_test_data_3d` for 3-dimensional interpolations.
     fn create_test_data_3d(
         x_coords: Vec<f64>,
         y_coords: Vec<f64>,
@@ -1548,7 +1503,6 @@ mod tests {
         .unwrap()
     }
 
-    // Create an instance of `create_chebyshev_grid` for 2- and 3-dimensional interpolations.
     fn create_cheby_grid(n_points: i32, x_min: f64, x_max: f64) -> Vec<f64> {
         let u_min = x_min.ln();
         let u_max = x_max.ln();
@@ -1631,7 +1585,6 @@ mod tests {
             .map(|((&a, &b), &c)| a * b * c)
             .collect();
 
-        // We need to logarithmically scale the data for `exponential-like curves`
         let values_ln: Vec<f64> = values.iter().map(|val| val.ln()).collect();
         let interp_data_ln = create_test_data_3d(
             x_coords.iter().map(|v| v.ln()).collect(),
@@ -1640,7 +1593,6 @@ mod tests {
             values_ln.clone(),
         );
 
-        // Initi the interpolation strategy.
         let mut strategy = LogTricubicInterpolation;
         strategy.init(&interp_data_ln).unwrap();
 
@@ -1653,7 +1605,6 @@ mod tests {
             .exp();
         assert_close(result, expected, EPSILON);
 
-        // Compare to general ND interpolation
         let interp_data_arr =
             Array3::from_shape_vec((x_coords.len(), y_coords.len(), z_coords.len()), values)
                 .unwrap();
@@ -1770,7 +1721,6 @@ mod tests {
             vec![0.1, 0.2, 0.3, 0.4],
         );
 
-        // Forward derivative
         let expected_forward = 0.1 / (2.0f64.ln() - 1.0f64.ln());
         assert_close(
             AlphaSCubicInterpolation::ddlogq_forward(&data, 0),
@@ -1778,7 +1728,6 @@ mod tests {
             EPSILON,
         );
 
-        // Backward derivative
         let expected_backward = 0.1 / (2.0f64.ln() - 1.0f64.ln());
         assert_close(
             AlphaSCubicInterpolation::ddlogq_backward(&data, 1),
@@ -1786,7 +1735,6 @@ mod tests {
             EPSILON,
         );
 
-        // Central derivative
         let expected_central =
             0.5 * (0.1 / (3.0f64.ln() - 2.0f64.ln()) + 0.1 / (2.0f64.ln() - 1.0f64.ln()));
         assert_close(
@@ -1824,7 +1772,6 @@ mod tests {
             );
         }
 
-        // Test edge cases with different data sizes
         let data_small = create_test_data_1d(vec![1.0f64.ln(), 2.0f64.ln()], vec![0.1, 0.2]);
         assert_eq!(
             AlphaSCubicInterpolation::ilogq2below(&data_small, 2.0f64.ln()),
@@ -1840,7 +1787,6 @@ mod tests {
             1
         );
 
-        // Test panic conditions
         let data_single = create_test_data_1d(vec![1.0f64.ln()], vec![0.1]);
 
         let result = std::panic::catch_unwind(|| {

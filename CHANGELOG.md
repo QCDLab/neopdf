@@ -36,6 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Return zero if PID is not in the Grid (https://github.com/QCDLab/neopdf/pull/78).
+- Changed the passing of the name of the PDF as a positional argument in the
+  CLI (https://github.com/QCDLab/neopdf/pull/78).
 - Move the computation of the logarithmic transformation out of the interpolation.
 - Modified `GridArray::find_subgrid` to accept more combinations of variables
   so that the construction of subgrids is generic.

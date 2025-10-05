@@ -19,6 +19,7 @@ classifiers = [
 ]
 dependencies = ["numpy>=1.16.0"]
 dynamic = ["version"]
+readme = "README.md"
 
 [project.optional-dependencies]
 test = ["pytest", "pytest-cov"]

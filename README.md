@@ -22,9 +22,9 @@
         src="https://img.shields.io/pypi/v/neopdf-hep?style=for-the-badge&logo=python&logoColor=yellow&color=%1d881d"
         height="22"
     /></a>
-    <a href="https://github.com/Radonirinaunimi/neopdf?tab=GPL-3.0-1-ov-file"><img
+    <a href="https://github.com/qcdlab/neopdf?tab=GPL-3.0-1-ov-file"><img
         alt="GitHub License"
-        src="https://img.shields.io/github/license/Radonirinaunimi/neopdf?style=for-the-badge&logo=gplv3&logoColor=red"
+        src="https://img.shields.io/github/license/qcdlab/neopdf?style=for-the-badge&logo=gplv3&logoColor=red"
         height="22"
     /></a>
 </div>
@@ -62,9 +62,9 @@
 
 ## Quick Links
 
-- [Documentation](https://radonirinaunimi.github.io/neopdf/) | [Rust Crate Documentation](https://docs.rs/neopdf/0.1.1/neopdf/) | [C++ API Reference](https://neopdf.readthedocs.io/en/latest/)
-- [Installation](https://radonirinaunimi.github.io/neopdf/installation/)
-- [Physics and technical features](https://radonirinaunimi.github.io/neopdf/design-and-features/)
-- [NeoPDF Design](https://radonirinaunimi.github.io/neopdf/design/)
-- [CLI tutorials](https://radonirinaunimi.github.io/neopdf/cli-tutorials/)
-- [Tutorials and examples](https://radonirinaunimi.github.io/neopdf/examples/python/)
+- [Documentation](https://qcdlab.github.io/neopdf/) | [Rust Crate Documentation](https://docs.rs/neopdf/0.1.1/neopdf/) | [C++ API Reference](https://neopdf.readthedocs.io/en/latest/)
+- [Installation](https://qcdlab.github.io/neopdf/installation/)
+- [Physics and technical features](https://qcdlab.github.io/neopdf/design-and-features/)
+- [NeoPDF Design](https://qcdlab.github.io/neopdf/design/)
+- [CLI tutorials](https://qcdlab.github.io/neopdf/cli-tutorials/)
+- [Tutorials and examples](https://qcdlab.github.io/neopdf/examples/neopdf-pyapi/)

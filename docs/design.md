@@ -64,7 +64,7 @@ by half the size of a given LHAPDF PDF set:
 | PDF4LHC21          | 40          | 31 MB         | 16 MB  |
 | NNPDF4.0 NNLO      | 100         | 158 MB        | 85 MB  |
 | NNPDF4.0 NNLO      | 1000        | 1.55 GB       | 830 MB |
-| Combined nNNPDF3.0 | 200         | -             | 1.43 GB|
+| Combined nNNPDF3.0 | 19*200      | 19*160 MB     | 1.43 GB|
 | MAP22 FF @N3LL     | 250         | 2.50 GB       | 950 MB |
 
 !!! info "Note"

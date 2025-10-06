@@ -281,7 +281,7 @@ impl SubGrid {
     /// # Panics
     ///
     /// Panics if called on a subgrid that is not 2D.
-    pub fn grid_slice(&self, pid_index: usize) -> ArrayView2<f64> {
+    pub fn grid_slice(&self, pid_index: usize) -> ArrayView2<'_, f64> {
         match self.interpolation_config() {
             InterpolationConfig::TwoD => self.grid.slice(s![0, 0, pid_index, 0, .., ..]),
             _ => panic!("grid_slice only valid for 2D interpolation"),

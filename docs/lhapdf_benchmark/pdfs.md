@@ -11,11 +11,12 @@ that the results are **exactly** the same, otherwise it is flagged as failed ❌
 
         The failures in the computations of $xf_i (x, Q^2)$ are not genuine and the failed
         runs need to be re-generated in order for them to succeed. For instance, the
-        `Items are not equal` error is a result of how negative values are addressed. The
-        `NeoPDF` runs used `ForcePositive::ClipSmall` to clip negative values to `1e-10`
-        and upon using `ForcePositive::NoClipping` the results will be the same. Similarly,
-        the error `Process failed: thread` is because, for some reasons, the sets were not
-        available due to failures in downloading them.
+        `Items are not equal` error is a result of how negative values are addressed. For
+        these PDF sets, negative values in `LHAPDF` are clipped to zero as harcoded in the
+        metadata `ForcePositive: 1` while `NeoPDF` uses by default `ForcePositive::NoClipping`
+        unless `ForcePositive::ClipNegative` is enforced. Upon doing so, the results will be
+        exactly the same. Similarly, the error `Process failed: thread` is because, for some
+        reasons, the sets were not available due to failures in downloading them.
 
     | PDF Set | Benchmark | Error Details |
     |---------|----------|---------------|

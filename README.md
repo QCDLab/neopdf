@@ -68,3 +68,6 @@
 - [NeoPDF Design](https://qcdlab.github.io/neopdf/design/)
 - [CLI tutorials](https://qcdlab.github.io/neopdf/cli-tutorials/)
 - [Tutorials and examples](https://qcdlab.github.io/neopdf/examples/neopdf-pyapi/)
+
+> [!NOTE]
+> As of v0.2.0, NeoPDF is stable and will fully maintain backward compatibility.

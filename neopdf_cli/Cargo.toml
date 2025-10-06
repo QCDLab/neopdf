@@ -20,7 +20,7 @@ clap.workspace = true
 ndarray.workspace = true
 neopdf.workspace = true
 terminal_size.workspace = true
-neopdf_tmdlib = { path = "../neopdf_tmdlib", version = "0.2.0-alpha9", optional = true }
+neopdf_tmdlib = { path = "../neopdf_tmdlib", version = "0.2.0", optional = true }
 toml = { version = "0.8", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 

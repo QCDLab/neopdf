@@ -1363,7 +1363,7 @@ dependencies = [
 
 [[package]]
 name = "neopdf"
-version = "0.2.0-alpha9"
+version = "0.2.0"
 dependencies = [
  "bincode",
  "criterion",
@@ -1386,7 +1386,7 @@ dependencies = [
 
 [[package]]
 name = "neopdf_capi"
-version = "0.2.0-alpha9"
+version = "0.2.0"
 dependencies = [
  "cbindgen",
  "ndarray",
@@ -1395,7 +1395,7 @@ dependencies = [
 
 [[package]]
 name = "neopdf_cli"
-version = "0.2.0-alpha9"
+version = "0.2.0"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -1412,7 +1412,7 @@ dependencies = [
 
 [[package]]
 name = "neopdf_pyapi"
-version = "0.2.0-alpha9"
+version = "0.2.0"
 dependencies = [
  "ndarray",
  "neopdf",
@@ -1423,7 +1423,7 @@ dependencies = [
 
 [[package]]
 name = "neopdf_tmdlib"
-version = "0.2.0-alpha9"
+version = "0.2.0"
 dependencies = [
  "cc",
  "cxx",
@@ -1433,7 +1433,7 @@ dependencies = [
 
 [[package]]
 name = "neopdf_wolfram"
-version = "0.2.0-alpha9"
+version = "0.2.0"
 dependencies = [
  "lazy_static",
  "neopdf",

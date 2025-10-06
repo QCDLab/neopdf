@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 06/10/2025
+
 ### Added
 
 - Added an additional `alpha_s` grid extraction (https://github.com/Radonirinaunimi/neopdf/pull/77).

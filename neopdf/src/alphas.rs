@@ -114,7 +114,7 @@ impl AlphaSAnalytic {
                 if nf == 0 {
                     return Err(Error::NfZeroValueError);
                 }
-                match self.lambda_maps.get(&self.num_fl) {
+                match self.lambda_maps.get(&nf) {
                     Some(lambda_value) => Ok(*lambda_value),
                     None => self.lambda_qcd(nf - 1),
                 }
@@ -202,10 +202,20 @@ pub struct AlphaSInterpol {
 
 impl AlphaSInterpol {
     pub fn from_metadata(meta: &MetaData) -> Result<Self, String> {
-        let q2_values: Vec<f64> = meta.alphas_q_values.iter().map(|&q| (q * q).ln()).collect();
+        let (q_values, alphas_vals): (Vec<_>, Vec<_>) = meta
+            .alphas_q_values
+            .iter()
+            .zip(&meta.alphas_vals)
+            .enumerate()
+            .filter(|(i, (&q, _))| *i == 0 || q != meta.alphas_q_values[i - 1])
+            .map(|(_, (&q, &alpha))| (q, alpha))
+            .unzip();
+
+        let q2_values: Vec<f64> = q_values.iter().map(|&q| (q * q).ln()).collect();
+
         let interpolator = Interp1D::new(
             q2_values.into(),
-            meta.alphas_vals.to_owned().into(),
+            alphas_vals.into(),
             AlphaSCubicInterpolation,
             Extrapolate::Error,
         )

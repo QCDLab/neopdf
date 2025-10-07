@@ -1,0 +1,22 @@
+{
+    "creators": [
+        {
+            "orcid": "0000-0002-8395-8059",
+            "affiliation": "Nikhef",
+            "name": "Rabemananjara, Tanjona"
+        }
+    ],
+
+    "keywords": [
+      "PDF interpolation",
+      "high-energy physics",
+      "rust",
+      "python",
+      "scientific-computing",
+      "open-science",
+      "open-source",
+      "reproducible-research"
+    ],
+
+    "license": "GPL-3.0"
+}

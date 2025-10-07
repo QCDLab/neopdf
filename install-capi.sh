@@ -73,7 +73,7 @@ cd - >/dev/null
 
 # if no version is given, use the latest version
 if [ -z "${version}" ]; then
-    version=$(curl -s https://api.github.com/repos/Radonirinaunimi/neopdf/releases/latest | \
+    version=$(curl -s https://api.github.com/repos/qcdlab/neopdf/releases/latest | \
         sed -n 's/[ ]*"tag_name"[ ]*:[ ]*"v\([^"]*\)"[ ]*,[ ]*$/\1/p')
 fi
 

@@ -69,5 +69,13 @@
 - [CLI tutorials](https://qcdlab.github.io/neopdf/cli-tutorials/)
 - [Tutorials and examples](https://qcdlab.github.io/neopdf/examples/neopdf-pyapi/)
 
+## Citation
+
+<p align="justify">
+  If you use NeoPDF, please cite the <a href="https://arxiv.org/abs/2510.05079">NeoPDF paper</a>. If you are
+  also using the <a href="https://arxiv.org/abs/2103.09741">TMDlib</a> interface of NeoPDF and/or
+  <a href="https://arxiv.org/abs/1412.7420">LHAPDF</a>, please cite them accordingly.
+</p>
+
 > [!NOTE]
 > As of v0.2.0, NeoPDF (and in particular its APIs) is stable and will fully maintain backward compatibility.

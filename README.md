@@ -72,8 +72,9 @@
 ## Citation
 
 <p align="justify">
-  If you use NeoPDF, please cite the <a href="https://arxiv.org/abs/2510.05079">NeoPDF paper</a>. If you are
-  also using the <a href="https://arxiv.org/abs/2103.09741">TMDlib</a> interface of NeoPDF and/or
+  If you use NeoPDF, please cite the NeoPDF <a href="https://arxiv.org/abs/2510.05079">paper</a> and
+  <a href="https://zenodo.org/records/17286770">code</a>. If you are also using the
+  <a href="https://arxiv.org/abs/2103.09741">TMDlib</a> interface of NeoPDF and/or
   <a href="https://arxiv.org/abs/1412.7420">LHAPDF</a>, please cite them accordingly.
 </p>
 

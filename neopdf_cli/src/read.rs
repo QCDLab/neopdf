@@ -136,14 +136,30 @@ pub fn main(cli: ReadCli) {
             }
             println!();
 
-            let grid_slice = subgrid.grid.slice(s![
-                args.nucleon_index,
-                args.alphas_index,
-                pid_idx,
-                args.kt_index,
-                ..,
-                ..
-            ]);
+            let grid_slice = match &subgrid.grid {
+                neopdf::subgrid::GridData::Grid6D(grid) => {
+                    grid.slice(s![
+                        args.nucleon_index,
+                        args.alphas_index,
+                        pid_idx,
+                        args.kt_index,
+                        ..,
+                        ..
+                    ])
+                }
+                neopdf::subgrid::GridData::Grid7D(grid) => {
+                    grid.slice(s![
+                        args.nucleon_index,
+                        args.alphas_index,
+                        0, // xi_index - default to first
+                        0, // delta_index - default to first
+                        args.kt_index,
+                        pid_idx,
+                        ..,
+                        ..
+                    ])
+                }
+            };
 
             let width = if let Some((Width(w), _)) = terminal_size() {
                 w as usize

@@ -156,6 +156,46 @@ impl MetaDataV2 {
     }
 }
 
+impl std::fmt::Display for MetaDataV2 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "SetDesc: {}", self.set_desc)?;
+        writeln!(f, "SetIndex: {}", self.set_index)?;
+        writeln!(f, "NumMembers: {}", self.num_members)?;
+        writeln!(f, "XMin: {}", self.x_min)?;
+        writeln!(f, "XMax: {}", self.x_max)?;
+        writeln!(f, "QMin: {}", self.q_min)?;
+        writeln!(f, "QMax: {}", self.q_max)?;
+        writeln!(f, "Flavors: {:?}", self.flavors)?;
+        writeln!(f, "Format: {}", self.format)?;
+        writeln!(f, "AlphaS_Qs: {:?}", self.alphas_q_values)?;
+        writeln!(f, "AlphaS_Vals: {:?}", self.alphas_vals)?;
+        writeln!(f, "Polarized: {}", self.polarised)?;
+        writeln!(f, "SetType: {:?}", self.set_type)?;
+        writeln!(f, "InterpolatorType: {:?}", self.interpolator_type)?;
+        writeln!(f, "ErrorType: {}", self.error_type)?;
+        writeln!(f, "Particle: {}", self.hadron_pid)?;
+        writeln!(f, "GitVersion: {}", self.git_version)?;
+        writeln!(f, "CodeVersion: {}", self.code_version)?;
+        writeln!(f, "FlavorScheme: {}", self.flavor_scheme)?;
+        writeln!(f, "OrderQCD: {}", self.order_qcd)?;
+        writeln!(f, "AlphaS_OrderQCD: {}", self.alphas_order_qcd)?;
+        writeln!(f, "MW: {}", self.m_w)?;
+        writeln!(f, "MZ: {}", self.m_z)?;
+        writeln!(f, "MUp: {}", self.m_up)?;
+        writeln!(f, "MDown: {}", self.m_down)?;
+        writeln!(f, "MStrange: {}", self.m_strange)?;
+        writeln!(f, "MCharm: {}", self.m_charm)?;
+        writeln!(f, "MBottom: {}", self.m_bottom)?;
+        writeln!(f, "MTop: {}", self.m_top)?;
+        writeln!(f, "AlphaS_Type: {}", self.alphas_type)?;
+        writeln!(f, "NumFlavors: {}", self.number_flavors)?;
+        writeln!(f, "XiMin: {}", self.xi_min)?;
+        writeln!(f, "XiMax: {}", self.xi_max)?;
+        writeln!(f, "DeltaMin: {}", self.delta_min)?;
+        write!(f, "DeltaMax: {}", self.delta_max)
+    }
+}
+
 /// Main metadata type for v0.2.1+
 /// This is now a simple type alias to MetaDataV2 for the new format.
 /// For backward compatibility with v0.2.0, use the conversion functions.

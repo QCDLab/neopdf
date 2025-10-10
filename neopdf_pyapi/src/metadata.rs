@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 
-use neopdf::metadata::{InterpolatorType, MetaData, MetaDataV1, SetType};
+use neopdf::metadata::{InterpolatorType, MetaData, SetType};
 
 /// The type of the set.
 #[pyclass(eq, eq_int, name = "SetType")]
@@ -46,6 +46,8 @@ pub enum PyInterpolatorType {
     NDLinear,
     /// Chebyshev logarithmic interpolation strategy.
     LogChebyshev,
+    /// Four-dimensional cubic logarithmic interpolation strategy.
+    LogFourCubic,
 }
 
 impl From<&InterpolatorType> for PyInterpolatorType {
@@ -57,6 +59,7 @@ impl From<&InterpolatorType> for PyInterpolatorType {
             InterpolatorType::LogTricubic => Self::LogTricubic,
             InterpolatorType::InterpNDLinear => Self::NDLinear,
             InterpolatorType::LogChebyshev => Self::LogChebyshev,
+            InterpolatorType::LogFourCubic => Self::LogFourCubic,
         }
     }
 }
@@ -70,6 +73,7 @@ impl From<&PyInterpolatorType> for InterpolatorType {
             PyInterpolatorType::LogTricubic => Self::LogTricubic,
             PyInterpolatorType::NDLinear => Self::InterpNDLinear,
             PyInterpolatorType::LogChebyshev => Self::LogChebyshev,
+            PyInterpolatorType::LogFourCubic => Self::LogFourCubic,
         }
     }
 }
@@ -242,45 +246,45 @@ impl PyMetaData {
         hadron_pid: i32,
         phys_params: PyPhysicsParameters,
     ) -> Self {
-        let git_version = String::new();
-        let code_version = String::new();
-
-        let meta_v1 = MetaDataV1 {
-            set_desc,
-            set_index,
-            num_members,
-            x_min,
-            x_max,
-            q_min,
-            q_max,
-            flavors,
-            format,
-            alphas_q_values,
-            alphas_vals,
-            polarised,
-            set_type: SetType::from(&set_type),
-            interpolator_type: InterpolatorType::from(&interpolator_type),
-            error_type,
-            hadron_pid,
-            git_version,  // placeholder to be overwritten
-            code_version, // placeholder to be overwritten
-            flavor_scheme: phys_params.flavor_scheme,
-            order_qcd: phys_params.order_qcd,
-            alphas_order_qcd: phys_params.alphas_order_qcd,
-            m_w: phys_params.m_w,
-            m_z: phys_params.m_z,
-            m_up: phys_params.m_up,
-            m_down: phys_params.m_down,
-            m_strange: phys_params.m_strange,
-            m_charm: phys_params.m_charm,
-            m_bottom: phys_params.m_bottom,
-            m_top: phys_params.m_top,
-            alphas_type: phys_params.alphas_type,
-            number_flavors: phys_params.number_flavors,
-        };
-
         Self {
-            meta: MetaData::new_v1(meta_v1),
+            meta: MetaData {
+                set_desc,
+                set_index,
+                num_members,
+                x_min,
+                x_max,
+                q_min,
+                q_max,
+                flavors,
+                format,
+                alphas_q_values,
+                alphas_vals,
+                polarised,
+                set_type: SetType::from(&set_type),
+                interpolator_type: InterpolatorType::from(&interpolator_type),
+                error_type,
+                hadron_pid,
+                git_version: String::new(),  // placeholder to be overwritten
+                code_version: String::new(), // placeholder to be overwritten
+                flavor_scheme: phys_params.flavor_scheme,
+                order_qcd: phys_params.order_qcd,
+                alphas_order_qcd: phys_params.alphas_order_qcd,
+                m_w: phys_params.m_w,
+                m_z: phys_params.m_z,
+                m_up: phys_params.m_up,
+                m_down: phys_params.m_down,
+                m_strange: phys_params.m_strange,
+                m_charm: phys_params.m_charm,
+                m_bottom: phys_params.m_bottom,
+                m_top: phys_params.m_top,
+                alphas_type: phys_params.alphas_type,
+                number_flavors: phys_params.number_flavors,
+                // New V2 fields with defaults
+                xi_min: 1.0,
+                xi_max: 1.0,
+                delta_min: 0.0,
+                delta_max: 0.0,
+            },
         }
     }
 
@@ -304,6 +308,7 @@ impl PyMetaData {
             InterpolatorType::LogTricubic => "LogTricubic",
             InterpolatorType::InterpNDLinear => "NDLinear",
             InterpolatorType::LogChebyshev => "LogChebyshev",
+            InterpolatorType::LogFourCubic => "LogFourCubic",
         };
 
         dict.set_item("set_desc", &self.meta.set_desc)?;

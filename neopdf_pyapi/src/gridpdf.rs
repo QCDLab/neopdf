@@ -3,7 +3,7 @@ use numpy::{PyArrayMethods, PyReadonlyArray6};
 use pyo3::prelude::*;
 
 use neopdf::gridpdf::GridArray;
-use neopdf::subgrid::{ParamRange, SubGrid};
+use neopdf::subgrid::{GridData, ParamRange, SubGrid};
 
 /// Python wrapper for the `SubGrid` struct.
 #[pyclass(name = "SubGrid")]
@@ -55,11 +55,15 @@ impl PySubGrid {
             xs: Array1::from(xs),
             q2s: Array1::from(q2s),
             kts: Array1::from(kts),
-            grid: grid.to_owned_array(),
+            xis: Array1::from(vec![1.0]), // Default xi values for 6D grids
+            deltas: Array1::from(vec![0.0]), // Default delta values for 6D grids
+            grid: GridData::Grid6D(grid.to_owned_array()),
             nucleons: Array1::from(nucleons),
             alphas: Array1::from(alphas),
             nucleons_range,
             alphas_range,
+            xi_range: ParamRange::new(1.0, 1.0), // Default range for 6D grids
+            delta_range: ParamRange::new(0.0, 0.0), // Default range for 6D grids
             kt_range,
             x_range,
             q2_range,
@@ -104,7 +108,14 @@ impl PySubGrid {
     /// Returns the shape of the subgrid
     #[must_use]
     pub fn grid_shape(&self) -> (usize, usize, usize, usize, usize, usize) {
-        self.subgrid.grid.dim()
+        match &self.subgrid.grid {
+            GridData::Grid6D(grid) => grid.dim(),
+            GridData::Grid7D(_) => {
+                // For 7D grids, return the collapsed shape as 6D
+                // This is a simplification for the Python API
+                panic!("7D grids are not yet fully supported in Python API")
+            }
+        }
     }
 }
 

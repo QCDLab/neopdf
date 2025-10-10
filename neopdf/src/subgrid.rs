@@ -6,7 +6,7 @@
 //! - [`SubGrid`]: Represents a region of phase space with a consistent grid and provides
 //!   methods for subgrid logic.
 
-use ndarray::{s, Array1, Array6, ArrayView2};
+use ndarray::{s, Array1, Array6, ArrayD, ArrayView2, IxDyn};
 use serde::{Deserialize, Serialize};
 
 use super::interpolator::InterpolationConfig;
@@ -45,12 +45,16 @@ impl ParamRange {
     }
 }
 
-/// Represents the parameter ranges for `x` and `q2`.
+/// Represents the parameter ranges for all dimensions.
 pub struct RangeParameters {
     /// The range for the nucleon numbers `A`.
     pub nucleons: ParamRange,
     /// The range for the AlphaS values `as`.
     pub alphas: ParamRange,
+    /// The range for the xi values.
+    pub xi: ParamRange,
+    /// The range for the delta values.
+    pub delta: ParamRange,
     /// The range for the transverse momentum `kT`.
     pub kt: ParamRange,
     /// The range for the momentum fraction `x`.
@@ -66,12 +70,16 @@ impl RangeParameters {
     ///
     /// * `nucleons` - The `ParamRange` for the nuleon numbers `A`.
     /// * `alphas` - The `ParamRange` for the strong coupling `as`.
+    /// * `xi` - The `ParamRange` for the xi values.
+    /// * `delta` - The `ParamRange` for the delta values.
     /// * `kt` - The `ParamRange` for the transverse momentum `kT`.
     /// * `x` - The `ParamRange` for the momentum fraction `x`.
     /// * `q2` - The `ParamRange` for the energy scale `q2`.
     pub fn new(
         nucleons: ParamRange,
         alphas: ParamRange,
+        xi: ParamRange,
+        delta: ParamRange,
         kt: ParamRange,
         x: ParamRange,
         q2: ParamRange,
@@ -79,9 +87,47 @@ impl RangeParameters {
         Self {
             nucleons,
             alphas,
+            xi,
+            delta,
             kt,
             x,
             q2,
+        }
+    }
+}
+
+/// Enum to hold either 6D or 7D grid data for backward compatibility.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum GridData {
+    /// 6-dimensional grid data: [nucleons, alphas, pids, kT, x, Q²].
+    Grid6D(Array6<f64>),
+    /// 7-dimensional grid data: [nucleons, alphas, xi, delta, kT, pids, x, Q²].
+    /// Using ArrayD since ndarray doesn't have Array7.
+    Grid7D(ArrayD<f64>),
+}
+
+impl GridData {
+    /// Returns a view of the grid data for slicing operations.
+    pub fn view(&self) -> ndarray::ArrayViewD<'_, f64> {
+        match self {
+            GridData::Grid6D(arr) => arr.view().into_dyn(),
+            GridData::Grid7D(arr) => arr.view(),
+        }
+    }
+
+    /// Returns a reference to the 6D grid, panicking if it's 7D.
+    pub fn as_6d(&self) -> &Array6<f64> {
+        match self {
+            GridData::Grid6D(arr) => arr,
+            GridData::Grid7D(_) => panic!("Cannot convert 7D grid to 6D"),
+        }
+    }
+
+    /// Returns a reference to the 7D grid, panicking if it's 6D.
+    pub fn as_7d(&self) -> &ArrayD<f64> {
+        match self {
+            GridData::Grid6D(_) => panic!("Cannot convert 6D grid to 7D"),
+            GridData::Grid7D(arr) => arr,
         }
     }
 }
@@ -98,8 +144,12 @@ pub struct SubGrid {
     pub q2s: Array1<f64>,
     /// Array of `kT` values (transverse momentum).
     pub kts: Array1<f64>,
-    /// 6-dimensional grid data: [nucleons, alphas, pids, kT, x, Q²].
-    pub grid: Array6<f64>,
+    /// Array of `xi` values.
+    pub xis: Array1<f64>,
+    /// Array of `delta` values.
+    pub deltas: Array1<f64>,
+    /// Grid data (either 6D or 7D for backward compatibility).
+    pub grid: GridData,
     /// Array of nucleon number values.
     pub nucleons: Array1<f64>,
     /// Array of alpha_s values.
@@ -108,6 +158,10 @@ pub struct SubGrid {
     pub nucleons_range: ParamRange,
     /// The valid range for the `AlphaS` parameter in this subgrid.
     pub alphas_range: ParamRange,
+    /// The valid range for the `xi` parameter in this subgrid.
+    pub xi_range: ParamRange,
+    /// The valid range for the `delta` parameter in this subgrid.
+    pub delta_range: ParamRange,
     /// The valid range for the `kT` parameter in this subgrid.
     pub kt_range: ParamRange,
     /// The valid range for the `x` parameter in this subgrid.
@@ -117,15 +171,15 @@ pub struct SubGrid {
 }
 
 impl SubGrid {
-    /// Creates a new `SubGrid` from raw data.
+    /// Creates a new 6D `SubGrid` from raw data (for backward compatibility).
     ///
     /// # Arguments
     ///
     /// * `nucleon_numbers` - A vector of nucleon numbers.
     /// * `alphas_values` - A vector of alpha_s values.
     /// * `kt_subgrid` - A vector of `kT` values.
-    /// * `xs` - A vector of `x` values.
-    /// * `q2s` - A vector of `q2` values.
+    /// * `x_subgrid` - A vector of `x` values.
+    /// * `q2_subgrid` - A vector of `q2` values.
     /// * `nflav` - The number of quark flavors.
     /// * `grid_data` - A flat vector of grid data points.
     ///
@@ -173,11 +227,91 @@ impl SubGrid {
             xs: Array1::from_vec(x_subgrid),
             q2s: Array1::from_vec(q2_subgrid),
             kts: Array1::from_vec(kt_subgrid),
-            grid: subgrid,
+            xis: Array1::from_vec(vec![1.0]), // Default value for 6D grids
+            deltas: Array1::from_vec(vec![0.0]), // Default value for 6D grids
+            grid: GridData::Grid6D(subgrid),
             nucleons: Array1::from_vec(nucleon_numbers),
             alphas: Array1::from_vec(alphas_values),
             nucleons_range: ncs_range,
             alphas_range: as_range,
+            xi_range: ParamRange::new(1.0, 1.0), // Default range for 6D grids
+            delta_range: ParamRange::new(0.0, 0.0), // Default range for 6D grids
+            kt_range: kts_range,
+            x_range: xs_range,
+            q2_range: q2s_range,
+        }
+    }
+
+    /// Creates a new 7D `SubGrid` from raw data.
+    ///
+    /// # Arguments
+    ///
+    /// * `nucleon_numbers` - A vector of nucleon numbers.
+    /// * `alphas_values` - A vector of alpha_s values.
+    /// * `xi_values` - A vector of xi values.
+    /// * `delta_values` - A vector of delta values.
+    /// * `kt_subgrid` - A vector of `kT` values.
+    /// * `x_subgrid` - A vector of `x` values.
+    /// * `q2_subgrid` - A vector of `q2` values.
+    /// * `nflav` - The number of quark flavors.
+    /// * `grid_data` - A flat vector of grid data points.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the grid data cannot be reshaped to the expected dimensions.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_7d(
+        nucleon_numbers: Vec<f64>,
+        alphas_values: Vec<f64>,
+        xi_values: Vec<f64>,
+        delta_values: Vec<f64>,
+        kt_subgrid: Vec<f64>,
+        x_subgrid: Vec<f64>,
+        q2_subgrid: Vec<f64>,
+        nflav: usize,
+        grid_data: Vec<f64>,
+    ) -> Self {
+        let xs_range = ParamRange::new(*x_subgrid.first().unwrap(), *x_subgrid.last().unwrap());
+        let q2s_range = ParamRange::new(*q2_subgrid.first().unwrap(), *q2_subgrid.last().unwrap());
+        let kts_range = ParamRange::new(*kt_subgrid.first().unwrap(), *kt_subgrid.last().unwrap());
+        let xis_range = ParamRange::new(*xi_values.first().unwrap(), *xi_values.last().unwrap());
+        let deltas_range = ParamRange::new(*delta_values.first().unwrap(), *delta_values.last().unwrap());
+        let ncs_range = ParamRange::new(
+            *nucleon_numbers.first().unwrap(),
+            *nucleon_numbers.last().unwrap(),
+        );
+        let as_range = ParamRange::new(
+            *alphas_values.first().unwrap(),
+            *alphas_values.last().unwrap(),
+        );
+
+        let shape = IxDyn(&[
+            nucleon_numbers.len(),
+            alphas_values.len(),
+            xi_values.len(),
+            delta_values.len(),
+            kt_subgrid.len(),
+            nflav,
+            x_subgrid.len(),
+            q2_subgrid.len(),
+        ]);
+
+        let subgrid = ArrayD::from_shape_vec(shape, grid_data)
+            .expect("Failed to create 7D grid");
+
+        Self {
+            xs: Array1::from_vec(x_subgrid),
+            q2s: Array1::from_vec(q2_subgrid),
+            kts: Array1::from_vec(kt_subgrid),
+            xis: Array1::from_vec(xi_values),
+            deltas: Array1::from_vec(delta_values),
+            grid: GridData::Grid7D(subgrid),
+            nucleons: Array1::from_vec(nucleon_numbers),
+            alphas: Array1::from_vec(alphas_values),
+            nucleons_range: ncs_range,
+            alphas_range: as_range,
+            xi_range: xis_range,
+            delta_range: deltas_range,
             kt_range: kts_range,
             x_range: xs_range,
             q2_range: q2s_range,
@@ -200,15 +334,32 @@ impl SubGrid {
             InterpolationConfig::TwoD => (2, vec![]),
             InterpolationConfig::ThreeDNucleons => (3, vec![&self.nucleons_range]),
             InterpolationConfig::ThreeDAlphas => (3, vec![&self.alphas_range]),
+            InterpolationConfig::ThreeDXi => (3, vec![&self.xi_range]),
+            InterpolationConfig::ThreeDDelta => (3, vec![&self.delta_range]),
             InterpolationConfig::ThreeDKt => (3, vec![&self.kt_range]),
             InterpolationConfig::FourDNucleonsAlphas => {
                 (4, vec![&self.nucleons_range, &self.alphas_range])
             }
             InterpolationConfig::FourDNucleonsKt => (4, vec![&self.nucleons_range, &self.kt_range]),
             InterpolationConfig::FourDAlphasKt => (4, vec![&self.alphas_range, &self.kt_range]),
+            InterpolationConfig::FourDXiDelta => (4, vec![&self.xi_range, &self.delta_range]),
             InterpolationConfig::FiveD => (
                 5,
                 vec![&self.nucleons_range, &self.alphas_range, &self.kt_range],
+            ),
+            InterpolationConfig::SixD => (
+                6,
+                vec![&self.nucleons_range, &self.alphas_range, &self.xi_range, &self.delta_range],
+            ),
+            InterpolationConfig::SevenD => (
+                7,
+                vec![
+                    &self.nucleons_range,
+                    &self.alphas_range,
+                    &self.xi_range,
+                    &self.delta_range,
+                    &self.kt_range,
+                ],
             ),
         };
 
@@ -236,27 +387,39 @@ impl SubGrid {
 
     /// Gathers the parameter ranges for the subgrid based on its configuration.
     fn parameter_ranges(&self) -> Vec<ParamRange> {
-        let mut ranges = match self.interpolation_config() {
-            InterpolationConfig::TwoD => vec![],
-            InterpolationConfig::ThreeDNucleons => vec![self.nucleons_range],
-            InterpolationConfig::ThreeDAlphas => vec![self.alphas_range],
-            InterpolationConfig::ThreeDKt => vec![self.kt_range],
-            InterpolationConfig::FourDNucleonsAlphas => {
-                vec![self.nucleons_range, self.alphas_range]
-            }
-            InterpolationConfig::FourDNucleonsKt => vec![self.nucleons_range, self.kt_range],
-            InterpolationConfig::FourDAlphasKt => vec![self.alphas_range, self.kt_range],
-            InterpolationConfig::FiveD => {
-                vec![self.nucleons_range, self.alphas_range, self.kt_range]
-            }
-        };
+        let mut ranges = Vec::new();
+
+        // Add ranges based on which dimensions are active
+        if self.nucleons.len() > 1 {
+            ranges.push(self.nucleons_range);
+        }
+        if self.alphas.len() > 1 {
+            ranges.push(self.alphas_range);
+        }
+        if self.xis.len() > 1 {
+            ranges.push(self.xi_range);
+        }
+        if self.deltas.len() > 1 {
+            ranges.push(self.delta_range);
+        }
+        if self.kts.len() > 1 {
+            ranges.push(self.kt_range);
+        }
+
+        // Always include x and q2
         ranges.extend([self.x_range, self.q2_range]);
         ranges
     }
 
     /// Gets the interpolation configuration for this subgrid.
     pub fn interpolation_config(&self) -> InterpolationConfig {
-        InterpolationConfig::from_dimensions(self.nucleons.len(), self.alphas.len(), self.kts.len())
+        InterpolationConfig::from_dimensions(
+            self.nucleons.len(),
+            self.alphas.len(),
+            self.xis.len(),
+            self.deltas.len(),
+            self.kts.len(),
+        )
     }
 
     /// Gets the parameter ranges for this subgrid.
@@ -264,6 +427,8 @@ impl SubGrid {
         RangeParameters::new(
             self.nucleons_range,
             self.alphas_range,
+            self.xi_range,
+            self.delta_range,
             self.kt_range,
             self.x_range,
             self.q2_range,
@@ -283,9 +448,41 @@ impl SubGrid {
     /// Panics if called on a subgrid that is not 2D.
     pub fn grid_slice(&self, pid_index: usize) -> ArrayView2<'_, f64> {
         match self.interpolation_config() {
-            InterpolationConfig::TwoD => self.grid.slice(s![0, 0, pid_index, 0, .., ..]),
+            InterpolationConfig::TwoD => match &self.grid {
+                GridData::Grid6D(grid) => grid.slice(s![0, 0, pid_index, 0, .., ..]),
+                GridData::Grid7D(grid) => grid.slice(s![0, 0, pid_index, 0, 0, 0, .., ..]),
+            },
             _ => panic!("grid_slice only valid for 2D interpolation"),
         }
+    }
+
+    /// Returns a reference to the underlying grid (6D).
+    ///
+    /// # Panics
+    ///
+    /// Panics if the grid is 7D.
+    pub fn grid_6d(&self) -> &Array6<f64> {
+        match &self.grid {
+            GridData::Grid6D(grid) => grid,
+            GridData::Grid7D(_) => panic!("Cannot access 7D grid as 6D"),
+        }
+    }
+
+    /// Returns a reference to the underlying grid (7D).
+    ///
+    /// # Panics
+    ///
+    /// Panics if the grid is 6D.
+    pub fn grid_7d(&self) -> &ArrayD<f64> {
+        match &self.grid {
+            GridData::Grid6D(_) => panic!("Cannot access 6D grid as 7D"),
+            GridData::Grid7D(grid) => grid,
+        }
+    }
+
+    /// Returns true if this is a 7D grid.
+    pub fn is_7d(&self) -> bool {
+        matches!(self.grid, GridData::Grid7D(_))
     }
 }
 

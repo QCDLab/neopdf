@@ -40,8 +40,8 @@ pub enum AlphaS {
 impl AlphaS {
     /// Creates a new `AlphaS` calculator from PDF metadata.
     pub fn from_metadata(meta: &MetaData) -> Result<Self, String> {
-        // TODO: Use `meta.alphas_type` for the logics.
-        if meta.alphas_vals.is_empty() {
+        // TODO: Use `meta.alphas_type()` for the logics.
+        if meta.alphas_vals().is_empty() {
             Ok(AlphaS::Analytic(AlphaSAnalytic::from_metadata(meta)?))
         } else {
             Ok(AlphaS::Interpol(AlphaSInterpol::from_metadata(meta)?))
@@ -76,20 +76,22 @@ impl AlphaSAnalytic {
         lambda_maps.insert(4, 0.296);
         lambda_maps.insert(5, 0.213);
 
-        let alphas_order_qcd = if meta.alphas_order_qcd == 0 {
-            meta.order_qcd
+        let alphas_order_qcd = if meta.alphas_order_qcd() == 0 {
+            meta.as_latest().order_qcd
         } else {
-            meta.alphas_order_qcd
+            meta.alphas_order_qcd()
         };
+
+        let (m_up, m_down, m_strange, m_charm, m_bottom, m_top) = meta.quark_masses();
 
         Ok(Self {
             qcd_order: alphas_order_qcd,
             lambda_maps,
-            mc_sq: meta.m_charm * meta.m_charm,
-            mb_sq: meta.m_bottom * meta.m_bottom,
-            mt_sq: meta.m_top * meta.m_top,
-            num_fl: meta.number_flavors,
-            fl_scheme: meta.flavor_scheme.clone(),
+            mc_sq: m_charm * m_charm,
+            mb_sq: m_bottom * m_bottom,
+            mt_sq: m_top * m_top,
+            num_fl: meta.as_latest().number_flavors,
+            fl_scheme: meta.as_latest().flavor_scheme.clone(),
         })
     }
 
@@ -202,12 +204,14 @@ pub struct AlphaSInterpol {
 
 impl AlphaSInterpol {
     pub fn from_metadata(meta: &MetaData) -> Result<Self, String> {
-        let (q_values, alphas_vals): (Vec<_>, Vec<_>) = meta
-            .alphas_q_values
+        let alphas_q_values = meta.alphas_q_values();
+        let alphas_vals = meta.alphas_vals();
+
+        let (q_values, alphas_vals_filtered): (Vec<_>, Vec<_>) = alphas_q_values
             .iter()
-            .zip(&meta.alphas_vals)
+            .zip(alphas_vals)
             .enumerate()
-            .filter(|(i, (&q, _))| *i == 0 || q != meta.alphas_q_values[i - 1])
+            .filter(|(i, (&q, _))| *i == 0 || q != alphas_q_values[i - 1])
             .map(|(_, (&q, &alpha))| (q, alpha))
             .unzip();
 
@@ -215,7 +219,7 @@ impl AlphaSInterpol {
 
         let interpolator = Interp1D::new(
             q2_values.into(),
-            alphas_vals.into(),
+            alphas_vals_filtered.into(),
             AlphaSCubicInterpolation,
             Extrapolate::Error,
         )

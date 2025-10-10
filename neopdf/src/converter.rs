@@ -109,10 +109,12 @@ pub fn combine_lhapdf_npdfs<P: AsRef<std::path::Path>>(
 
     // For each member index, combine the corresponding member from each set along the A dimension
     let mut combined_grids = Vec::with_capacity(num_members);
-    let mut meta = all_members[0][0].0.clone();
-    meta.set_desc = format!("Combined nuclear PDFs: {}", pdf_names.join(", "));
-    meta.num_members = num_members as u32;
-    meta.interpolator_type = InterpolatorType::LogTricubic;
+    let base_meta = all_members[0][0].0.clone();
+    let mut meta_v2 = base_meta.as_latest_v2();
+    meta_v2.set_desc = format!("Combined nuclear PDFs: {}", pdf_names.join(", "));
+    meta_v2.num_members = num_members as u32;
+    meta_v2.interpolator_type = InterpolatorType::LogTricubic;
+    let meta = MetaData::new_v2(meta_v2);
 
     for member_idx in 0..num_members {
         let member_arrays: Vec<&GridArray> = all_members.iter().map(|v| &v[member_idx].1).collect();
@@ -155,11 +157,15 @@ pub fn combine_lhapdf_npdfs<P: AsRef<std::path::Path>>(
                 xs: xs.clone(),
                 q2s: q2s.clone(),
                 kts: kts.clone(),
-                grid: concatenated,
+                xis: subgrids[0].xis.clone(),
+                deltas: subgrids[0].deltas.clone(),
+                grid: super::subgrid::GridData::Grid6D(concatenated.into_dimensionality().expect("Failed to convert to 6D")),
                 nucleons,
                 alphas: alphas.clone(),
                 nucleons_range,
                 alphas_range: subgrids[0].alphas_range,
+                xi_range: subgrids[0].xi_range,
+                delta_range: subgrids[0].delta_range,
                 kt_range: subgrids[0].kt_range,
                 x_range: subgrids[0].x_range,
                 q2_range: subgrids[0].q2_range,
@@ -237,10 +243,12 @@ pub fn combine_lhapdf_alphas<P: AsRef<std::path::Path>>(
 
     // For each member index, combine the corresponding member from each set along the alpha_s dimension
     let mut combined_grids = Vec::with_capacity(num_members);
-    let mut meta = all_members[0][0].0.clone();
-    meta.set_desc = format!("Combined alpha_s PDFs: {}", pdf_names.join(", "));
-    meta.num_members = num_members as u32;
-    meta.interpolator_type = InterpolatorType::LogTricubic;
+    let base_meta = all_members[0][0].0.clone();
+    let mut meta_v2 = base_meta.as_latest_v2();
+    meta_v2.set_desc = format!("Combined alpha_s PDFs: {}", pdf_names.join(", "));
+    meta_v2.num_members = num_members as u32;
+    meta_v2.interpolator_type = InterpolatorType::LogTricubic;
+    let meta = MetaData::new_v2(meta_v2);
 
     for member_idx in 0..num_members {
         // For each set, get the GridArray for this member
@@ -284,11 +292,15 @@ pub fn combine_lhapdf_alphas<P: AsRef<std::path::Path>>(
                 xs: xs.clone(),
                 q2s: q2s.clone(),
                 kts: kts.clone(),
-                grid: concatenated,
+                xis: subgrids[0].xis.clone(),
+                deltas: subgrids[0].deltas.clone(),
+                grid: super::subgrid::GridData::Grid6D(concatenated.into_dimensionality().expect("Failed to convert to 6D")),
                 nucleons: nucleons.clone(),
                 alphas,
                 nucleons_range: subgrids[0].nucleons_range,
                 alphas_range,
+                xi_range: subgrids[0].xi_range,
+                delta_range: subgrids[0].delta_range,
                 kt_range: subgrids[0].kt_range,
                 x_range: subgrids[0].x_range,
                 q2_range: subgrids[0].q2_range,

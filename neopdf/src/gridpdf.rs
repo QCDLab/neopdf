@@ -103,7 +103,8 @@ impl GridArray {
         subgrid_idx: usize,
     ) -> f64 {
         let pid_idx = self.pid_index(flavor_id).expect("Invalid flavor ID");
-        self.subgrids[subgrid_idx].grid[[nucleon_idx, alpha_idx, pid_idx, kt_idx, x_idx, q2_idx]]
+        let grid_view = self.subgrids[subgrid_idx].grid.view();
+        grid_view[[nucleon_idx, alpha_idx, pid_idx, kt_idx, x_idx, q2_idx]]
     }
 
     /// Finds the index of the subgrid that contains the given point.
@@ -169,6 +170,8 @@ impl GridArray {
         RangeParameters::new(
             global_range(&self.subgrids, |sg| &sg.nucleons_range),
             global_range(&self.subgrids, |sg| &sg.alphas_range),
+            global_range(&self.subgrids, |sg| &sg.xi_range),
+            global_range(&self.subgrids, |sg| &sg.delta_range),
             global_range(&self.subgrids, |sg| &sg.kt_range),
             global_range(&self.subgrids, |sg| &sg.x_range),
             global_range(&self.subgrids, |sg| &sg.q2_range),
@@ -261,7 +264,7 @@ impl GridPDF {
                 (0..knot_array.pids.len())
                     .map(|pid_idx| {
                         InterpolatorFactory::create(
-                            info.interpolator_type.to_owned(),
+                            info.interpolator_type().clone(),
                             subgrid,
                             pid_idx,
                         )
@@ -293,7 +296,7 @@ impl GridPDF {
         };
 
         let use_log = matches!(
-            self.info.interpolator_type,
+            *self.info.interpolator_type(),
             InterpolatorType::LogBilinear
                 | InterpolatorType::LogBicubic
                 | InterpolatorType::LogTricubic
@@ -358,7 +361,7 @@ impl GridPDF {
             None => return Ok(vec![0.0; points.len()]),
         };
 
-        if !matches!(self.info.interpolator_type, InterpolatorType::LogChebyshev) {
+        if !matches!(*self.info.interpolator_type(), InterpolatorType::LogChebyshev) {
             return Err(Error::InterpolationError(
                 "xfxq2_cheby_batch only supports LogChebyshev interpolator".to_string(),
             ));
@@ -471,7 +474,13 @@ mod tests {
         let flavors = vec![21, 22];
         let grid_array = GridArray::new(subgrid_data, flavors);
 
-        assert_eq!(grid_array.subgrids[0].grid.shape(), &[1, 1, 2, 1, 3, 2]);
+        // Grid shape is 6D: [nucleons, alphas, pids, kT, x, Q²]
+        match &grid_array.subgrids[0].grid {
+            crate::subgrid::GridData::Grid6D(grid) => {
+                assert_eq!(grid.shape(), &[1, 1, 2, 1, 3, 2]);
+            }
+            _ => std::panic!("Expected 6D grid"),
+        }
         assert!(grid_array.find_subgrid(&[1.5, 4.5]).is_some());
     }
 }

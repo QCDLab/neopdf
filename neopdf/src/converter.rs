@@ -157,7 +157,11 @@ pub fn combine_lhapdf_npdfs<P: AsRef<std::path::Path>>(
                 kts: kts.clone(),
                 xis: subgrids[0].xis.clone(),
                 deltas: subgrids[0].deltas.clone(),
-                grid: super::subgrid::GridData::Grid6D(concatenated.into_dimensionality().expect("Failed to convert to 6D")),
+                grid: super::subgrid::GridData::Grid6D(
+                    concatenated
+                        .into_dimensionality()
+                        .expect("Failed to convert to 6D"),
+                ),
                 nucleons,
                 alphas: alphas.clone(),
                 nucleons_range,
@@ -290,7 +294,11 @@ pub fn combine_lhapdf_alphas<P: AsRef<std::path::Path>>(
                 kts: kts.clone(),
                 xis: subgrids[0].xis.clone(),
                 deltas: subgrids[0].deltas.clone(),
-                grid: super::subgrid::GridData::Grid6D(concatenated.into_dimensionality().expect("Failed to convert to 6D")),
+                grid: super::subgrid::GridData::Grid6D(
+                    concatenated
+                        .into_dimensionality()
+                        .expect("Failed to convert to 6D"),
+                ),
                 nucleons: nucleons.clone(),
                 alphas,
                 nucleons_range: subgrids[0].nucleons_range,

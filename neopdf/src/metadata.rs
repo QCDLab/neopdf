@@ -142,11 +142,17 @@ pub struct MetaDataV2 {
     pub delta_max: f64,
 }
 
-
 impl MetaDataV2 {
     /// Helper to get quark masses as a tuple
     pub fn quark_masses(&self) -> (f64, f64, f64, f64, f64, f64) {
-        (self.m_up, self.m_down, self.m_strange, self.m_charm, self.m_bottom, self.m_top)
+        (
+            self.m_up,
+            self.m_down,
+            self.m_strange,
+            self.m_charm,
+            self.m_bottom,
+            self.m_top,
+        )
     }
 }
 
@@ -179,11 +185,21 @@ impl From<neopdf_legacy::metadata::MetaData> for MetaData {
             },
             interpolator_type: match legacy.interpolator_type {
                 neopdf_legacy::metadata::InterpolatorType::Bilinear => InterpolatorType::Bilinear,
-                neopdf_legacy::metadata::InterpolatorType::LogBilinear => InterpolatorType::LogBilinear,
-                neopdf_legacy::metadata::InterpolatorType::LogBicubic => InterpolatorType::LogBicubic,
-                neopdf_legacy::metadata::InterpolatorType::LogTricubic => InterpolatorType::LogTricubic,
-                neopdf_legacy::metadata::InterpolatorType::InterpNDLinear => InterpolatorType::InterpNDLinear,
-                neopdf_legacy::metadata::InterpolatorType::LogChebyshev => InterpolatorType::LogChebyshev,
+                neopdf_legacy::metadata::InterpolatorType::LogBilinear => {
+                    InterpolatorType::LogBilinear
+                }
+                neopdf_legacy::metadata::InterpolatorType::LogBicubic => {
+                    InterpolatorType::LogBicubic
+                }
+                neopdf_legacy::metadata::InterpolatorType::LogTricubic => {
+                    InterpolatorType::LogTricubic
+                }
+                neopdf_legacy::metadata::InterpolatorType::InterpNDLinear => {
+                    InterpolatorType::InterpNDLinear
+                }
+                neopdf_legacy::metadata::InterpolatorType::LogChebyshev => {
+                    InterpolatorType::LogChebyshev
+                }
             },
             error_type: legacy.error_type.clone(),
             hadron_pid: legacy.hadron_pid,

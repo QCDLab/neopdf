@@ -11,7 +11,7 @@
 //! Interpolation strategies are defined in `strategy.rs`.
 //! The [`SubGrid`] struct is defined in `subgrid.rs`.
 
-use ndarray::{s, OwnedRepr};
+use ndarray::{s, IxDyn, OwnedRepr};
 use ninterp::data::{InterpData2D, InterpData3D};
 use ninterp::error::InterpolateError;
 use ninterp::interpolator::{
@@ -219,8 +219,11 @@ impl InterpolatorFactory {
             InterpolationConfig::ThreeDAlphas => {
                 Self::interpolator_xfxq2_alphas(interp_type, subgrid, pid_index)
             }
-            InterpolationConfig::ThreeDXi | InterpolationConfig::ThreeDDelta => {
-                panic!("3D xi/delta interpolation not yet implemented")
+            InterpolationConfig::ThreeDXi => {
+                Self::interpolator_xfxq2_xi(interp_type, subgrid, pid_index)
+            }
+            InterpolationConfig::ThreeDDelta => {
+                Self::interpolator_xfxq2_delta(interp_type, subgrid, pid_index)
             }
             InterpolationConfig::ThreeDKt => {
                 Self::interpolator_xfxq2_kts(interp_type, subgrid, pid_index)
@@ -235,13 +238,16 @@ impl InterpolatorFactory {
                 Self::interpolator_xfxq2_alphas_kts(interp_type, subgrid, pid_index)
             }
             InterpolationConfig::FourDXiDelta => {
-                panic!("4D xi/delta interpolation not yet implemented")
+                Self::interpolator_xfxq2_xi_delta(interp_type, subgrid, pid_index)
             }
             InterpolationConfig::FiveD => {
                 Self::interpolator_xfxq2_5dim(interp_type, subgrid, pid_index)
             }
-            InterpolationConfig::SixD | InterpolationConfig::SevenD => {
-                panic!("6D/7D interpolation not yet implemented")
+            InterpolationConfig::SixD => {
+                Self::interpolator_xfxq2_6dim(interp_type, subgrid, pid_index)
+            }
+            InterpolationConfig::SevenD => {
+                Self::interpolator_xfxq2_7dim(interp_type, subgrid, pid_index)
             }
         }
     }
@@ -412,6 +418,88 @@ impl InterpolatorFactory {
         }
     }
 
+    fn interpolator_xfxq2_xi(
+        interp_type: InterpolatorType,
+        subgrid: &SubGrid,
+        pid_index: usize,
+    ) -> Box<dyn DynInterpolator> {
+        let grid_view = subgrid.grid.view();
+        // For 3D xi: slice out [xi, x, Q²] from 7D grid [A, alphas, xi, delta, kT, pids, x, Q²]
+        let grid_data = grid_view
+            .slice(s![0, 0, .., 0, 0, pid_index, .., ..])
+            .to_owned();
+        let reshaped_data = grid_data
+            .into_shape_with_order((subgrid.xis.len(), subgrid.xs.len(), subgrid.q2s.len()))
+            .expect("Failed to reshape 3D data");
+
+        match interp_type {
+            InterpolatorType::LogTricubic => Box::new(
+                Interp3D::new(
+                    subgrid.xis.mapv(f64::ln),
+                    subgrid.xs.mapv(f64::ln),
+                    subgrid.q2s.mapv(f64::ln),
+                    reshaped_data,
+                    LogTricubicInterpolation,
+                    Extrapolate::Clamp,
+                )
+                .expect("Failed to create 3D interpolator"),
+            ),
+            InterpolatorType::LogChebyshev => Box::new(
+                Interp3D::new(
+                    subgrid.xis.mapv(f64::ln),
+                    subgrid.xs.mapv(f64::ln),
+                    subgrid.q2s.mapv(f64::ln),
+                    reshaped_data,
+                    LogChebyshevInterpolation::<3>::default(),
+                    Extrapolate::Clamp,
+                )
+                .expect("Failed to create 3D interpolator"),
+            ),
+            _ => panic!("Unsupported 3D xi interpolator: {:?}", interp_type),
+        }
+    }
+
+    fn interpolator_xfxq2_delta(
+        interp_type: InterpolatorType,
+        subgrid: &SubGrid,
+        pid_index: usize,
+    ) -> Box<dyn DynInterpolator> {
+        let grid_view = subgrid.grid.view();
+        // For 3D delta: slice out [delta, x, Q²] from 7D grid [A, alphas, xi, delta, kT, pids, x, Q²]
+        let grid_data = grid_view
+            .slice(s![0, 0, 0, .., 0, pid_index, .., ..])
+            .to_owned();
+        let reshaped_data = grid_data
+            .into_shape_with_order((subgrid.deltas.len(), subgrid.xs.len(), subgrid.q2s.len()))
+            .expect("Failed to reshape 3D data");
+
+        match interp_type {
+            InterpolatorType::LogTricubic => Box::new(
+                Interp3D::new(
+                    subgrid.deltas.mapv(f64::ln),
+                    subgrid.xs.mapv(f64::ln),
+                    subgrid.q2s.mapv(f64::ln),
+                    reshaped_data,
+                    LogTricubicInterpolation,
+                    Extrapolate::Clamp,
+                )
+                .expect("Failed to create 3D interpolator"),
+            ),
+            InterpolatorType::LogChebyshev => Box::new(
+                Interp3D::new(
+                    subgrid.deltas.mapv(f64::ln),
+                    subgrid.xs.mapv(f64::ln),
+                    subgrid.q2s.mapv(f64::ln),
+                    reshaped_data,
+                    LogChebyshevInterpolation::<3>::default(),
+                    Extrapolate::Clamp,
+                )
+                .expect("Failed to create 3D interpolator"),
+            ),
+            _ => panic!("Unsupported 3D delta interpolator: {:?}", interp_type),
+        }
+    }
+
     fn interpolator_xfxq2_nucleons_alphas(
         interp_type: InterpolatorType,
         subgrid: &SubGrid,
@@ -505,13 +593,53 @@ impl InterpolatorFactory {
         }
     }
 
+    fn interpolator_xfxq2_xi_delta(
+        interp_type: InterpolatorType,
+        subgrid: &SubGrid,
+        pid_index: usize,
+    ) -> Box<dyn DynInterpolator> {
+        let grid_view = subgrid.grid.view();
+        // For 4D xi/delta: [xi, delta, x, Q²] from 7D grid [A, alphas, xi, delta, kT, pids, x, Q²]
+        let grid_data = grid_view
+            .slice(s![0, 0, .., .., 0, pid_index, .., ..])
+            .to_owned();
+        let coords = vec![
+            subgrid.xis.mapv(f64::ln),
+            subgrid.deltas.mapv(f64::ln),
+            subgrid.xs.mapv(f64::ln),
+            subgrid.q2s.mapv(f64::ln),
+        ];
+        let reshaped_data = grid_data
+            .into_shape_with_order((
+                subgrid.xis.len(),
+                subgrid.deltas.len(),
+                subgrid.xs.len(),
+                subgrid.q2s.len(),
+            ))
+            .expect("Failed to reshape 4D data");
+
+        match interp_type {
+            InterpolatorType::InterpNDLinear => Box::new(
+                InterpND::new(coords, reshaped_data.into_dyn(), Linear, Extrapolate::Clamp)
+                    .expect("Failed to create 4D interpolator"),
+            ),
+            InterpolatorType::LogFourCubic => {
+                // TODO: Implement LogFourCubic interpolation strategy
+                panic!("LogFourCubic interpolation not yet implemented for 4D xi/delta grids")
+            }
+            _ => panic!("Unsupported 4D xi/delta interpolator: {:?}", interp_type),
+        }
+    }
+
     fn interpolator_xfxq2_5dim(
         interp_type: InterpolatorType,
         subgrid: &SubGrid,
         pid_index: usize,
     ) -> Box<dyn DynInterpolator> {
         let grid_view = subgrid.grid.view();
-        let grid_data = grid_view.slice(s![.., .., pid_index, .., .., ..]).to_owned();
+        let grid_data = grid_view
+            .slice(s![.., .., pid_index, .., .., ..])
+            .to_owned();
         let coords = vec![
             subgrid.nucleons.mapv(f64::ln),
             subgrid.alphas.mapv(f64::ln),
@@ -535,6 +663,97 @@ impl InterpolatorFactory {
                     .expect("Failed to create 5D interpolator"),
             ),
             _ => panic!("Unsupported 5D interpolator: {:?}", interp_type),
+        }
+    }
+
+    fn interpolator_xfxq2_6dim(
+        interp_type: InterpolatorType,
+        subgrid: &SubGrid,
+        pid_index: usize,
+    ) -> Box<dyn DynInterpolator> {
+        let grid_view = subgrid.grid.view();
+        // For 6D: [nucleons, alphas, xi, delta, x, Q²]
+        // Grid layout: [nucleons, alphas, pids, kts, x, Q²] or [nucleons, alphas, xi, delta, kts, pids, x, Q²]
+        let grid_data = grid_view
+            .slice(s![.., .., .., .., 0, pid_index, .., ..])
+            .to_owned();
+        let coords = vec![
+            subgrid.nucleons.mapv(f64::ln),
+            subgrid.alphas.mapv(f64::ln),
+            subgrid.xis.mapv(f64::ln),
+            subgrid.deltas.mapv(f64::ln),
+            subgrid.xs.mapv(f64::ln),
+            subgrid.q2s.mapv(f64::ln),
+        ];
+        let reshaped_data = grid_data
+            .into_shape_with_order((
+                subgrid.nucleons.len(),
+                subgrid.alphas.len(),
+                subgrid.xis.len(),
+                subgrid.deltas.len(),
+                subgrid.xs.len(),
+                subgrid.q2s.len(),
+            ))
+            .expect("Failed to reshape 6D data");
+
+        match interp_type {
+            InterpolatorType::InterpNDLinear => Box::new(
+                InterpND::new(coords, reshaped_data.into_dyn(), Linear, Extrapolate::Clamp)
+                    .expect("Failed to create 6D interpolator"),
+            ),
+            InterpolatorType::LogFourCubic => {
+                // TODO: Implement LogFourCubic interpolation strategy
+                panic!("LogFourCubic interpolation not yet implemented for 6D grids")
+            }
+            _ => panic!("Unsupported 6D interpolator: {:?}", interp_type),
+        }
+    }
+
+    fn interpolator_xfxq2_7dim(
+        interp_type: InterpolatorType,
+        subgrid: &SubGrid,
+        pid_index: usize,
+    ) -> Box<dyn DynInterpolator> {
+        let grid_view = subgrid.grid.view();
+        // For 7D: [nucleons, alphas, xi, delta, kT, x, Q²]
+        // Grid layout: [nucleons, alphas, xi, delta, kts, pids, x, Q²]
+        let grid_data = grid_view
+            .slice(s![.., .., .., .., .., pid_index, .., ..])
+            .to_owned();
+        let coords = vec![
+            subgrid.nucleons.mapv(f64::ln),
+            subgrid.alphas.mapv(f64::ln),
+            subgrid.xis.mapv(f64::ln),
+            subgrid.deltas.mapv(f64::ln),
+            subgrid.kts.mapv(f64::ln),
+            subgrid.xs.mapv(f64::ln),
+            subgrid.q2s.mapv(f64::ln),
+        ];
+
+        // Use IxDyn for 7D since ndarray only supports tuples up to 6D
+        let shape = IxDyn(&[
+            subgrid.nucleons.len(),
+            subgrid.alphas.len(),
+            subgrid.xis.len(),
+            subgrid.deltas.len(),
+            subgrid.kts.len(),
+            subgrid.xs.len(),
+            subgrid.q2s.len(),
+        ]);
+        let reshaped_data = grid_data
+            .into_shape_with_order(shape)
+            .expect("Failed to reshape 7D data");
+
+        match interp_type {
+            InterpolatorType::InterpNDLinear => Box::new(
+                InterpND::new(coords, reshaped_data, Linear, Extrapolate::Clamp)
+                    .expect("Failed to create 7D interpolator"),
+            ),
+            InterpolatorType::LogFourCubic => {
+                // TODO: Implement LogFourCubic interpolation strategy
+                panic!("LogFourCubic interpolation not yet implemented for 7D grids")
+            }
+            _ => panic!("Unsupported 7D interpolator: {:?}", interp_type),
         }
     }
 

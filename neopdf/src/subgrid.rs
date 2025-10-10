@@ -275,7 +275,10 @@ impl SubGrid {
         let q2s_range = ParamRange::new(*q2_subgrid.first().unwrap(), *q2_subgrid.last().unwrap());
         let kts_range = ParamRange::new(*kt_subgrid.first().unwrap(), *kt_subgrid.last().unwrap());
         let xis_range = ParamRange::new(*xi_values.first().unwrap(), *xi_values.last().unwrap());
-        let deltas_range = ParamRange::new(*delta_values.first().unwrap(), *delta_values.last().unwrap());
+        let deltas_range = ParamRange::new(
+            *delta_values.first().unwrap(),
+            *delta_values.last().unwrap(),
+        );
         let ncs_range = ParamRange::new(
             *nucleon_numbers.first().unwrap(),
             *nucleon_numbers.last().unwrap(),
@@ -296,8 +299,7 @@ impl SubGrid {
             q2_subgrid.len(),
         ]);
 
-        let subgrid = ArrayD::from_shape_vec(shape, grid_data)
-            .expect("Failed to create 7D grid");
+        let subgrid = ArrayD::from_shape_vec(shape, grid_data).expect("Failed to create 7D grid");
 
         Self {
             xs: Array1::from_vec(x_subgrid),
@@ -349,7 +351,12 @@ impl SubGrid {
             ),
             InterpolationConfig::SixD => (
                 6,
-                vec![&self.nucleons_range, &self.alphas_range, &self.xi_range, &self.delta_range],
+                vec![
+                    &self.nucleons_range,
+                    &self.alphas_range,
+                    &self.xi_range,
+                    &self.delta_range,
+                ],
             ),
             InterpolationConfig::SevenD => (
                 7,

@@ -109,12 +109,10 @@ pub fn combine_lhapdf_npdfs<P: AsRef<std::path::Path>>(
 
     // For each member index, combine the corresponding member from each set along the A dimension
     let mut combined_grids = Vec::with_capacity(num_members);
-    let base_meta = all_members[0][0].0.clone();
-    let mut meta_v2 = base_meta.as_latest_v2();
-    meta_v2.set_desc = format!("Combined nuclear PDFs: {}", pdf_names.join(", "));
-    meta_v2.num_members = num_members as u32;
-    meta_v2.interpolator_type = InterpolatorType::LogTricubic;
-    let meta = MetaData::new_v2(meta_v2);
+    let mut meta = all_members[0][0].0.clone();
+    meta.set_desc = format!("Combined nuclear PDFs: {}", pdf_names.join(", "));
+    meta.num_members = num_members as u32;
+    meta.interpolator_type = InterpolatorType::LogTricubic;
 
     for member_idx in 0..num_members {
         let member_arrays: Vec<&GridArray> = all_members.iter().map(|v| &v[member_idx].1).collect();
@@ -243,12 +241,10 @@ pub fn combine_lhapdf_alphas<P: AsRef<std::path::Path>>(
 
     // For each member index, combine the corresponding member from each set along the alpha_s dimension
     let mut combined_grids = Vec::with_capacity(num_members);
-    let base_meta = all_members[0][0].0.clone();
-    let mut meta_v2 = base_meta.as_latest_v2();
-    meta_v2.set_desc = format!("Combined alpha_s PDFs: {}", pdf_names.join(", "));
-    meta_v2.num_members = num_members as u32;
-    meta_v2.interpolator_type = InterpolatorType::LogTricubic;
-    let meta = MetaData::new_v2(meta_v2);
+    let mut meta = all_members[0][0].0.clone();
+    meta.set_desc = format!("Combined alpha_s PDFs: {}", pdf_names.join(", "));
+    meta.num_members = num_members as u32;
+    meta.interpolator_type = InterpolatorType::LogTricubic;
 
     for member_idx in 0..num_members {
         // For each set, get the GridArray for this member

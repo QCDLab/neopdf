@@ -40,8 +40,8 @@ pub enum AlphaS {
 impl AlphaS {
     /// Creates a new `AlphaS` calculator from PDF metadata.
     pub fn from_metadata(meta: &MetaData) -> Result<Self, String> {
-        // TODO: Use `meta.alphas_type()` for the logics.
-        if meta.alphas_vals().is_empty() {
+        // TODO: Use `meta.alphas_type` for the logics.
+        if meta.alphas_vals.is_empty() {
             Ok(AlphaS::Analytic(AlphaSAnalytic::from_metadata(meta)?))
         } else {
             Ok(AlphaS::Interpol(AlphaSInterpol::from_metadata(meta)?))
@@ -76,13 +76,13 @@ impl AlphaSAnalytic {
         lambda_maps.insert(4, 0.296);
         lambda_maps.insert(5, 0.213);
 
-        let alphas_order_qcd = if meta.alphas_order_qcd() == 0 {
-            meta.as_latest().order_qcd
+        let alphas_order_qcd = if meta.alphas_order_qcd == 0 {
+            meta.order_qcd
         } else {
-            meta.alphas_order_qcd()
+            meta.alphas_order_qcd
         };
 
-        let (m_up, m_down, m_strange, m_charm, m_bottom, m_top) = meta.quark_masses();
+        let (_m_up, _m_down, _m_strange, m_charm, m_bottom, m_top) = meta.quark_masses();
 
         Ok(Self {
             qcd_order: alphas_order_qcd,
@@ -90,8 +90,8 @@ impl AlphaSAnalytic {
             mc_sq: m_charm * m_charm,
             mb_sq: m_bottom * m_bottom,
             mt_sq: m_top * m_top,
-            num_fl: meta.as_latest().number_flavors,
-            fl_scheme: meta.as_latest().flavor_scheme.clone(),
+            num_fl: meta.number_flavors,
+            fl_scheme: meta.flavor_scheme.clone(),
         })
     }
 
@@ -204,8 +204,8 @@ pub struct AlphaSInterpol {
 
 impl AlphaSInterpol {
     pub fn from_metadata(meta: &MetaData) -> Result<Self, String> {
-        let alphas_q_values = meta.alphas_q_values();
-        let alphas_vals = meta.alphas_vals();
+        let alphas_q_values = &meta.alphas_q_values;
+        let alphas_vals = &meta.alphas_vals;
 
         let (q_values, alphas_vals_filtered): (Vec<_>, Vec<_>) = alphas_q_values
             .iter()

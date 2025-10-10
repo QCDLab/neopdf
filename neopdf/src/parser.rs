@@ -82,14 +82,12 @@ impl LhapdfSet {
         let knot_array = GridArray::new(pdf_data.subgrid_data, pdf_data.pids);
 
         let mut info = self.info.clone();
-        if info.alphas_vals().is_empty() {
+        if info.alphas_vals.is_empty() {
             if let (Some(vals), Some(q_values)) = (pdf_data.alphas_vals, pdf_data.alphas_q_values) {
                 if !vals.is_empty() && !q_values.is_empty() {
-                    // Need to update via the enum
-                    let mut info_v2 = info.as_latest_v2();
-                    info_v2.alphas_vals = vals;
-                    info_v2.alphas_q_values = q_values;
-                    info = MetaData::new_v2(info_v2);
+                    // Update alphas values directly
+                    info.alphas_vals = vals;
+                    info.alphas_q_values = q_values;
                 }
             }
         }
@@ -288,16 +286,15 @@ mod tests {
         write!(temp_file, "{}", yaml_content).unwrap();
         let info = LhapdfSet::read_metadata(temp_file.path()).unwrap();
 
-        assert_eq!(info.set_desc(), "NNPDF40_nnlo_as_01180");
-        let info_v1 = info.as_latest();
-        assert_eq!(info_v1.set_index, 4000);
-        assert_eq!(info_v1.num_members, 101);
-        assert_eq!(info_v1.x_min, 1.0e-9);
-        assert_eq!(info_v1.x_max, 1.0);
-        assert_eq!(info_v1.q_min, 1.0);
-        assert_eq!(info_v1.q_max, 10000.0);
-        assert_eq!(info_v1.flavors, vec![21, 1, 2, 3, 4, 5, -1, -2, -3, -4, -5]);
-        assert_eq!(info_v1.format, "LHAPDF");
+        assert_eq!(info.set_desc, "NNPDF40_nnlo_as_01180");
+        assert_eq!(info.set_index, 4000);
+        assert_eq!(info.num_members, 101);
+        assert_eq!(info.x_min, 1.0e-9);
+        assert_eq!(info.x_max, 1.0);
+        assert_eq!(info.q_min, 1.0);
+        assert_eq!(info.q_max, 10000.0);
+        assert_eq!(info.flavors, vec![21, 1, 2, 3, 4, 5, -1, -2, -3, -4, -5]);
+        assert_eq!(info.format, "LHAPDF");
     }
 
     #[test]

@@ -264,7 +264,7 @@ impl GridPDF {
                 (0..knot_array.pids.len())
                     .map(|pid_idx| {
                         InterpolatorFactory::create(
-                            info.interpolator_type().clone(),
+                            info.interpolator_type.clone(),
                             subgrid,
                             pid_idx,
                         )
@@ -296,7 +296,7 @@ impl GridPDF {
         };
 
         let use_log = matches!(
-            *self.info.interpolator_type(),
+            self.info.interpolator_type,
             InterpolatorType::LogBilinear
                 | InterpolatorType::LogBicubic
                 | InterpolatorType::LogTricubic
@@ -361,7 +361,7 @@ impl GridPDF {
             None => return Ok(vec![0.0; points.len()]),
         };
 
-        if !matches!(*self.info.interpolator_type(), InterpolatorType::LogChebyshev) {
+        if !matches!(self.info.interpolator_type, InterpolatorType::LogChebyshev) {
             return Err(Error::InterpolationError(
                 "xfxq2_cheby_batch only supports LogChebyshev interpolator".to_string(),
             ));

@@ -76,11 +76,9 @@ impl GridArrayCollection {
         let buf_writer = BufWriter::new(file);
         let mut encoder = FrameEncoder::new(buf_writer);
 
-        let mut metadata_mut = metadata.as_latest();
-        metadata_mut.git_version = GIT_VERSION.to_string();
-        metadata_mut.code_version = CODE_VERSION.to_string();
-
-        let updated_metadata = MetaData::new_v1(metadata_mut);
+        let mut updated_metadata = metadata.clone();
+        updated_metadata.git_version = GIT_VERSION.to_string();
+        updated_metadata.code_version = CODE_VERSION.to_string();
         let metadata_serialized = bincode::serialize(&updated_metadata)?;
         let metadata_size = metadata_serialized.len() as u64;
 
@@ -446,11 +444,11 @@ mod tests {
     use ndarray::Array1;
     use tempfile::NamedTempFile;
 
-    use crate::metadata::{InterpolatorType, MetaDataV1, SetType};
+    use crate::metadata::{InterpolatorType, MetaDataV2, SetType};
 
     #[test]
     fn test_collection_with_metadata() {
-        let metadata_v1 = MetaDataV1 {
+        let metadata = MetaDataV2 {
             set_desc: "Test PDF".into(),
             set_index: 1,
             num_members: 2,
@@ -482,8 +480,12 @@ mod tests {
             m_top: 0.0,
             alphas_type: String::new(),
             number_flavors: 0,
+            // V2 fields
+            xi_min: 1.0,
+            xi_max: 1.0,
+            delta_min: 0.0,
+            delta_max: 0.0,
         };
-        let metadata = MetaData::new_v1(metadata_v1);
 
         let test_grid = test_grid();
         let grids = vec![&test_grid, &test_grid];

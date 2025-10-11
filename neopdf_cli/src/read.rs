@@ -137,16 +137,14 @@ pub fn main(cli: ReadCli) {
             println!();
 
             let grid_slice = match &subgrid.grid {
-                neopdf::subgrid::GridData::Grid6D(grid) => {
-                    grid.slice(s![
-                        args.nucleon_index,
-                        args.alphas_index,
-                        pid_idx,
-                        args.kt_index,
-                        ..,
-                        ..
-                    ])
-                }
+                neopdf::subgrid::GridData::Grid6D(grid) => grid.slice(s![
+                    args.nucleon_index,
+                    args.alphas_index,
+                    pid_idx,
+                    args.kt_index,
+                    ..,
+                    ..
+                ]),
                 neopdf::subgrid::GridData::Grid7D(grid) => {
                     grid.slice(s![
                         args.nucleon_index,

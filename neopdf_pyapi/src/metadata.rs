@@ -264,7 +264,7 @@ impl PyMetaData {
                 interpolator_type: InterpolatorType::from(&interpolator_type),
                 error_type,
                 hadron_pid,
-                git_version: String::new(),  // placeholder to be overwritten
+                git_version: String::new(), // placeholder to be overwritten
                 code_version: String::new(), // placeholder to be overwritten
                 flavor_scheme: phys_params.flavor_scheme,
                 order_qcd: phys_params.order_qcd,

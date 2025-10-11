@@ -1,0 +1,855 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../cli-tutorials/">
+      
+      
+        <link rel="next" href="../lhapdf_benchmark/pdfs/">
+      
+      
+      <link rel="icon" href="../assets/neopdf.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.21">
+    
+    
+      
+        <title>TMDlib Interface - NeoPDF</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.2a3383ac.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../custom.css">
+    
+      <link rel="stylesheet" href="../assets/stylesheets/notebooks.css">
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#tmdlib-interface" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="NeoPDF" class="md-header__button md-logo" aria-label="NeoPDF" data-md-component="logo">
+      
+  <img src="../assets/neopdf.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            NeoPDF
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              TMDlib Interface
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="NeoPDF" class="md-nav__button md-logo" aria-label="NeoPDF" data-md-component="logo">
+      
+  <img src="../assets/neopdf.svg" alt="logo">
+
+    </a>
+    NeoPDF
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development-with-pixi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Development with Pixi
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design-and-features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Features
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Design Rationale
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../custom-interpolation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Custom Interpolation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli-tutorials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    CLI Tutorials
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    TMDlib Interface
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    TMDlib Interface
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#installing-the-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installing the interface
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interpolating-tmdlib-sets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Interpolating TMDlib sets
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#converting-tmdlib-sets-into-neopdf" class="md-nav__link">
+    <span class="md-ellipsis">
+      Converting TMDlib sets into NeoPDF
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lhapdf_benchmark/pdfs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    LHAPDF Sets Benchmark
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    Examples
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            Examples
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/neopdf-pyapi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <i class="devicon-python-plain colored"></i> Python API
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/c-oop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <i class="devicon-cplusplus-plain colored"></i> C++ OOP API
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <i class="devicon-c-plain colored"></i> C/C++ API
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/fortran/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <i class="devicon-fortran-original colored"></i> Fortran API
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/mathematica/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <img src="https://cdn.simpleicons.org/wolfram/c83737" alt="Wolfram" style="height: 1em; vertical-align: -0.125em; margin-right: 0.25em;"/> Mathematica
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#installing-the-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installing the interface
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interpolating-tmdlib-sets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Interpolating TMDlib sets
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#converting-tmdlib-sets-into-neopdf" class="md-nav__link">
+    <span class="md-ellipsis">
+      Converting TMDlib sets into NeoPDF
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="tmdlib-interface">TMDlib Interface</h1>
+<p><code>NeoPDF</code> provides an interface to the <code>TMDlib</code> library which allows users for example
+to interpolate TMD PDFs from the CLI. Most importantly, it is used to convert TMDlib
+sets into <code>NeoPDF</code> formats.</p>
+<h2 id="installing-the-interface">Installing the interface</h2>
+<p>To install the <code>TMDlib</code> interface, first clone the repository and run the following
+command:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cargo<span class="w"> </span>install<span class="w"> </span>--path<span class="w"> </span>neopdf_cli<span class="w"> </span>--features<span class="o">=</span>tmdlib
+</span></code></pre></div>
+<p>Note that this requires <code>TMDlib</code> and its dependencies to be installed and available
+in the environment paths.</p>
+<h2 id="interpolating-tmdlib-sets">Interpolating TMDlib sets</h2>
+<p>To interpolate <code>TMDlib</code> sets from the CLI, the command is similar to the one used for
+regular sets:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>neopdf<span class="w"> </span>compute<span class="w"> </span>xfx_q2_kt<span class="w"> </span>--pdf-name<span class="w"> </span>MAP22_grids_FF_Km_N3LL<span class="w"> </span>--member<span class="w"> </span><span class="m">0</span><span class="w"> </span>--pid<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="m">0</span>.00010000000000000009<span class="w"> </span><span class="m">1</span>.00000e-1<span class="w"> </span><span class="m">4</span>.14987e3
+</span></code></pre></div>
+<p>For more details on the required arguments, refer to the helper:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>&gt;<span class="w"> </span>neopdf<span class="w"> </span>compute<span class="w"> </span>xfx_q2_kt<span class="w"> </span>--help<span class="w">                                                                                                                                                                                                                                                                                         </span>─╯
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>Evaluate<span class="w"> </span>TMD<span class="w"> </span>PDF<span class="w"> </span><span class="k">for</span><span class="w"> </span>a<span class="w"> </span>given<span class="w"> </span>set,<span class="w"> </span>member,<span class="w"> </span>and<span class="w"> </span>input<span class="w"> </span>values
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>Usage:<span class="w"> </span>neopdf<span class="w"> </span>compute<span class="w"> </span>xfx_q2_kt<span class="w"> </span>--pdf-name<span class="w"> </span>&lt;PDF_NAME&gt;<span class="w"> </span>--member<span class="w"> </span>&lt;MEMBER&gt;<span class="w"> </span>--pid<span class="w"> </span>&lt;PID&gt;<span class="w"> </span>&lt;INPUTS&gt;...
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>Arguments:
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span>&lt;INPUTS&gt;...<span class="w">  </span>Input<span class="w"> </span>values<span class="w"> </span><span class="o">(</span>kt,<span class="w"> </span>x,<span class="w"> </span>Q2<span class="o">)</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>Options:
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">  </span>-p,<span class="w"> </span>--pdf-name<span class="w"> </span>&lt;PDF_NAME&gt;<span class="w">  </span>Name<span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>TMD<span class="w"> </span>PDF<span class="w"> </span><span class="nb">set</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">  </span>-m,<span class="w"> </span>--member<span class="w"> </span>&lt;MEMBER&gt;<span class="w">      </span>Member<span class="w"> </span>index<span class="w"> </span><span class="o">(</span><span class="m">0</span>-based<span class="o">)</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">  </span>-i,<span class="w"> </span>--pid<span class="w"> </span>&lt;PID&gt;<span class="w">            </span>PDG<span class="w"> </span>flavor<span class="w"> </span>ID
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">  </span>-h,<span class="w"> </span>--help<span class="w">                 </span>Print<span class="w"> </span><span class="nb">help</span>
+</span></code></pre></div>
+<h2 id="converting-tmdlib-sets-into-neopdf">Converting TMDlib sets into NeoPDF</h2>
+<p>To convert a <code>TMDlib</code> set into the <code>NeoPDF</code> format, one needs to write a configuration file
+in the <code>.toml</code> format. This configuration file should contain all the information about the
+metadata and the grid configurations. The following is an example:</p>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">set_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;MAP22_grids_FF_Km_N3LL&quot;</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">set_desc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;MAP22 TMDs for K- fragmentation, converted to NeoPDF&quot;</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">set_index</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">n_members</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># Inner edges for the subgrids. Leave empty for no subgrids.</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">x_inner_edges</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="mf">0.2</span><span class="p">]</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">q_inner_edges</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span><span class="w"> </span><span class="c1"># Q, not Q2</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">kt_inner_edges</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="mf">1e-2</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">]</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="c1"># Number of points for (subg)grids.</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="n">n_x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">]</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="n">n_q</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="n">n_kt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">]</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="c1"># Grid axes that are not part of the TMD interpolation</span>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="n">nucleons</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="mf">0.0</span><span class="p">]</span><span class="w"> </span><span class="c1"># dummy value</span>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="n">alphas</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="mf">0.118</span><span class="p">]</span><span class="w"> </span><span class="c1"># alpha_s(M_Z)</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="c1"># Metadata</span>
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="n">pids</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="mi">-3</span><span class="p">,</span><span class="w"> </span><span class="mi">-2</span><span class="p">,</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span><span class="w"> </span><span class="mi">21</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">]</span>
+</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="n">polarised</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="n">set_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;TimeLike&quot;</span>
+</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="n">interpolator_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;LogChebyshev&quot;</span><span class="w"> </span><span class="c1"># or LogTricubic</span>
+</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="n">error_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;replicas&quot;</span>
+</span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="n">hadron_pid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">321</span><span class="w"> </span><span class="c1"># Kaon</span>
+</span><span id="__span-3-27"><a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="n">alphas_qs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="mf">91.1876</span><span class="p">]</span><span class="w"> </span><span class="c1"># dummy values</span>
+</span><span id="__span-3-28"><a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="n">alphas_vals</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="mf">0.118</span><span class="p">]</span><span class="w"> </span><span class="c1"># dummy values</span>
+</span><span id="__span-3-29"><a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a>
+</span><span id="__span-3-30"><a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a><span class="c1"># Physics Parameters</span>
+</span><span id="__span-3-31"><a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a><span class="n">flavor_scheme</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;fixed&quot;</span>
+</span><span id="__span-3-32"><a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a><span class="n">order_qcd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span>
+</span><span id="__span-3-33"><a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a><span class="n">alphas_order_qcd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span>
+</span><span id="__span-3-34"><a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a><span class="n">m_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">80.352</span>
+</span><span id="__span-3-35"><a id="__codelineno-3-35" name="__codelineno-3-35" href="#__codelineno-3-35"></a><span class="n">m_z</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">91.1876</span>
+</span><span id="__span-3-36"><a id="__codelineno-3-36" name="__codelineno-3-36" href="#__codelineno-3-36"></a><span class="n">m_up</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span>
+</span><span id="__span-3-37"><a id="__codelineno-3-37" name="__codelineno-3-37" href="#__codelineno-3-37"></a><span class="n">m_down</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span>
+</span><span id="__span-3-38"><a id="__codelineno-3-38" name="__codelineno-3-38" href="#__codelineno-3-38"></a><span class="n">m_strange</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span>
+</span><span id="__span-3-39"><a id="__codelineno-3-39" name="__codelineno-3-39" href="#__codelineno-3-39"></a><span class="n">m_charm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.51</span>
+</span><span id="__span-3-40"><a id="__codelineno-3-40" name="__codelineno-3-40" href="#__codelineno-3-40"></a><span class="n">m_bottom</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">4.92</span>
+</span><span id="__span-3-41"><a id="__codelineno-3-41" name="__codelineno-3-41" href="#__codelineno-3-41"></a><span class="n">m_top</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">172.5</span>
+</span><span id="__span-3-42"><a id="__codelineno-3-42" name="__codelineno-3-42" href="#__codelineno-3-42"></a><span class="n">alphas_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;ipol&quot;</span>
+</span><span id="__span-3-43"><a id="__codelineno-3-43" name="__codelineno-3-43" href="#__codelineno-3-43"></a><span class="n">number_flavors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span>
+</span></code></pre></div>
+<p>We can now convert the <code>MAP22_grids_FF_Km_N3LL</code> set by running the following command:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>neopdf<span class="w"> </span>write<span class="w"> </span>convert-tmd<span class="w"> </span>--input<span class="w"> </span>MAP22_grids_FF_Km_N3LL.toml<span class="w"> </span>--output<span class="w"> </span>MAP22.neopdf.lz4
+</span></code></pre></div></p>
+<p>Once the conversion has been performed successfully (and the converted <code>NeoPDF</code> set
+available in the <code>$NEOPDF_DATA_PATH</code>), we can inspect the content of the subgrids to make
+sure that everything is correct.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>&gt;<span class="w"> </span>neopdf<span class="w"> </span><span class="nb">read</span><span class="w"> </span>subgrid<span class="w"> </span>--pdf-name<span class="w"> </span>MAP22.neopdf.lz4<span class="w"> </span>--member<span class="w"> </span><span class="m">0</span><span class="w"> </span>--subgrid-index<span class="w"> </span><span class="m">0</span><span class="w"> </span>--pid<span class="w"> </span><span class="m">2</span><span class="w"> </span>--kt-index<span class="w"> </span><span class="m">0</span><span class="w">                                                                                                                                                                                                                       </span>─╯
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>Displaying<span class="w"> </span>grid<span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="nv">kT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0</span>.00010000000000000009
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="o">[</span>x<span class="w"> </span><span class="p">|</span><span class="w"> </span>Q2<span class="o">]</span><span class="w">   </span><span class="m">1</span>.00000e0<span class="w">   </span><span class="m">2</span>.40972e0<span class="w">   </span><span class="m">2</span>.40972e1<span class="w">   </span><span class="m">4</span>.14987e2<span class="w">   </span><span class="m">4</span>.14987e3<span class="w">   </span><span class="m">1</span>.00000e4
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="m">1</span>.00000e-1<span class="w"> </span>-6.70867e-1<span class="w"> </span>-4.80573e-1<span class="w"> </span>-1.53370e-1<span class="w"> </span>-1.26831e-2<span class="w">  </span><span class="m">1</span>.49324e-2<span class="w">   </span><span class="m">0</span>.00000e0
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="m">1</span>.10684e-1<span class="w"> </span>-7.26434e-1<span class="w"> </span>-4.81932e-1<span class="w"> </span>-1.40332e-1<span class="w"> </span>-7.62762e-3<span class="w">  </span><span class="m">1</span>.61799e-2<span class="w">   </span><span class="m">0</span>.00000e0
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="m">1</span>.41421e-1<span class="w"> </span>-7.37791e-1<span class="w"> </span>-3.84220e-1<span class="w"> </span>-8.14145e-2<span class="w">  </span><span class="m">8</span>.54183e-3<span class="w">  </span><span class="m">1</span>.92982e-2<span class="w">   </span><span class="m">0</span>.00000e0
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="m">1</span>.80695e-1<span class="w"> </span>-5.23889e-1<span class="w"> </span>-1.84548e-1<span class="w"> </span>-1.28827e-2<span class="w">  </span><span class="m">2</span>.17623e-2<span class="w">  </span><span class="m">1</span>.98305e-2<span class="w">   </span><span class="m">0</span>.00000e0
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="m">2</span>.00000e-1<span class="w"> </span>-3.89947e-1<span class="w"> </span>-1.06392e-1<span class="w">  </span><span class="m">7</span>.02618e-3<span class="w">  </span><span class="m">2</span>.38316e-2<span class="w">  </span><span class="m">1</span>.86428e-2<span class="w">   </span><span class="m">0</span>.00000e0
+</span></code></pre></div>
+<p>We can verify that the contents of the subgrids are correct by checking one of the entries:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>&gt;<span class="w"> </span>neopdf<span class="w"> </span>compute<span class="w"> </span>xfx_q2_kt<span class="w"> </span>--pdf-name<span class="w"> </span>MAP22_grids_FF_Km_N3LL<span class="w"> </span>--member<span class="w"> </span><span class="m">0</span><span class="w"> </span>--pid<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="m">0</span>.00010000000000000009<span class="w"> </span><span class="m">1</span>.00000e-1<span class="w"> </span><span class="m">2</span>.40972e0<span class="w">                                                                                                                                                                                               </span>─╯
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>-0.4805722561384916
+</span></code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.f55a23d4.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 800 200"
+   version="1.1"
+   id="svg23"
+   sodipodi:docname="neopf.svg"
+   inkscape:version="1.4 (e7c3feb1, 2024-10-09)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview23"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="1.2335658"
+     inkscape:cx="427.6221"
+     inkscape:cy="158.48364"
+     inkscape:window-width="1856"
+     inkscape:window-height="906"
+     inkscape:window-x="0"
+     inkscape:window-y="31"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg23"
+     showguides="true" />
+  <defs
+     id="defs12">
+    <!-- Gradients from your original SVG -->
+    <radialGradient
+       id="Gradient_1"
+       gradientUnits="userSpaceOnUse"
+       cx="449.659"
+       cy="806.173"
+       r="160.644"
+       gradientTransform="matrix(-0.295,-0.156,0.145,-0.273,130.144,426.486)">
+      <stop
+         offset="0"
+         stop-color="#FFFFFF"
+         id="stop1" />
+      <stop
+         offset="0.5"
+         stop-color="#0000FF"
+         id="stop2" />
+      <stop
+         offset="1"
+         stop-color="#0000E5"
+         id="stop3" />
+    </radialGradient>
+    <radialGradient
+       id="Gradient_2"
+       gradientUnits="userSpaceOnUse"
+       cx="449.659"
+       cy="806.173"
+       r="160.644"
+       gradientTransform="matrix(-0.295,-0.156,0.145,-0.273,307.951,428.737)">
+      <stop
+         offset="0"
+         stop-color="#FFFFFF"
+         id="stop4" />
+      <stop
+         offset="0.5"
+         stop-color="#E31C1C"
+         id="stop5" />
+      <stop
+         offset="1"
+         stop-color="#FA0000"
+         id="stop6" />
+    </radialGradient>
+    <radialGradient
+       id="Gradient_3"
+       gradientUnits="userSpaceOnUse"
+       cx="449.659"
+       cy="806.173"
+       r="160.644"
+       gradientTransform="matrix(-0.295,-0.156,0.145,-0.273,208.633,595.334)">
+      <stop
+         offset="0"
+         stop-color="#FFFFFF"
+         id="stop7" />
+      <stop
+         offset="0.5"
+         stop-color="#00EA00"
+         id="stop8" />
+      <stop
+         offset="1"
+         stop-color="#00AF00"
+         id="stop9" />
+    </radialGradient>
+    <!-- Text gradient for modern look -->
+    <linearGradient
+       id="textGradient"
+       x1="0%"
+       y1="0%"
+       x2="100%"
+       y2="0%">
+      <stop
+         offset="0%"
+         stop-color="#2563eb"
+         id="stop10" />
+      <stop
+         offset="50%"
+         stop-color="#7c3aed"
+         id="stop11" />
+      <stop
+         offset="100%"
+         stop-color="#dc2626"
+         id="stop12" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#textGradient"
+       id="linearGradient24"
+       x1="7.0406371"
+       y1="-108.65962"
+       x2="117.47913"
+       y2="-108.65962"
+       gradientTransform="scale(1.2649778,0.79052768)"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#textGradient"
+       id="linearGradient25"
+       x1="171.95242"
+       y1="-139.23917"
+       x2="311.19159"
+       y2="-139.23917"
+       gradientTransform="scale(1.6209744,0.61691289)"
+       gradientUnits="userSpaceOnUse" />
+  </defs>
+  <!-- Logo text with your SVG as the "o" -->
+  <g
+     transform="translate(134,148)"
+     id="g23">
+    <!-- "Ne" -->
+    <text
+       x="0"
+       y="0"
+       font-family="Arial, sans-serif"
+       font-size="120px"
+       font-weight="bold"
+       stroke="#FFFFFF"
+       stroke-width="0.5"
+       fill="#222831"
+       id="text12">Ne</text>
+    <!-- Your SVG as the "o" - scaled and positioned -->
+    <g
+       transform="matrix(0.28,0,0,0.28,150,-90)"
+       id="g22">
+      <!-- Main circle -->
+      <path
+         d="M 203.153,18.304 C 97.331,22.105 14.461,111.067 18.263,216.89 c 3.801,105.823 92.84,188.608 198.663,184.807 105.823,-3.802 188.612,-92.76 184.81,-198.583 C 397.935,97.291 308.976,14.502 203.153,18.304 Z"
+         fill="#222831"
+         id="path12" />
+      <path
+         d="M 203.153,18.304 C 97.331,22.105 14.461,111.067 18.263,216.89 c 3.801,105.823 92.84,188.608 198.663,184.807 105.823,-3.802 188.612,-92.76 184.81,-198.583 C 397.935,97.291 308.976,14.502 203.153,18.304 Z"
+         fill-opacity="0"
+         stroke="#FFFFFF"
+         stroke-width="3"
+         stroke-linecap="round"
+         id="path13" />
+      <!-- Blue circle with "s" -->
+      <path
+         d="m 120.587,93.895 c -33.26,1.195 -59.306,29.155 -58.111,62.415 1.195,33.259 29.18,59.279 62.44,58.084 33.259,-1.195 59.28,-29.154 58.085,-62.414 -1.195,-33.26 -29.154,-59.28 -62.414,-58.085 z"
+         fill="url(#Gradient_1)"
+         id="path14"
+         style="fill:url(#Gradient_1)" />
+      <path
+         d="m 120.587,93.895 c -33.26,1.195 -59.306,29.155 -58.111,62.415 1.195,33.259 29.18,59.279 62.44,58.084 33.259,-1.195 59.28,-29.154 58.085,-62.414 -1.195,-33.26 -29.154,-59.28 -62.414,-58.085 z"
+         fill-opacity="0"
+         stroke="#ffffff"
+         stroke-width="2"
+         stroke-linecap="round"
+         id="path15" />
+      <!-- Red circle with "s" -->
+      <path
+         d="m 298.393,96.146 c -33.259,1.195 -59.305,29.155 -58.11,62.415 1.195,33.26 29.179,59.279 62.439,58.085 33.26,-1.195 59.28,-29.155 58.085,-62.414 -1.194,-33.26 -29.154,-59.281 -62.414,-58.086 z"
+         fill="url(#Gradient_2)"
+         id="path16"
+         style="fill:url(#Gradient_2)" />
+      <path
+         d="m 298.393,96.146 c -33.259,1.195 -59.305,29.155 -58.11,62.415 1.195,33.26 29.179,59.279 62.439,58.085 33.26,-1.195 59.28,-29.155 58.085,-62.414 -1.194,-33.26 -29.154,-59.281 -62.414,-58.086 z"
+         fill-opacity="0"
+         stroke="#ffffff"
+         stroke-width="2"
+         stroke-linecap="round"
+         id="path17" />
+      <!-- Green circle with "s" -->
+      <path
+         d="m 207.411,259.628 c -33.26,1.195 -59.306,29.155 -58.111,62.415 1.195,33.26 29.18,59.279 62.439,58.084 33.26,-1.194 59.281,-29.154 58.086,-62.414 -1.195,-33.259 -29.125,-59.28 -62.414,-58.085 z"
+         fill="url(#Gradient_3)"
+         id="path18"
+         style="fill:url(#Gradient_3)" />
+      <path
+         d="m 207.411,259.628 c -33.26,1.195 -59.306,29.155 -58.111,62.415 1.195,33.26 29.18,59.279 62.439,58.084 33.26,-1.194 59.461,-29.154 58.086,-62.414 -1.195,-33.259 -29.155,-59.28 -62.414,-58.085 z"
+         fill-opacity="0"
+         stroke="#ffffff"
+         stroke-width="2"
+         stroke-linecap="round"
+         id="path19" />
+      <!-- Connecting lines -->
+      <path
+         d="m 174.425,153.164 c 0,0 2.676,-24.788 8.998,-24.466 6.322,0.322 9.419,25.451 16.289,25.753 6.87,0.302 4.898,-24.045 11.19,-24.545 6.292,-0.501 7.931,22.212 13.978,22.543 6.048,0.332 4.458,-21.011 10.212,-21.218 5.754,-0.206 12.804,20.391 12.804,20.391"
+         fill-opacity="0"
+         stroke="#ffffff"
+         stroke-width="7.662"
+         stroke-linecap="round"
+         stroke-linejoin="round"
+         id="path20" />
+      <path
+         d="m 272.336,205.303 c 0,0 20.363,15.277 16.891,20.786 -3.472,5.508 -27.047,-4.763 -30.779,1.247 -3.731,6.01 18.591,16.885 15.854,22.794 -2.737,5.908 -23.459,-4.417 -26.802,0.84 -3.342,5.257 16.155,14.915 13.433,20.188 -2.723,5.272 -24.323,0.903 -24.323,0.903"
+         fill-opacity="0"
+         stroke="#ffffff"
+         stroke-width="7.846"
+         stroke-linecap="round"
+         stroke-linejoin="round"
+         id="path21" />
+      <path
+         d="m 182.44,270.407 c 0,0 -22.905,10.12 -25.8,4.46 -2.895,-5.66 17.407,-20.974 14.22,-27.101 -3.187,-6.127 -23.374,7.815 -26.969,2.593 -3.595,-5.221 15.338,-18.053 12.589,-23.479 -2.749,-5.427 -20.514,6.673 -23.584,1.772 -3.069,-4.901 11.306,-21.377 11.306,-21.377"
+         fill-opacity="0"
+         stroke="#ffffff"
+         stroke-width="7.696"
+         stroke-linecap="round"
+         stroke-linejoin="round"
+         id="path22" />
+    </g>
+    <!-- "PDF" -->
+    <text
+       x="270"
+       y="0"
+       font-family="Arial, sans-serif"
+       font-size="120px"
+       font-weight="bold"
+       stroke="#FFFFFF"
+       stroke-width="0.5"
+       fill="#dc143c"
+       id="text22">PDF</text>
+  </g>
+  <!-- Tagline -->
+  <path
+     sodipodi:nodetypes="sssssssssssssssssscsss"
+     inkscape:connector-curvature="0"
+     id="path4138"
+     d="M 97.817774,191.53382 C 51.874079,187.73005 24.076742,170.44059 24.094077,145.67896 24.101277,135.45644 30.475666,120.8121 39.873949,109.42698 80.526989,60.179675 177.82463,16.719765 274.23359,4.7456104 c 15.94872,-1.980857 58.14651,-2.242803 70.17987,-0.435646 24.88841,3.737713 40.82076,9.8792896 51.65131,19.9104736 8.44559,7.822234 10.88993,13.080399 10.88993,23.42595 0,7.054359 -2.30365,15.847695 -5.33398,20.360515 -1.03355,1.53917 -1.29225,1.672654 -0.85531,0.441319 1.63612,-4.610794 2.57787,-11.970693 1.99303,-15.575815 -0.35609,-2.195089 -2.24307,-6.496925 -4.19327,-9.559634 -8.36304,-13.133799 -27.60385,-22.149054 -54.74393,-25.650199 -10.00622,-1.290829 -39.9093,-1.29944 -53.83298,-0.01551 -46.30938,4.2703 -95.324,17.496329 -137.49525,37.101499 -43.43292,20.191721 -72.848291,42.944442 -85.036121,65.775247 -7.85925,14.72232 -7.77401,26.57856 0.2689,37.40091 13.79077,18.55654 53.134291,27.67759 103.095651,23.90077 25.12634,-1.89942 57.55395,-7.89985 82.85096,-15.33081 5.75889,-1.69166 10.60276,-2.95371 10.76412,-2.80453 0.51074,0.47212 -25.53636,9.0299 -37.46692,12.30976 -24.92117,6.85115 -53.02706,12.2553 -76.38624,14.68742 -12.63131,1.31514 -41.50935,1.77843 -52.765586,0.84649 z"
+     stroke="#FFFFFF"
+     stroke-width="0.5"
+     style="fill:#222831;fill-opacity:1;stroke-width:0.734419" />
+</svg>

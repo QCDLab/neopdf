@@ -1,0 +1,1535 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../installation/">
+      
+      
+        <link rel="next" href="../design-and-features/">
+      
+      
+      <link rel="icon" href="../assets/neopdf.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.21">
+    
+    
+      
+        <title>Development with Pixi - NeoPDF</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.2a3383ac.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../custom.css">
+    
+      <link rel="stylesheet" href="../assets/stylesheets/notebooks.css">
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#development-with-pixi" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="NeoPDF" class="md-header__button md-logo" aria-label="NeoPDF" data-md-component="logo">
+      
+  <img src="../assets/neopdf.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            NeoPDF
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Development with Pixi
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="NeoPDF" class="md-nav__button md-logo" aria-label="NeoPDF" data-md-component="logo">
+      
+  <img src="../assets/neopdf.svg" alt="logo">
+
+    </a>
+    NeoPDF
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Development with Pixi
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Development with Pixi
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Prerequisites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#installing-pixi" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installing Pixi
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Project Setup
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Project Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#initializing-the-development-environment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Initializing the Development Environment
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      Core Components
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Core Components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rust-library-neopdf" class="md-nav__link">
+    <span class="md-ellipsis">
+      Rust Library (neopdf/)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#python-api-neopdf_pyapi" class="md-nav__link">
+    <span class="md-ellipsis">
+      Python API (neopdf_pyapi/)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cc-api-neopdf_capi" class="md-nav__link">
+    <span class="md-ellipsis">
+      C/C++ API (neopdf_capi/)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#command-line-interface-neopdf_cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      Command Line Interface (neopdf_cli/)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fortran-api-neopdf_fapi" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fortran API (neopdf_fapi/)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#development-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Development Workflow
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Development Workflow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#environment-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      Environment Management
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#building-and-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building and Testing
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Documentation
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#advanced-development" class="md-nav__link">
+    <span class="md-ellipsis">
+      Advanced Development
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Advanced Development">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#custom-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Custom Tasks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#platform-specific-development" class="md-nav__link">
+    <span class="md-ellipsis">
+      Platform-Specific Development
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#performance-profiling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Performance Profiling
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#common-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Common Issues
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#debugging" class="md-nav__link">
+    <span class="md-ellipsis">
+      Debugging
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deployment
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Deployment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#building-release-artifacts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building Release Artifacts
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#publishing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Publishing
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design-and-features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Features
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Design Rationale
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../custom-interpolation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Custom Interpolation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli-tutorials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    CLI Tutorials
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tmdlib/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    TMDlib Interface
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lhapdf_benchmark/pdfs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    LHAPDF Sets Benchmark
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    Examples
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            Examples
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/neopdf-pyapi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <i class="devicon-python-plain colored"></i> Python API
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/c-oop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <i class="devicon-cplusplus-plain colored"></i> C++ OOP API
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <i class="devicon-c-plain colored"></i> C/C++ API
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/fortran/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <i class="devicon-fortran-original colored"></i> Fortran API
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/mathematica/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <img src="https://cdn.simpleicons.org/wolfram/c83737" alt="Wolfram" style="height: 1em; vertical-align: -0.125em; margin-right: 0.25em;"/> Mathematica
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Prerequisites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#installing-pixi" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installing Pixi
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Project Setup
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Project Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#initializing-the-development-environment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Initializing the Development Environment
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      Core Components
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Core Components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rust-library-neopdf" class="md-nav__link">
+    <span class="md-ellipsis">
+      Rust Library (neopdf/)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#python-api-neopdf_pyapi" class="md-nav__link">
+    <span class="md-ellipsis">
+      Python API (neopdf_pyapi/)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cc-api-neopdf_capi" class="md-nav__link">
+    <span class="md-ellipsis">
+      C/C++ API (neopdf_capi/)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#command-line-interface-neopdf_cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      Command Line Interface (neopdf_cli/)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fortran-api-neopdf_fapi" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fortran API (neopdf_fapi/)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#development-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Development Workflow
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Development Workflow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#environment-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      Environment Management
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#building-and-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building and Testing
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Documentation
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#advanced-development" class="md-nav__link">
+    <span class="md-ellipsis">
+      Advanced Development
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Advanced Development">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#custom-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Custom Tasks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#platform-specific-development" class="md-nav__link">
+    <span class="md-ellipsis">
+      Platform-Specific Development
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#performance-profiling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Performance Profiling
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#common-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Common Issues
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#debugging" class="md-nav__link">
+    <span class="md-ellipsis">
+      Debugging
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deployment
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Deployment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#building-release-artifacts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building Release Artifacts
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#publishing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Publishing
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="development-with-pixi">Development with Pixi</h1>
+<p>This guide provides comprehensive instructions for developing <code>NeoPDF</code> using <a href="https://pixi.sh/latest/">Pixi</a>,
+a modern package management tool that ensures reproducible development environments across
+different platforms.</p>
+<div class="admonition danger">
+<p class="admonition-title">Why Pixi?</p>
+<p><code>Pixi</code> provides isolated, reproducible environments with built-in lockfiles, making it perfect
+for managing complex multi-language projects like <code>NeoPDF</code> that involve Rust, Python, C/C++,
+and Fortran components.</p>
+</div>
+<hr />
+<h2 id="prerequisites">Prerequisites</h2>
+<h3 id="installing-pixi">Installing Pixi</h3>
+<p>First, you need to install <code>Pixi</code>. Depending on your platform, run one of the following commands:</p>
+<p><strong>Linux &amp; macOS:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>curl<span class="w"> </span>-fsSL<span class="w"> </span>https://pixi.sh/install.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>sh
+</span></code></pre></div></p>
+<p><strong>Windows:</strong>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">powershell</span> <span class="n">-ExecutionPolicy</span> <span class="n">ByPass</span> <span class="n">-c</span> <span class="s2">&quot;irm -useb https://pixi.sh/install.ps1 | iex&quot;</span>
+</span></code></pre></div></p>
+<p>After the installation, restart your terminal or source your shell configuration.</p>
+<hr />
+<h2 id="project-setup">Project Setup</h2>
+<h3 id="initializing-the-development-environment">Initializing the Development Environment</h3>
+<ol>
+<li>
+<p><strong>Clone the repository and navigate to the project:</strong>
+   <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/Radonirinaunimi/neopdf
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nb">cd</span><span class="w"> </span>neopdf
+</span></code></pre></div>
+   This directory contains the <code>pixi.toml</code> configuration file which contains the list of
+   dependencies and tasks. For more details on how to configure the <code>pixi.toml</code> file, head
+   over to the <a href="https://pixi.sh/latest/reference/pixi_manifest/">documentation</a>.</p>
+</li>
+<li>
+<p><strong>Verify the environment:</strong>
+   <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Check Rust version</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>rustc<span class="w"> </span>--version
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># Check Python version</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>--version
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># Check C compiler</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>pixi<span class="w"> </span>run<span class="w"> </span>gcc<span class="w"> </span>--version
+</span></code></pre></div></p>
+</li>
+</ol>
+<div class="admonition danger">
+<p class="admonition-title">Omitting <code>pixi run</code></p>
+<p>One can omit the <code>pixi run</code> prefix by invoking the <code>pixi</code> shell:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pixi<span class="w"> </span>shell
+</span></code></pre></div>
+<p>This activates the development environment with all dependencies installed.</p>
+</div>
+<hr />
+<h2 id="core-components">Core Components</h2>
+<h3 id="rust-library-neopdf">Rust Library (<code>neopdf/</code>)</h3>
+<p>The core Rust library provides the main interpolation functionality.</p>
+<p><strong>Building the library:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Build in debug mode</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span>build<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf/Cargo.toml
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># Build in release mode</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span>build<span class="w"> </span>--release<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf/Cargo.toml
+</span></code></pre></div></p>
+<p><strong>Running tests:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Run all Rust tests</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>test-rust
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># Run specific test file</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--no-fail-fast<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf/Cargo.toml<span class="w"> </span>--test<span class="w"> </span>pdf
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="c1"># Run with verbose output</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--no-fail-fast<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf/Cargo.toml<span class="w"> </span>--<span class="w"> </span>--nocapture
+</span></code></pre></div></p>
+<p><strong>Running benchmarks:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span>bench<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf/Cargo.toml
+</span></code></pre></div></p>
+<h3 id="python-api-neopdf_pyapi">Python API (<code>neopdf_pyapi/</code>)</h3>
+<p>The Python API provides high-level bindings to the Rust library using PyO3. For
+more examples on using the Python API, see the <a href="https://radonirinaunimi.github.io/neopdf/examples/neopdf-pyapi/">tutorials</a>.</p>
+<p><strong>Installing the Python API:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Install in development mode</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>install-pyapi
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># Install with test dependencies</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>maturin<span class="w"> </span>develop<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf_pyapi/Cargo.toml<span class="w"> </span>--extras<span class="w"> </span><span class="nb">test</span>
+</span></code></pre></div></p>
+<p><strong>Running Python tests:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Run all Python tests</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>test-pyapi
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># Run with coverage</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>neopdf_pyapi/tests<span class="w"> </span>--cov<span class="o">=</span>neopdf_hep
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1"># Run specific test file</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>pixi<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>neopdf_pyapi/tests/test_pdfs.py<span class="w"> </span>-v
+</span></code></pre></div></p>
+<h3 id="cc-api-neopdf_capi">C/C++ API (<code>neopdf_capi/</code>)</h3>
+<p>The C-API provides low-level bindings for C and C++ applications. For more examples
+on using the C/C++ API, see the corresponding <a href="../examples/c-oop/">tutorials</a>.</p>
+<p><strong>Installing the C-API:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># Install C-API</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>install-capi
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># Install with custom prefix</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span>cinstall<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf_capi/Cargo.toml<span class="w"> </span>--prefix<span class="o">=</span>/usr/local
+</span></code></pre></div></p>
+<p><strong>Running C-API tests:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Run C-API tests</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>test-capi
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="c1"># Run specific test</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>make<span class="w"> </span>-C<span class="w"> </span>neopdf_capi/tests<span class="w"> </span>check-capi
+</span></code></pre></div></p>
+<h3 id="command-line-interface-neopdf_cli">Command Line Interface (<code>neopdf_cli/</code>)</h3>
+<p>The CLI provides command-line tools for working with <code>NeoPDF</code> files. For more illustrations
+on how to use the CLI, head over to the <a href="../cli-tutorials/">tutorials</a></p>
+<p><strong>Installing the CLI:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># Install CLI</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>install-cli
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="c1"># Install in debug mode</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span>install<span class="w"> </span>--path<span class="w"> </span>neopdf_cli<span class="w"> </span>--debug
+</span></code></pre></div></p>
+<p><strong>Using the CLI:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># Show help</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>neopdf<span class="w"> </span>--help
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="c1"># List available PDF sets</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>neopdf<span class="w"> </span>list
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="c1"># Convert LHAPDF to NeoPDF format</span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>pixi<span class="w"> </span>run<span class="w"> </span>neopdf<span class="w"> </span>write<span class="w"> </span>convert<span class="w"> </span>NNPDF40_nnlo_as_01180<span class="w"> </span>--output<span class="w"> </span>NNPDF40_nnlo_as_01180.neopdf.lz4
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="c1"># Perform xfxQ2 interpolation</span>
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>neopdf<span class="w"> </span>compute<span class="w"> </span>xfx_q2<span class="w"> </span>--pdf-name<span class="w"> </span>NNPDF40_nnlo_as_01180.neopdf.lz4<span class="w"> </span>--member<span class="w"> </span><span class="m">0</span><span class="w"> </span>--pid<span class="w"> </span><span class="m">21</span><span class="w"> </span>1e-3<span class="w"> </span><span class="m">10</span>.0
+</span></code></pre></div></p>
+<h3 id="fortran-api-neopdf_fapi">Fortran API (<code>neopdf_fapi/</code>)</h3>
+<p>The Fortran API provides bindings for Fortran applications. Fore some examples on how to
+use the Fortran API, see the <a href="../examples/fortran/">tutorials</a>.</p>
+<p><strong>Building the Fortran module:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># Compile Fortran module</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>gfortran<span class="w"> </span>-c<span class="w"> </span>neopdf_fapi/neopdf.f90
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="c1"># Test Fortran API</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>make<span class="w"> </span>-C<span class="w"> </span>neopdf_fapi<span class="w"> </span>check-fapi
+</span></code></pre></div></p>
+<hr />
+<h2 id="development-workflow">Development Workflow</h2>
+<h3 id="environment-management">Environment Management</h3>
+<p><strong>Activating the environment:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># Activate the full development environment</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>pixi<span class="w"> </span>shell
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="c1"># Activate with specific features</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>pixi<span class="w"> </span>shell<span class="w"> </span>--feature<span class="w"> </span>pyapi
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>pixi<span class="w"> </span>shell<span class="w"> </span>--feature<span class="w"> </span>capi
+</span></code></pre></div></p>
+<p><strong>Adding new dependencies:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1"># Add Python dependency</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>pixi<span class="w"> </span>add<span class="w"> </span>numpy
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="c1"># Add Rust dependency</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>pixi<span class="w"> </span>add<span class="w"> </span>cargo-edit
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="c1"># Add system dependency</span>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>pixi<span class="w"> </span>add<span class="w"> </span>cmake
+</span></code></pre></div></p>
+<h3 id="building-and-testing">Building and Testing</h3>
+<p><strong>Complete build and test workflow:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c1"># 1. Activate environment</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>pixi<span class="w"> </span>shell
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="c1"># 2. Build all components</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>install-pyapi
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>pixi<span class="w"> </span>run<span class="w"> </span>install-capi
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>pixi<span class="w"> </span>run<span class="w"> </span>install-cli
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>
+</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a><span class="c1"># 3. Run all tests</span>
+</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a>pixi<span class="w"> </span>run<span class="w"> </span>test-rust
+</span><span id="__span-17-11"><a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a>pixi<span class="w"> </span>run<span class="w"> </span>test-pyapi
+</span><span id="__span-17-12"><a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a>pixi<span class="w"> </span>run<span class="w"> </span>test-capi
+</span><span id="__span-17-13"><a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a>
+</span><span id="__span-17-14"><a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a><span class="c1"># 4. Run benchmarks</span>
+</span><span id="__span-17-15"><a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span>bench<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf/Cargo.toml
+</span></code></pre></div></p>
+<p><strong>Continuous Integration tasks:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="c1"># Run all tests in CI mode</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--no-fail-fast<span class="w"> </span>--release
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="c1"># Run with specific target</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--target<span class="w"> </span>x86_64-unknown-linux-gnu
+</span></code></pre></div></p>
+<h3 id="documentation">Documentation</h3>
+<p><strong>Building documentation:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="c1"># Serve documentation locally</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>docs
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="c1"># Build static documentation</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>mkdocs<span class="w"> </span>build
+</span></code></pre></div></p>
+<p><strong>Generating API documentation:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="c1"># Generate Rust documentation</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span>doc<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf/Cargo.toml<span class="w"> </span>--open
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="c1"># Generate Python documentation</span>
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>maturin<span class="w"> </span>build<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf_pyapi/Cargo.toml<span class="w"> </span>--documentation
+</span></code></pre></div></p>
+<hr />
+<h2 id="advanced-development">Advanced Development</h2>
+<h3 id="custom-tasks">Custom Tasks</h3>
+<p><strong>Adding custom tasks to <code>pixi.toml</code>:</strong>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="k">[tasks]</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="c1"># Custom development task</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="n">dev-setup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;cargo build &amp;&amp; maturin develop &amp;&amp; cargo cinstall&quot;</span>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="c1"># Custom testing task</span>
+</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="n">test-all</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;cargo test &amp;&amp; pytest &amp;&amp; make -C neopdf_capi/tests&quot;</span>
+</span></code></pre></div></p>
+<p><strong>Running custom tasks:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>dev-setup
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>test-all
+</span></code></pre></div></p>
+<h3 id="platform-specific-development">Platform-Specific Development</h3>
+<p><strong>Linux development:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="c1"># Linux-specific tasks</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>test-rust<span class="w">  </span><span class="c1"># Uses Linux-specific configuration</span>
+</span></code></pre></div></p>
+<p><strong>Cross-platform development:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="c1"># Build for multiple platforms</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span>build<span class="w"> </span>--target<span class="w"> </span>x86_64-unknown-linux-gnu
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span>build<span class="w"> </span>--target<span class="w"> </span>x86_64-apple-darwin
+</span></code></pre></div></p>
+<h3 id="performance-profiling">Performance Profiling</h3>
+<p><strong>Profiling Rust code:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="c1"># Install profiling tools</span>
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>pixi<span class="w"> </span>add<span class="w"> </span>cargo-instruments<span class="w">  </span><span class="c1"># macOS</span>
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>pixi<span class="w"> </span>add<span class="w"> </span>cargo-flamegraph<span class="w">   </span><span class="c1"># Linux</span>
+</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>
+</span><span id="__span-25-5"><a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="c1"># Run with profiling</span>
+</span><span id="__span-25-6"><a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span>flamegraph<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf/Cargo.toml
+</span></code></pre></div></p>
+<p><strong>Profiling Python code:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="c1"># Install Python profiling tools</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>pixi<span class="w"> </span>add<span class="w"> </span>pytest-profiling
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="c1"># Run with profiling</span>
+</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>neopdf_pyapi/tests<span class="w"> </span>--profile
+</span></code></pre></div></p>
+<hr />
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-issues">Common Issues</h3>
+<p><strong>Environment activation problems:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="c1"># Reset environment</span>
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>pixi<span class="w"> </span>clean
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>
+</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a><span class="c1"># Reinstall dependencies</span>
+</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>pixi<span class="w"> </span>install
+</span></code></pre></div></p>
+<p><strong>Build failures:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="c1"># Clean all builds</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span>clean<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf/Cargo.toml
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span>clean<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf_pyapi/Cargo.toml
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span>clean<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf_capi/Cargo.toml
+</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a>
+</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a><span class="c1"># Rebuild from scratch</span>
+</span><span id="__span-28-7"><a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a>pixi<span class="w"> </span>run<span class="w"> </span>install-pyapi
+</span><span id="__span-28-8"><a id="__codelineno-28-8" name="__codelineno-28-8" href="#__codelineno-28-8"></a>pixi<span class="w"> </span>run<span class="w"> </span>install-capi
+</span></code></pre></div></p>
+<p><strong>Test failures:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="c1"># Run tests with verbose output</span>
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--manifest-path<span class="w"> </span>neopdf/Cargo.toml<span class="w"> </span>--<span class="w"> </span>--nocapture
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>
+</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a><span class="c1"># Run specific failing test</span>
+</span><span id="__span-29-5"><a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--manifest-path<span class="w"> </span>neopdf/Cargo.toml<span class="w"> </span>test_name<span class="w"> </span>--<span class="w"> </span>--nocapture
+</span></code></pre></div></p>
+<h3 id="debugging">Debugging</h3>
+<p><strong>Rust debugging:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="c1"># Run with debug symbols</span>
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span>build<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf/Cargo.toml<span class="w"> </span>--debug
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="c1"># Run with logging</span>
+</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>pixi<span class="w"> </span>run<span class="w"> </span><span class="nv">RUST_LOG</span><span class="o">=</span>debug<span class="w"> </span>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--manifest-path<span class="w"> </span>neopdf/Cargo.toml
+</span></code></pre></div></p>
+<p><strong>Python debugging:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="c1"># Run with Python debugger</span>
+</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>pdb<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>neopdf_pyapi/tests/test_pdfs.py
+</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>
+</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="c1"># Run with verbose output</span>
+</span><span id="__span-31-5"><a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>neopdf_pyapi/tests<span class="w"> </span>-v<span class="w"> </span>-s
+</span></code></pre></div></p>
+<hr />
+<h2 id="deployment">Deployment</h2>
+<h3 id="building-release-artifacts">Building Release Artifacts</h3>
+<p><strong>Rust crates:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="c1"># Build for crates.io</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span>build<span class="w"> </span>--release<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf/Cargo.toml
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span>package<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf/Cargo.toml
+</span></code></pre></div></p>
+<p><strong>Python wheels:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="c1"># Build Python wheels</span>
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>maturin<span class="w"> </span>build<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf_pyapi/Cargo.toml<span class="w"> </span>--release
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>
+</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a><span class="c1"># Build for specific platforms</span>
+</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>maturin<span class="w"> </span>build<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf_pyapi/Cargo.toml<span class="w"> </span>--release<span class="w"> </span>--target<span class="w"> </span>x86_64-unknown-linux-gnu
+</span></code></pre></div></p>
+<p><strong>C-API libraries:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="c1"># Build C-API for distribution</span>
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span>cinstall<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf_capi/Cargo.toml<span class="w"> </span>--release<span class="w"> </span>--prefix<span class="o">=</span>/usr/local
+</span></code></pre></div></p>
+<h3 id="publishing">Publishing</h3>
+<p><strong>Publishing to crates.io:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="c1"># Publish Rust crates</span>
+</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>cargo<span class="w"> </span>publish<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf/Cargo.toml
+</span></code></pre></div></p>
+<p><strong>Publishing to PyPI:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="c1"># Publish Python package</span>
+</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>maturin<span class="w"> </span>upload<span class="w"> </span>--manifest-path<span class="w"> </span>neopdf_pyapi/Cargo.toml<span class="w"> </span>target/wheels/*
+</span></code></pre></div></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.f55a23d4.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,1187 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../custom-interpolation/">
+      
+      
+        <link rel="next" href="../tmdlib/">
+      
+      
+      <link rel="icon" href="../assets/neopdf.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.21">
+    
+    
+      
+        <title>CLI Tutorials - NeoPDF</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.2a3383ac.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../custom.css">
+    
+      <link rel="stylesheet" href="../assets/stylesheets/notebooks.css">
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#cli-tutorials" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="NeoPDF" class="md-header__button md-logo" aria-label="NeoPDF" data-md-component="logo">
+      
+  <img src="../assets/neopdf.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            NeoPDF
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              CLI Tutorials
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="NeoPDF" class="md-nav__button md-logo" aria-label="NeoPDF" data-md-component="logo">
+      
+  <img src="../assets/neopdf.svg" alt="logo">
+
+    </a>
+    NeoPDF
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development-with-pixi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Development with Pixi
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design-and-features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Features
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Design Rationale
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../custom-interpolation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Custom Interpolation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    CLI Tutorials
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    CLI Tutorials
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#reading-pdf-metadata-and-grid-information" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reading PDF Metadata and Grid Information
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Reading PDF Metadata and Grid Information">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#read-metadata-for-a-pdf-set" class="md-nav__link">
+    <span class="md-ellipsis">
+      Read Metadata for a PDF Set
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-the-number-of-subgrids" class="md-nav__link">
+    <span class="md-ellipsis">
+      Get the Number of Subgrids
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-knot-values-for-a-subgrid" class="md-nav__link">
+    <span class="md-ellipsis">
+      Get Knot Values for a Subgrid
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#updating-grid-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      Updating Grid Metadata
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#computing-interpolated-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      Computing Interpolated Values
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Computing Interpolated Values">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compute-interpolated-pdf-values-xfx-q2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Compute interpolated PDF values \(xf(x, Q^2)\)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compute-strong-coupling-alpha_s-at-a-given-q2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Compute strong coupling \(\alpha_s\) at a given \(Q^2\)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#converting-lhapdf-sets-into-neopdf-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      Converting LHAPDF Sets into NeoPDF Format
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Converting LHAPDF Sets into NeoPDF Format">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#convert-standard-lhapdf-to-neopdf-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      Convert standard LHAPDF to NeoPDF format
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#combine-multiple-lhapdf-nuclear-pdfs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Combine multiple LHAPDF Nuclear PDFs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#combine-multiple-alpha_s-lhapdf-sets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Combine multiple \(\alpha_s\) LHAPDF sets
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inspecting-subgrid-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inspecting subgrid contents
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tmdlib/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    TMDlib Interface
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lhapdf_benchmark/pdfs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    LHAPDF Sets Benchmark
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    Examples
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            Examples
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/neopdf-pyapi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <i class="devicon-python-plain colored"></i> Python API
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/c-oop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <i class="devicon-cplusplus-plain colored"></i> C++ OOP API
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <i class="devicon-c-plain colored"></i> C/C++ API
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/fortran/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <i class="devicon-fortran-original colored"></i> Fortran API
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/mathematica/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <img src="https://cdn.simpleicons.org/wolfram/c83737" alt="Wolfram" style="height: 1em; vertical-align: -0.125em; margin-right: 0.25em;"/> Mathematica
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#reading-pdf-metadata-and-grid-information" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reading PDF Metadata and Grid Information
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Reading PDF Metadata and Grid Information">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#read-metadata-for-a-pdf-set" class="md-nav__link">
+    <span class="md-ellipsis">
+      Read Metadata for a PDF Set
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-the-number-of-subgrids" class="md-nav__link">
+    <span class="md-ellipsis">
+      Get the Number of Subgrids
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-knot-values-for-a-subgrid" class="md-nav__link">
+    <span class="md-ellipsis">
+      Get Knot Values for a Subgrid
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#updating-grid-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      Updating Grid Metadata
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#computing-interpolated-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      Computing Interpolated Values
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Computing Interpolated Values">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compute-interpolated-pdf-values-xfx-q2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Compute interpolated PDF values \(xf(x, Q^2)\)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compute-strong-coupling-alpha_s-at-a-given-q2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Compute strong coupling \(\alpha_s\) at a given \(Q^2\)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#converting-lhapdf-sets-into-neopdf-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      Converting LHAPDF Sets into NeoPDF Format
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Converting LHAPDF Sets into NeoPDF Format">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#convert-standard-lhapdf-to-neopdf-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      Convert standard LHAPDF to NeoPDF format
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#combine-multiple-lhapdf-nuclear-pdfs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Combine multiple LHAPDF Nuclear PDFs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#combine-multiple-alpha_s-lhapdf-sets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Combine multiple \(\alpha_s\) LHAPDF sets
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inspecting-subgrid-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inspecting subgrid contents
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="cli-tutorials">CLI Tutorials</h1>
+<p>The <code>neopdf</code> CLI tool provides a command-line interface to the <code>NeoPDF</code> library, enabling users
+to perform PDF interpolation, alpha_s evaluation, file format conversion, and metadata inspection
+directly from the terminal. Below are detailed usage instructions and examples for each major
+feature.</p>
+<div class="admonition note">
+<p class="admonition-title">How to use the new NeoPDF format?</p>
+<ul>
+<li>To use the <code>NeoPDF</code> grid format, if available, simply append <code>.neopdf.lz4</code> to the name of the PDF set; LHAPDF
+  sets can be converted into the NeoPDF format using the CLI (see below)</li>
+<li>The CLI supports both eager and lazy loading of grids, and can operate on both standard and compressed formats</li>
+<li>For more advanced usage, see the help output:</li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>neopdf<span class="w"> </span>--help
+</span></code></pre></div>
+</div>
+<hr />
+<h2 id="reading-pdf-metadata-and-grid-information">Reading PDF Metadata and Grid Information</h2>
+<h3 id="read-metadata-for-a-pdf-set">Read Metadata for a PDF Set</h3>
+<p>To read the metadata for a given PDF set:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>neopdf<span class="w"> </span><span class="nb">read</span><span class="w"> </span>metadata<span class="w"> </span>NNPDF40_nnlo_as_01180
+</span></code></pre></div>
+<ul>
+<li><code>--pdf-name</code>: Name of the PDF set (can be a <code>NeoPDF</code> or <code>LHAPDF</code> set).</li>
+</ul>
+<p>The above command will print out the following output:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">Set Description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NNPDF4.0 NNLO global fit, alphas(MZ)=0.1180. mem=0 =&gt; average on replicas; mem=1-100 =&gt; PDF replicas</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nt">Set Index</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">331100</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nt">Number of Members</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">101</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nt">XMin</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.000000001</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="nt">XMax</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="nt">QMin</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.65</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="nt">QMax</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100000</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="nt">Flavors</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">-5</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">-4</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">-3</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">-2</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">-1</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">21</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">1</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">2</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">3</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">4</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">5</span><span class="p p-Indicator">]</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="nt">Format</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lhagrid1</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="nn">...</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="nt">Polarized</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="nt">Set Type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SpaceLike</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="nt">Interpolator Type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LogBicubic</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="nn">...</span>
+</span></code></pre></div>
+<h3 id="get-the-number-of-subgrids">Get the Number of Subgrids</h3>
+<p>To get the number of subgrids a PDF contains:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>neopdf<span class="w"> </span><span class="nb">read</span><span class="w"> </span>num_subgrids<span class="w"> </span>NNPDF40_nnlo_as_01180
+</span></code></pre></div>
+<ul>
+<li><code>--pdf-name</code>: Name of the PDF set.</li>
+</ul>
+<h3 id="get-knot-values-for-a-subgrid">Get Knot Values for a Subgrid</h3>
+<p>To get the knot values for a given subgrid:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>neopdf<span class="w"> </span><span class="nb">read</span><span class="w"> </span>subgrid-info<span class="w"> </span>NNPDF40_nnlo_as_01180<span class="w"> </span>--member<span class="o">=</span><span class="m">0</span><span class="w"> </span>--subgrid-index<span class="o">=</span><span class="m">1</span>
+</span></code></pre></div>
+<ul>
+<li><code>--pdf-name</code>: Name of the PDF set.</li>
+<li><code>--member</code>: The member index (0-based).</li>
+<li><code>--subgrid-index</code>: The index of the subgrid to inspect.</li>
+</ul>
+<p>The above command will print out the following output:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nt">Nucleon Numbers A</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">0.0</span><span class="p p-Indicator">]</span><span class="err">,</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shape=[1], strides=[1], layout=CFcf (0xf), const ndim=1</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nt">Alphas values</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">0.0</span><span class="p p-Indicator">]</span><span class="err">,</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shape=[1], strides=[1], layout=CFcf (0xf), const ndim=1</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nt">kT values</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">0.0</span><span class="p p-Indicator">]</span><span class="err">,</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shape=[1], strides=[1], layout=CFcf (0xf), const ndim=1</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nt">x values</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">1e-9</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">1.2970848e-9</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">...</span><span class="p p-Indicator">]</span><span class="err">,</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shape=[196], strides=[1], layout=CFcf (0xf), const ndim=1</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="nt">Q2 values</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">2.7224999999999997</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">...</span><span class="p p-Indicator">]</span><span class="err">,</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shape=[12], strides=[1], layout=CFcf (0xf), const ndim=1</span>
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Note that the values of <code>A</code> and <code>alphas</code> are set to zero by default as there is no
+proper way to extract their values from LHAPDF.</p>
+</div>
+<h3 id="updating-grid-metadata">Updating Grid Metadata</h3>
+<p>The metadata of a given <code>NeoPDF</code> grid can be updated by running the following command:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>neopdf<span class="w"> </span>write<span class="w"> </span>metadata<span class="w"> </span>--path<span class="w"> </span>NNPDF40_nnlo_as_01180.neopdf.lz4<span class="w"> </span>--key<span class="w"> </span>SetType<span class="w"> </span>--value<span class="w"> </span>TimeLike
+</span></code></pre></div>
+<ul>
+<li><code>--path</code>: Path to the <code>NeoPDF</code> set.</li>
+<li><code>--key</code>: The key value of the metadata to be updated, see the <code>rename</code> field of the
+  <a href="https://github.com/Radonirinaunimi/neopdf/blob/master/neopdf/src/metadata.rs#L33-L121">MetaData</a>
+  struct for the available keys.</li>
+<li><code>--value</code>: The updated value of the metadata.</li>
+</ul>
+<hr />
+<h2 id="computing-interpolated-values">Computing Interpolated Values</h2>
+<h3 id="compute-interpolated-pdf-values-xfx-q2">Compute interpolated PDF values <span class="arithmatex">\(xf(x, Q^2)\)</span></h3>
+<p>To compute the interpolated function <span class="arithmatex">\(xf(x, Q^2)\)</span> for a given PDF set, member, and flavor:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>neopdf<span class="w"> </span>compute<span class="w"> </span>xfx_q2<span class="w"> </span>NNPDF40_nnlo_as_01180<span class="w"> </span>--member<span class="o">=</span><span class="m">0</span><span class="w"> </span>--pid<span class="o">=</span><span class="m">21</span><span class="w"> </span>1e-3<span class="w"> </span><span class="m">10</span>.0
+</span></code></pre></div>
+<ul>
+<li><code>--pdf-name</code>: Name of the PDF set (can be a <code>NeoPDF</code> or <code>LHAPDF</code> set).</li>
+<li><code>--member</code>: The member index (0-based).</li>
+<li><code>--pid</code>: The PDG ID of the parton flavor (e.g., 21 for gluon).</li>
+<li>If the PDF set doesn't have the <span class="arithmatex">\(\alpha_s\)</span> and <span class="arithmatex">\(A\)</span> dependence, then the last two arguments
+  are simply the <span class="arithmatex">\(x\)</span> and <span class="arithmatex">\(Q^2\)</span> values at which to evaluate the PDF.</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">More about the last argument</p>
+<p>In the case where the PDF set contains an <span class="arithmatex">\(\alpha_s\)</span> and/or <span class="arithmatex">\(A\)</span> dependence, the the
+argument should be either <span class="arithmatex">\((A, x, Q^2)\)</span>, <span class="arithmatex">\((\alpha_s, x, Q^2)\)</span>, <span class="arithmatex">\((k_T, x, Q^2)\)</span>,
+<span class="arithmatex">\((A, \alpha_s, x, Q^2)\)</span>, <span class="arithmatex">\((A, k_T, x, Q^2)\)</span>, <span class="arithmatex">\((\alpha_s, k_T, x, Q^2)\)</span>, or
+<span class="arithmatex">\((A, \alpha_s, k_T, x, Q^2)\)</span> depending on what the grid contains. See the section below
+for an example where the grid contains an <span class="arithmatex">\(A\)</span>-dependence.</p>
+</div>
+<h3 id="compute-strong-coupling-alpha_s-at-a-given-q2">Compute strong coupling <span class="arithmatex">\(\alpha_s\)</span> at a given <span class="arithmatex">\(Q^2\)</span></h3>
+<p>To compute the strong coupling constant <span class="arithmatex">\(\alpha_s(Q^2)\)</span> for a given PDF set and member:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>neopdf<span class="w"> </span>compute<span class="w"> </span>alphas_q2<span class="w"> </span>NNPDF40_nnlo_as_01180<span class="w"> </span>--member<span class="o">=</span><span class="m">0</span><span class="w"> </span>--q2<span class="o">=</span><span class="m">10</span>
+</span></code></pre></div>
+<ul>
+<li><code>--q2</code>: The <span class="arithmatex">\(Q^2\)</span> value at which to evaluate <span class="arithmatex">\(\alpha_s\)</span>.</li>
+</ul>
+<hr />
+<h2 id="converting-lhapdf-sets-into-neopdf-format">Converting LHAPDF Sets into NeoPDF Format</h2>
+<h3 id="convert-standard-lhapdf-to-neopdf-format">Convert standard LHAPDF to NeoPDF format</h3>
+<p>To convert a standard LHAPDF set into the new, compressed <code>NeoPDF</code> format:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>neopdf<span class="w"> </span>write<span class="w"> </span>convert<span class="w"> </span>NNPDF40_nnlo_as_01180<span class="w"> </span>--output<span class="w"> </span>NNPDF40_nnlo_as_01180.neopdf.lz4
+</span></code></pre></div>
+<ul>
+<li><code>--output</code>: The output file name for the <code>NeoPDF</code> grid (should end with <code>.neopdf.lz4</code>).</li>
+</ul>
+<h3 id="combine-multiple-lhapdf-nuclear-pdfs">Combine multiple LHAPDF Nuclear PDFs</h3>
+<p>To combine several LHAPDF nuclear PDF sets into a single <code>NeoPDF</code> grid:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>neopdf<span class="w"> </span>write<span class="w"> </span>combine-npdfs<span class="w"> </span>--pdf-names<span class="w"> </span>nNNPDF30_nlo_as_0118_p<span class="w"> </span>nNNPDF30_nlo_as_0118_A12<span class="w"> </span>nNNPDF30_nlo_as_0118_A40<span class="w"> </span>--output<span class="w"> </span>nNNPDF30_nlo_as_0118.neopdf.lz4
+</span></code></pre></div>
+<ul>
+<li><code>--pdf-names</code>: List of PDF set names to combine.</li>
+<li><code>--output</code>: Output file for the combined grid.</li>
+</ul>
+<p>Alternatively, one can pass the names of the PDFs via an input file where each line
+contains a PDF name. Taking the example of nuclear PDFs above but using all the <span class="arithmatex">\(A\)</span>
+sets available,</p>
+<div class="language-yaml highlight"><span class="filename">nuclearpdfs.txt</span><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="l l-Scalar l-Scalar-Plain">nNNPDF30_nlo_as_0118_p</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="l l-Scalar l-Scalar-Plain">nNNPDF30_nlo_as_0118_A2_Z1</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="l l-Scalar l-Scalar-Plain">nNNPDF30_nlo_as_0118_A4_Z2</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="l l-Scalar l-Scalar-Plain">nNNPDF30_nlo_as_0118_A6_Z3</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="l l-Scalar l-Scalar-Plain">nNNPDF30_nlo_as_0118_A9_Z4</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="l l-Scalar l-Scalar-Plain">nNNPDF30_nlo_as_0118_A12_Z6</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="l l-Scalar l-Scalar-Plain">nNNPDF30_nlo_as_0118_A14_Z7</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="l l-Scalar l-Scalar-Plain">nNNPDF30_nlo_as_0118_A16_Z8</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="l l-Scalar l-Scalar-Plain">nNNPDF30_nlo_as_0118_A27_Z13</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="l l-Scalar l-Scalar-Plain">nNNPDF30_nlo_as_0118_A31_Z15</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="l l-Scalar l-Scalar-Plain">nNNPDF30_nlo_as_0118_A40_Z20</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="l l-Scalar l-Scalar-Plain">nNNPDF30_nlo_as_0118_A56_Z26</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="l l-Scalar l-Scalar-Plain">nNNPDF30_nlo_as_0118_A64_Z29</span>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="l l-Scalar l-Scalar-Plain">nNNPDF30_nlo_as_0118_A108_Z54</span>
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="l l-Scalar l-Scalar-Plain">nNNPDF30_nlo_as_0118_A119_Z59</span>
+</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="l l-Scalar l-Scalar-Plain">nNNPDF30_nlo_as_0118_A131_Z54</span>
+</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="l l-Scalar l-Scalar-Plain">nNNPDF30_nlo_as_0118_A184_Z74</span>
+</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="l l-Scalar l-Scalar-Plain">nNNPDF30_nlo_as_0118_A197_Z79</span>
+</span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="l l-Scalar l-Scalar-Plain">nNNPDF30_nlo_as_0118_A208_Z82</span>
+</span></code></pre></div>
+<p>the command now becomes:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>neopdf<span class="w"> </span>write<span class="w"> </span>combine-npdfs<span class="w"> </span>--names-file<span class="w"> </span>nuclearpdfs.txt<span class="w"> </span>--output<span class="w"> </span>nNNPDF30_nlo_as_0118.neopdf.lz4
+</span></code></pre></div>
+<p>This will generate a <code>nNNPDF30_nlo_as_0118.neopdf.lz4</code> PDF grid that also contains the <span class="arithmatex">\(A\)</span>
+dependence. One can now check the value of <span class="arithmatex">\(xf(A, x, Q^2)\)</span> for the Iron <span class="arithmatex">\(^{56}_{26}\mathrm{Fe}\)</span>:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>neopdf<span class="w"> </span>compute<span class="w"> </span>xfx_q2<span class="w"> </span>nNNPDF30_nlo_as_0118.neopdf.lz4<span class="w"> </span>--member<span class="o">=</span><span class="m">0</span><span class="w"> </span>--pid<span class="o">=</span><span class="m">21</span><span class="w"> </span><span class="m">56</span><span class="w"> </span>1e-3<span class="w"> </span><span class="m">10</span>.0
+</span></code></pre></div>
+<h3 id="combine-multiple-alpha_s-lhapdf-sets">Combine multiple  <span class="arithmatex">\(\alpha_s\)</span> LHAPDF sets</h3>
+<p>To combine multiple <span class="arithmatex">\(\alpha_s\)</span> LHAPDF sets into a single NeoPDF grid with an explicit dependence
+on <span class="arithmatex">\(\alpha_s\)</span>, the procedure is the same as when combining multiple nuclear PDFs with the option
+<code>combine-npdfs</code> replaced with <code>combine-alphas</code>. That is, given an input file with the names of the
+PDF sets:</p>
+<div class="language-yaml highlight"><span class="filename">alphaspdfs.txt</span><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="l l-Scalar l-Scalar-Plain">NNPDF40_nnlo_as_01160</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="l l-Scalar l-Scalar-Plain">NNPDF40_nnlo_as_01170</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="l l-Scalar l-Scalar-Plain">NNPDF40_nnlo_as_01175</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="l l-Scalar l-Scalar-Plain">NNPDF40_nnlo_as_01185</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="l l-Scalar l-Scalar-Plain">NNPDF40_nnlo_as_01190</span>
+</span></code></pre></div>
+<p>The command to run is:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>neopdf<span class="w"> </span>write<span class="w"> </span>combine-alphas<span class="w"> </span>--names-file<span class="w"> </span>alphaspdfs.txt<span class="w"> </span>--output<span class="w"> </span>NNPDF40_nnlo.neopdf.lz4
+</span></code></pre></div>
+<p>Note that the names of the PDF sets can be passed via the command line using the option
+<code>--pdf--name</code>. We can then interpolate the <span class="arithmatex">\(\alpha_s = 0.1180\)</span> value:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>neopdf<span class="w"> </span>compute<span class="w"> </span>xfx_q2<span class="w"> </span>NNPDF40_nnlo.neopdf.lz4<span class="w"> </span>--member<span class="o">=</span><span class="m">0</span><span class="w"> </span>--pid<span class="o">=</span><span class="m">21</span><span class="w"> </span><span class="m">0</span>.1180<span class="w"> </span>1e-3<span class="w"> </span><span class="m">10</span>.0
+</span></code></pre></div>
+<div class="admonition danger">
+<p class="admonition-title">Warning</p>
+<p>Given that LHAPDF doesn't provide specific attributes to extract the values of <span class="arithmatex">\(A\)</span> and <span class="arithmatex">\(\alpha_s\)</span>,
+their values are inferred from the set name. The extraction of these values are therefore set
+dependent and we try to support as many sets as possible while keeping the implementation modular.
+The current extraction of these values rely on the following regex:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c1">// Regexes to extract A from the PDF set name</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="kd">let</span><span class="w"> </span><span class="n">re_nnpdf</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Regex</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="s">r&quot;_A(\d+)&quot;</span><span class="p">).</span><span class="n">unwrap</span><span class="p">();</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="kd">let</span><span class="w"> </span><span class="n">re_ncteq</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Regex</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="s">r&quot;_(\d+)_(\d+)$&quot;</span><span class="p">).</span><span class="n">unwrap</span><span class="p">();</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="kd">let</span><span class="w"> </span><span class="n">re_epps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Regex</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="s">r&quot;[a-zA-Z]+(\d+)$&quot;</span><span class="p">).</span><span class="n">unwrap</span><span class="p">();</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a><span class="c1">// Regexes to extract alpha_s from the PDF set name</span>
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a><span class="kd">let</span><span class="w"> </span><span class="n">re_nnpdf_ct</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Regex</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="s">r&quot;_as_(\d+)_?&quot;</span><span class="p">).</span><span class="n">unwrap</span><span class="p">();</span>
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="kd">let</span><span class="w"> </span><span class="n">re_msht</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Regex</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="s">r&quot;_as(\d+)&quot;</span><span class="p">).</span><span class="n">unwrap</span><span class="p">();</span>
+</span></code></pre></div>
+<p>This approach is not fullproof and some PDF sets might not be supported at all.</p>
+</div>
+<hr />
+<h2 id="inspecting-subgrid-contents">Inspecting subgrid contents</h2>
+<p>The contents of the subgrids can be printed into human-readable format. Given that a set might contain
+multiple subgrids (as we have seen before using the <code>subgrid-info</code> command), it is instructive to check
+first how many subgrids a given set member contains.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>&gt;<span class="w"> </span>neopdf<span class="w"> </span><span class="nb">read</span><span class="w"> </span>num_subgrids<span class="w"> </span>NNPDF40_nnlo_as_01180.neopdf.lz4
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="m">2</span>
+</span></code></pre></div>
+<p>We can look at the contents of the first subgrid for the <strong>gluon</strong> PDF:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>&gt;<span class="w"> </span>neopdf<span class="w"> </span><span class="nb">read</span><span class="w"> </span>subgrid<span class="w"> </span>NNPDF40_nnlo_as_01180.neopdf.lz4<span class="w"> </span>--member<span class="o">=</span><span class="m">0</span><span class="w"> </span>--subgrid-index<span class="o">=</span><span class="m">0</span><span class="w"> </span>--pid<span class="o">=</span><span class="m">21</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">  </span><span class="o">[</span>x<span class="w"> </span><span class="p">|</span><span class="w"> </span>Q2<span class="o">]</span><span class="w">   </span><span class="m">2</span>.72250e0<span class="w">   </span><span class="m">3</span>.19494e0<span class="w">   </span><span class="m">3</span>.77488e0<span class="w">   </span><span class="m">4</span>.49175e0<span class="w">   </span><span class="m">5</span>.38430e0<span class="w">   </span><span class="m">6</span>.50400e0<span class="w">   </span><span class="m">7</span>.91974e0
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="m">1</span>.00000e-9<span class="w">  </span><span class="m">1</span>.48441e-1<span class="w">  </span>-1.47266e0<span class="w">  </span>-3.42816e0<span class="w">  </span>-5.57841e0<span class="w">  </span>-7.73893e0<span class="w">  </span>-9.65268e0<span class="w">  </span>-1.10375e1
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="m">1</span>.29708e-9<span class="w">  </span><span class="m">1</span>.53954e-1<span class="w">  </span>-1.36579e0<span class="w">  </span>-3.16487e0<span class="w">  </span>-5.10066e0<span class="w">  </span>-6.98714e0<span class="w">  </span>-8.57386e0<span class="w">  </span>-9.57904e0
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="m">1</span>.68243e-9<span class="w">  </span><span class="m">1</span>.59670e-1<span class="w">  </span>-1.26122e0<span class="w">  </span>-2.90961e0<span class="w">  </span>-4.64076e0<span class="w">  </span>-6.26809e0<span class="w">  </span>-7.54804e0<span class="w">  </span>-8.20073e0
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="m">2</span>.18225e-9<span class="w">  </span><span class="m">1</span>.65601e-1<span class="w">  </span>-1.15891e0<span class="w">  </span>-2.66220e0<span class="w">  </span>-4.19823e0<span class="w">  </span>-5.58080e0<span class="w">  </span>-6.57342e0<span class="w">  </span>-6.89951e0
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="m">2</span>.83057e-9<span class="w">  </span><span class="m">1</span>.71754e-1<span class="w">  </span>-1.05882e0<span class="w">  </span>-2.42248e0<span class="w">  </span>-3.77263e0<span class="w">  </span>-4.92430e0<span class="w">  </span>-5.64825e0<span class="w">  </span>-5.67242e0
+</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a><span class="m">3</span>.67149e-9<span class="w">  </span><span class="m">1</span>.78142e-1<span class="w"> </span>-9.60911e-1<span class="w">  </span>-2.19028e0<span class="w">  </span>-3.36352e0<span class="w">  </span>-4.29764e0<span class="w">  </span>-4.77083e0<span class="w">  </span>-4.51658e0
+</span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>...
+</span><span id="__span-19-11"><a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a><span class="w">  </span><span class="o">[</span>x<span class="w"> </span><span class="p">|</span><span class="w"> </span>Q2<span class="o">]</span><span class="w">   </span><span class="m">9</span>.72449e0<span class="w">   </span><span class="m">1</span>.20449e1<span class="w">   </span><span class="m">1</span>.50550e1<span class="w">   </span><span class="m">1</span>.89961e1<span class="w">   </span><span class="m">2</span>.42064e1
+</span><span id="__span-19-12"><a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a><span class="m">1</span>.00000e-9<span class="w">  </span>-1.15252e1<span class="w">  </span>-1.06011e1<span class="w">  </span>-7.88260e0<span class="w">  </span>-2.66303e0<span class="w">   </span><span class="m">5</span>.44604e0
+</span><span id="__span-19-13"><a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a><span class="m">1</span>.29708e-9<span class="w">  </span>-9.64489e0<span class="w">  </span>-8.29955e0<span class="w">  </span>-5.12278e0<span class="w">  </span><span class="m">5</span>.21491e-1<span class="w">   </span><span class="m">8</span>.89615e0
+</span><span id="__span-19-14"><a id="__codelineno-19-14" name="__codelineno-19-14" href="#__codelineno-19-14"></a><span class="m">1</span>.68243e-9<span class="w">  </span>-7.87939e0<span class="w">  </span>-6.15103e0<span class="w">  </span>-2.56742e0<span class="w">   </span><span class="m">3</span>.44402e0<span class="w">   </span><span class="m">1</span>.20386e1
+</span><span id="__span-19-15"><a id="__codelineno-19-15" name="__codelineno-19-15" href="#__codelineno-19-15"></a><span class="m">2</span>.18225e-9<span class="w">  </span>-6.22381e0<span class="w">  </span>-4.14868e0<span class="w"> </span>-2.06304e-1<span class="w">   </span><span class="m">6</span>.11881e0<span class="w">   </span><span class="m">1</span>.48905e1
+</span><span id="__span-19-16"><a id="__codelineno-19-16" name="__codelineno-19-16" href="#__codelineno-19-16"></a><span class="m">2</span>.83057e-9<span class="w">  </span>-4.67345e0<span class="w">  </span>-2.28589e0<span class="w">   </span><span class="m">1</span>.97036e0<span class="w">   </span><span class="m">8</span>.55949e0<span class="w">   </span><span class="m">1</span>.74680e1
+</span><span id="__span-19-17"><a id="__codelineno-19-17" name="__codelineno-19-17" href="#__codelineno-19-17"></a>...
+</span></code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.f55a23d4.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

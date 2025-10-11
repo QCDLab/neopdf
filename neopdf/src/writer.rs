@@ -76,11 +76,9 @@ impl GridArrayCollection {
         let buf_writer = BufWriter::new(file);
         let mut encoder = FrameEncoder::new(buf_writer);
 
-        let mut metadata_mut = metadata.as_latest();
-        metadata_mut.git_version = GIT_VERSION.to_string();
-        metadata_mut.code_version = CODE_VERSION.to_string();
-
-        let updated_metadata = MetaData::new_v1(metadata_mut);
+        let mut updated_metadata = metadata.clone();
+        updated_metadata.git_version = GIT_VERSION.to_string();
+        updated_metadata.code_version = CODE_VERSION.to_string();
         let metadata_serialized = bincode::serialize(&updated_metadata)?;
         let metadata_size = metadata_serialized.len() as u64;
 
@@ -235,6 +233,9 @@ pub struct GridArrayReader {
 impl GridArrayReader {
     /// Creates a new reader from a file, enabling random access to grid members.
     ///
+    /// This method automatically handles backward compatibility with v0.2.0 files.
+    /// If reading with the current format fails, it falls back to using the legacy loader.
+    ///
     /// # Arguments
     ///
     /// * `path` - Input file path.
@@ -243,6 +244,35 @@ impl GridArrayReader {
     ///
     /// A [`GridArrayReader`] instance on success, or an error if reading fails.
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn std::error::Error>> {
+        // Try to load with current (v0.2.1+) format first
+        match Self::from_file_v2(path.as_ref()) {
+            Ok(reader) => Ok(reader),
+            Err(e) => {
+                let error_string = format!("{:?}", e); // Use Debug format to see full error
+
+                // Check if this is an EOF-related error, which suggests v0.2.0 format
+                if error_string.contains("UnexpectedEof")
+                    || error_string.contains("Eof")
+                    || error_string.contains("unexpected end of file")
+                {
+                    // Fall back to legacy v0.2.0 loader
+                    match Self::from_file_legacy(path.as_ref()) {
+                        Ok(reader) => Ok(reader),
+                        Err(legacy_err) => Err(format!(
+                            "Failed to load PDF with both v0.2.1+ ({}) and v0.2.0 ({}) loaders",
+                            e, legacy_err
+                        )
+                        .into()),
+                    }
+                } else {
+                    Err(e)
+                }
+            }
+        }
+    }
+
+    /// Loads a file using the v0.2.1+ format.
+    fn from_file_v2(path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
         let file = File::open(path)?;
         let buf_reader = BufReader::new(file);
         let mut decoder = FrameDecoder::new(buf_reader);
@@ -279,6 +309,89 @@ impl GridArrayReader {
             count,
             data_start,
         })
+    }
+
+    /// Loads a file using the legacy v0.2.0 format and converts it to v0.2.1+ format.
+    fn from_file_legacy(path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
+        // Use neopdf_legacy to load the old format
+        let legacy_reader = neopdf_legacy::writer::GridArrayReader::from_file(path)?;
+
+        // Convert metadata from legacy to new format
+        let legacy_metadata = legacy_reader.metadata();
+        let metadata = MetaData::from((**legacy_metadata).clone());
+
+        // We need to re-serialize the data in the new format
+        // Load all grids using legacy reader, convert them, and re-compress
+        let mut new_grids = Vec::new();
+        for i in 0..legacy_reader.len() {
+            let legacy_grid_with_meta = legacy_reader.load_grid(i)?;
+            let converted_grid = Self::convert_legacy_grid(legacy_grid_with_meta.grid);
+            new_grids.push(converted_grid);
+        }
+
+        // Recompress with new format
+        let temp_path =
+            std::env::temp_dir().join(format!("neopdf_conversion_{}.tmp", std::process::id()));
+        let grid_refs: Vec<&GridArray> = new_grids.iter().collect();
+        GridArrayCollection::compress(&grid_refs, &metadata, &temp_path)?;
+
+        // Load it back with the new format
+        let result = Self::from_file_v2(&temp_path)?;
+
+        // Clean up temp file
+        std::fs::remove_file(&temp_path).ok();
+
+        Ok(result)
+    }
+
+    /// Converts a legacy GridArray to the new format.
+    fn convert_legacy_grid(legacy_grid: neopdf_legacy::gridpdf::GridArray) -> GridArray {
+        use crate::subgrid::{GridData, ParamRange, SubGrid};
+        use ndarray::Array1;
+
+        let subgrids: Vec<SubGrid> = legacy_grid
+            .subgrids
+            .into_iter()
+            .map(|legacy_subgrid| {
+                SubGrid {
+                    xs: legacy_subgrid.xs,
+                    q2s: legacy_subgrid.q2s,
+                    kts: legacy_subgrid.kts,
+                    xis: Array1::from_vec(vec![1.0]), // Default for v0.2.0
+                    deltas: Array1::from_vec(vec![0.0]), // Default for v0.2.0
+                    grid: GridData::Grid6D(legacy_subgrid.grid), // Wrap in enum
+                    nucleons: legacy_subgrid.nucleons,
+                    alphas: legacy_subgrid.alphas,
+                    nucleons_range: ParamRange {
+                        min: legacy_subgrid.nucleons_range.min,
+                        max: legacy_subgrid.nucleons_range.max,
+                    },
+                    alphas_range: ParamRange {
+                        min: legacy_subgrid.alphas_range.min,
+                        max: legacy_subgrid.alphas_range.max,
+                    },
+                    xi_range: ParamRange::new(1.0, 1.0), // Default for v0.2.0
+                    delta_range: ParamRange::new(0.0, 0.0), // Default for v0.2.0
+                    kt_range: ParamRange {
+                        min: legacy_subgrid.kt_range.min,
+                        max: legacy_subgrid.kt_range.max,
+                    },
+                    x_range: ParamRange {
+                        min: legacy_subgrid.x_range.min,
+                        max: legacy_subgrid.x_range.max,
+                    },
+                    q2_range: ParamRange {
+                        min: legacy_subgrid.q2_range.min,
+                        max: legacy_subgrid.q2_range.max,
+                    },
+                }
+            })
+            .collect();
+
+        GridArray {
+            pids: legacy_grid.pids,
+            subgrids,
+        }
     }
 
     /// Returns the number of grid arrays in the collection.
@@ -385,6 +498,9 @@ impl LazyGridArrayIterator {
 
     /// Creates a new lazy iterator from a file path.
     ///
+    /// This method automatically handles backward compatibility with v0.2.0 files.
+    /// If reading with the current format fails, it falls back to using the legacy loader.
+    ///
     /// # Arguments
     ///
     /// * `path` - Input file path.
@@ -393,9 +509,70 @@ impl LazyGridArrayIterator {
     ///
     /// A [`LazyGridArrayIterator`] instance on success, or an error if reading fails.
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn std::error::Error>> {
+        // Try to load with current (v0.2.1+) format first
+        match Self::from_file_v2(path.as_ref()) {
+            Ok(iter) => Ok(iter),
+            Err(e) => {
+                let error_string = format!("{:?}", e);
+
+                // Check if this is an EOF-related error, which suggests v0.2.0 format
+                if error_string.contains("UnexpectedEof")
+                    || error_string.contains("Eof")
+                    || error_string.contains("unexpected end of file")
+                {
+                    // Fall back to legacy v0.2.0 loader
+                    match Self::from_file_legacy(path.as_ref()) {
+                        Ok(iter) => Ok(iter),
+                        Err(legacy_err) => Err(format!(
+                            "Failed to load PDF with both v0.2.1+ ({}) and v0.2.0 ({}) loaders",
+                            e, legacy_err
+                        )
+                        .into()),
+                    }
+                } else {
+                    Err(e)
+                }
+            }
+        }
+    }
+
+    /// Loads a file using the v0.2.1+ format for lazy iteration.
+    fn from_file_v2(path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
         let file = File::open(path)?;
         let buf_reader = BufReader::new(file);
         Self::new(buf_reader)
+    }
+
+    /// Loads a file using the legacy v0.2.0 format and converts it to v0.2.1+ format for lazy iteration.
+    fn from_file_legacy(path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
+        // Use neopdf_legacy to load and convert, then use temporary file
+        let legacy_reader = neopdf_legacy::writer::GridArrayReader::from_file(path)?;
+
+        // Convert metadata from legacy to new format
+        let legacy_metadata = legacy_reader.metadata();
+        let metadata = MetaData::from((**legacy_metadata).clone());
+
+        // Load all grids using legacy reader, convert them, and re-compress
+        let mut new_grids = Vec::new();
+        for i in 0..legacy_reader.len() {
+            let legacy_grid_with_meta = legacy_reader.load_grid(i)?;
+            let converted_grid = GridArrayReader::convert_legacy_grid(legacy_grid_with_meta.grid);
+            new_grids.push(converted_grid);
+        }
+
+        // Recompress with new format to a temp file
+        let temp_path =
+            std::env::temp_dir().join(format!("neopdf_lazy_conversion_{}.tmp", std::process::id()));
+        let grid_refs: Vec<&GridArray> = new_grids.iter().collect();
+        GridArrayCollection::compress(&grid_refs, &metadata, &temp_path)?;
+
+        // Load it back with the new format for lazy iteration
+        let result = Self::from_file_v2(&temp_path)?;
+
+        // Clean up temp file
+        std::fs::remove_file(&temp_path).ok();
+
+        Ok(result)
     }
 
     /// Returns a reference to the shared metadata.
@@ -446,11 +623,11 @@ mod tests {
     use ndarray::Array1;
     use tempfile::NamedTempFile;
 
-    use crate::metadata::{InterpolatorType, MetaDataV1, SetType};
+    use crate::metadata::{InterpolatorType, MetaDataV2, SetType};
 
     #[test]
     fn test_collection_with_metadata() {
-        let metadata_v1 = MetaDataV1 {
+        let metadata = MetaDataV2 {
             set_desc: "Test PDF".into(),
             set_index: 1,
             num_members: 2,
@@ -482,8 +659,12 @@ mod tests {
             m_top: 0.0,
             alphas_type: String::new(),
             number_flavors: 0,
+            // V2 fields
+            xi_min: 1.0,
+            xi_max: 1.0,
+            delta_min: 0.0,
+            delta_max: 0.0,
         };
-        let metadata = MetaData::new_v1(metadata_v1);
 
         let test_grid = test_grid();
         let grids = vec![&test_grid, &test_grid];

@@ -155,11 +155,19 @@ pub fn combine_lhapdf_npdfs<P: AsRef<std::path::Path>>(
                 xs: xs.clone(),
                 q2s: q2s.clone(),
                 kts: kts.clone(),
-                grid: concatenated,
+                xis: subgrids[0].xis.clone(),
+                deltas: subgrids[0].deltas.clone(),
+                grid: super::subgrid::GridData::Grid6D(
+                    concatenated
+                        .into_dimensionality()
+                        .expect("Failed to convert to 6D"),
+                ),
                 nucleons,
                 alphas: alphas.clone(),
                 nucleons_range,
                 alphas_range: subgrids[0].alphas_range,
+                xi_range: subgrids[0].xi_range,
+                delta_range: subgrids[0].delta_range,
                 kt_range: subgrids[0].kt_range,
                 x_range: subgrids[0].x_range,
                 q2_range: subgrids[0].q2_range,
@@ -284,11 +292,19 @@ pub fn combine_lhapdf_alphas<P: AsRef<std::path::Path>>(
                 xs: xs.clone(),
                 q2s: q2s.clone(),
                 kts: kts.clone(),
-                grid: concatenated,
+                xis: subgrids[0].xis.clone(),
+                deltas: subgrids[0].deltas.clone(),
+                grid: super::subgrid::GridData::Grid6D(
+                    concatenated
+                        .into_dimensionality()
+                        .expect("Failed to convert to 6D"),
+                ),
                 nucleons: nucleons.clone(),
                 alphas,
                 nucleons_range: subgrids[0].nucleons_range,
                 alphas_range,
+                xi_range: subgrids[0].xi_range,
+                delta_range: subgrids[0].delta_range,
                 kt_range: subgrids[0].kt_range,
                 x_range: subgrids[0].x_range,
                 q2_range: subgrids[0].q2_range,

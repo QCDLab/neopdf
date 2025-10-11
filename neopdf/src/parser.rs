@@ -85,6 +85,7 @@ impl LhapdfSet {
         if info.alphas_vals.is_empty() {
             if let (Some(vals), Some(q_values)) = (pdf_data.alphas_vals, pdf_data.alphas_q_values) {
                 if !vals.is_empty() && !q_values.is_empty() {
+                    // Update alphas values directly
                     info.alphas_vals = vals;
                     info.alphas_q_values = q_values;
                 }
@@ -240,7 +241,8 @@ impl NeopdfSet {
     pub fn new(pdf_name: &str) -> Self {
         let manager = ManageData::new(pdf_name, PdfSetFormat::Neopdf);
         let neopdf_setpath = manager.set_path();
-        let grid_readers = GridArrayReader::from_file(neopdf_setpath).unwrap();
+        let grid_readers = GridArrayReader::from_file(neopdf_setpath)
+            .unwrap_or_else(|e| panic!("Failed to load NeoPDF file: {}", e));
         let metadata_info = grid_readers.metadata().as_ref().clone();
 
         Self {

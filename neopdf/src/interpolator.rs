@@ -11,7 +11,7 @@
 //! Interpolation strategies are defined in `strategy.rs`.
 //! The [`SubGrid`] struct is defined in `subgrid.rs`.
 
-use ndarray::{s, OwnedRepr};
+use ndarray::{s, IxDyn, OwnedRepr};
 use ninterp::data::{InterpData2D, InterpData3D};
 use ninterp::error::InterpolateError;
 use ninterp::interpolator::{
@@ -42,6 +42,12 @@ pub enum InterpolationConfig {
     /// 3D interpolation, including a dimension for varying `alpha_s` values,
     /// in addition to `x` and `Q²`.
     ThreeDAlphas,
+    /// 3D interpolation, including a dimension for varying `xi` values,
+    /// in addition to `x` and `Q²`.
+    ThreeDXi,
+    /// 3D interpolation, including a dimension for varying `delta` values,
+    /// in addition to `x` and `Q²`.
+    ThreeDDelta,
     /// 3D interpolation, including a dimension for varying `kT` values,
     /// in addition to `x` and `Q²`.
     ThreeDKt,
@@ -51,26 +57,72 @@ pub enum InterpolationConfig {
     FourDNucleonsKt,
     /// 4D interpolation, covering `alpha_s`, kT, `x`, and `Q²`.
     FourDAlphasKt,
+    /// 4D interpolation, covering `xi`, `delta`, `x`, and `Q²`.
+    FourDXiDelta,
     /// 5D interpolation, covering nucleon numbers `A`, `alpha_s`, `kT`, `x`, and `Q²`.
     FiveD,
+    /// 6D interpolation, covering `A`, `alpha_s`, `xi`, `delta`, `x`, and `Q²`.
+    SixD,
+    /// 7D interpolation, covering `A`, `alpha_s`, `xi`, `delta`, `kT`, `x`, and `Q²`.
+    SevenD,
 }
 
 impl InterpolationConfig {
-    /// Determines the interpolation configuration from the number of nucleons and alpha_s values.
+    /// Determines the interpolation configuration from the dimension sizes.
     ///
-    /// # Panics
+    /// # Arguments
     ///
-    /// Panics if the combination of `n_nucleons` and `n_alphas` is not supported.
-    pub fn from_dimensions(n_nucleons: usize, n_alphas: usize, n_kts: usize) -> Self {
-        match (n_nucleons > 1, n_alphas > 1, n_kts > 1) {
-            (false, false, false) => Self::TwoD,
-            (true, false, false) => Self::ThreeDNucleons,
-            (false, true, false) => Self::ThreeDAlphas,
-            (false, false, true) => Self::ThreeDKt,
-            (true, true, false) => Self::FourDNucleonsAlphas,
-            (true, false, true) => Self::FourDNucleonsKt,
-            (false, true, true) => Self::FourDAlphasKt,
-            (true, true, true) => Self::FiveD,
+    /// * `n_nucleons` - Number of nucleon values
+    /// * `n_alphas` - Number of alpha_s values
+    /// * `n_xis` - Number of xi values
+    /// * `n_deltas` - Number of delta values
+    /// * `n_kts` - Number of kT values
+    pub fn from_dimensions(
+        n_nucleons: usize,
+        n_alphas: usize,
+        n_xis: usize,
+        n_deltas: usize,
+        n_kts: usize,
+    ) -> Self {
+        let dims = (
+            n_nucleons > 1,
+            n_alphas > 1,
+            n_xis > 1,
+            n_deltas > 1,
+            n_kts > 1,
+        );
+
+        match dims {
+            // 2D cases
+            (false, false, false, false, false) => Self::TwoD,
+
+            // 3D cases (one additional dimension)
+            (true, false, false, false, false) => Self::ThreeDNucleons,
+            (false, true, false, false, false) => Self::ThreeDAlphas,
+            (false, false, true, false, false) => Self::ThreeDXi,
+            (false, false, false, true, false) => Self::ThreeDDelta,
+            (false, false, false, false, true) => Self::ThreeDKt,
+
+            // 4D cases (two additional dimensions)
+            (true, true, false, false, false) => Self::FourDNucleonsAlphas,
+            (true, false, false, false, true) => Self::FourDNucleonsKt,
+            (false, true, false, false, true) => Self::FourDAlphasKt,
+            (false, false, true, true, false) => Self::FourDXiDelta,
+
+            // 5D cases (three additional dimensions)
+            (true, true, false, false, true) => Self::FiveD,
+
+            // 6D cases (four additional dimensions)
+            (true, true, true, true, false) => Self::SixD,
+
+            // 7D case (all five additional dimensions)
+            (true, true, true, true, true) => Self::SevenD,
+
+            // Unsupported combinations
+            _ => panic!(
+                "Unsupported dimension combination: nucleons={}, alphas={}, xis={}, deltas={}, kts={}",
+                n_nucleons, n_alphas, n_xis, n_deltas, n_kts
+            ),
         }
     }
 }
@@ -167,6 +219,12 @@ impl InterpolatorFactory {
             InterpolationConfig::ThreeDAlphas => {
                 Self::interpolator_xfxq2_alphas(interp_type, subgrid, pid_index)
             }
+            InterpolationConfig::ThreeDXi => {
+                Self::interpolator_xfxq2_xi(interp_type, subgrid, pid_index)
+            }
+            InterpolationConfig::ThreeDDelta => {
+                Self::interpolator_xfxq2_delta(interp_type, subgrid, pid_index)
+            }
             InterpolationConfig::ThreeDKt => {
                 Self::interpolator_xfxq2_kts(interp_type, subgrid, pid_index)
             }
@@ -179,8 +237,17 @@ impl InterpolatorFactory {
             InterpolationConfig::FourDAlphasKt => {
                 Self::interpolator_xfxq2_alphas_kts(interp_type, subgrid, pid_index)
             }
+            InterpolationConfig::FourDXiDelta => {
+                Self::interpolator_xfxq2_xi_delta(interp_type, subgrid, pid_index)
+            }
             InterpolationConfig::FiveD => {
                 Self::interpolator_xfxq2_5dim(interp_type, subgrid, pid_index)
+            }
+            InterpolationConfig::SixD => {
+                Self::interpolator_xfxq2_6dim(interp_type, subgrid, pid_index)
+            }
+            InterpolationConfig::SevenD => {
+                Self::interpolator_xfxq2_7dim(interp_type, subgrid, pid_index)
             }
         }
     }
@@ -242,10 +309,8 @@ impl InterpolatorFactory {
         subgrid: &SubGrid,
         pid_index: usize,
     ) -> Box<dyn DynInterpolator> {
-        let grid_data = subgrid
-            .grid
-            .slice(s![.., 0, pid_index, 0, .., ..])
-            .to_owned();
+        let grid_view = subgrid.grid.view();
+        let grid_data = grid_view.slice(s![.., 0, pid_index, 0, .., ..]).to_owned();
         let reshaped_data = grid_data
             .into_shape_with_order((subgrid.nucleons.len(), subgrid.xs.len(), subgrid.q2s.len()))
             .expect("Failed to reshape 3D data");
@@ -282,10 +347,8 @@ impl InterpolatorFactory {
         subgrid: &SubGrid,
         pid_index: usize,
     ) -> Box<dyn DynInterpolator> {
-        let grid_data = subgrid
-            .grid
-            .slice(s![0, .., pid_index, 0, .., ..])
-            .to_owned();
+        let grid_view = subgrid.grid.view();
+        let grid_data = grid_view.slice(s![0, .., pid_index, 0, .., ..]).to_owned();
         let reshaped_data = grid_data
             .into_shape_with_order((subgrid.alphas.len(), subgrid.xs.len(), subgrid.q2s.len()))
             .expect("Failed to reshape 3D data");
@@ -322,10 +385,8 @@ impl InterpolatorFactory {
         subgrid: &SubGrid,
         pid_index: usize,
     ) -> Box<dyn DynInterpolator> {
-        let grid_data = subgrid
-            .grid
-            .slice(s![0, 0, pid_index, .., .., ..])
-            .to_owned();
+        let grid_view = subgrid.grid.view();
+        let grid_data = grid_view.slice(s![0, 0, pid_index, .., .., ..]).to_owned();
         let reshaped_data = grid_data
             .into_shape_with_order((subgrid.kts.len(), subgrid.xs.len(), subgrid.q2s.len()))
             .expect("Failed to reshape 3D data");
@@ -357,15 +418,95 @@ impl InterpolatorFactory {
         }
     }
 
+    fn interpolator_xfxq2_xi(
+        interp_type: InterpolatorType,
+        subgrid: &SubGrid,
+        pid_index: usize,
+    ) -> Box<dyn DynInterpolator> {
+        let grid_view = subgrid.grid.view();
+        // For 3D xi: slice out [xi, x, Q²] from 8D grid [A, alphas, xi, delta, kT, pids, x, Q²]
+        let grid_data = grid_view
+            .slice(s![0, 0, .., 0, 0, pid_index, .., ..])
+            .to_owned();
+        let reshaped_data = grid_data
+            .into_shape_with_order((subgrid.xis.len(), subgrid.xs.len(), subgrid.q2s.len()))
+            .expect("Failed to reshape 3D data");
+
+        match interp_type {
+            InterpolatorType::LogTricubic => Box::new(
+                Interp3D::new(
+                    subgrid.xis.mapv(f64::ln),
+                    subgrid.xs.mapv(f64::ln),
+                    subgrid.q2s.mapv(f64::ln),
+                    reshaped_data,
+                    LogTricubicInterpolation,
+                    Extrapolate::Clamp,
+                )
+                .expect("Failed to create 3D interpolator"),
+            ),
+            InterpolatorType::LogChebyshev => Box::new(
+                Interp3D::new(
+                    subgrid.xis.mapv(f64::ln),
+                    subgrid.xs.mapv(f64::ln),
+                    subgrid.q2s.mapv(f64::ln),
+                    reshaped_data,
+                    LogChebyshevInterpolation::<3>::default(),
+                    Extrapolate::Clamp,
+                )
+                .expect("Failed to create 3D interpolator"),
+            ),
+            _ => panic!("Unsupported 3D xi interpolator: {:?}", interp_type),
+        }
+    }
+
+    fn interpolator_xfxq2_delta(
+        interp_type: InterpolatorType,
+        subgrid: &SubGrid,
+        pid_index: usize,
+    ) -> Box<dyn DynInterpolator> {
+        let grid_view = subgrid.grid.view();
+        // For 3D delta: slice out [delta, x, Q²] from 8D grid [A, alphas, xi, delta, kT, pids, x, Q²]
+        let grid_data = grid_view
+            .slice(s![0, 0, 0, .., 0, pid_index, .., ..])
+            .to_owned();
+        let reshaped_data = grid_data
+            .into_shape_with_order((subgrid.deltas.len(), subgrid.xs.len(), subgrid.q2s.len()))
+            .expect("Failed to reshape 3D data");
+
+        match interp_type {
+            InterpolatorType::LogTricubic => Box::new(
+                Interp3D::new(
+                    subgrid.deltas.mapv(f64::ln),
+                    subgrid.xs.mapv(f64::ln),
+                    subgrid.q2s.mapv(f64::ln),
+                    reshaped_data,
+                    LogTricubicInterpolation,
+                    Extrapolate::Clamp,
+                )
+                .expect("Failed to create 3D interpolator"),
+            ),
+            InterpolatorType::LogChebyshev => Box::new(
+                Interp3D::new(
+                    subgrid.deltas.mapv(f64::ln),
+                    subgrid.xs.mapv(f64::ln),
+                    subgrid.q2s.mapv(f64::ln),
+                    reshaped_data,
+                    LogChebyshevInterpolation::<3>::default(),
+                    Extrapolate::Clamp,
+                )
+                .expect("Failed to create 3D interpolator"),
+            ),
+            _ => panic!("Unsupported 3D delta interpolator: {:?}", interp_type),
+        }
+    }
+
     fn interpolator_xfxq2_nucleons_alphas(
         interp_type: InterpolatorType,
         subgrid: &SubGrid,
         pid_index: usize,
     ) -> Box<dyn DynInterpolator> {
-        let grid_data = subgrid
-            .grid
-            .slice(s![.., .., pid_index, 0, .., ..])
-            .to_owned();
+        let grid_view = subgrid.grid.view();
+        let grid_data = grid_view.slice(s![.., .., pid_index, 0, .., ..]).to_owned();
         let coords = vec![
             subgrid.nucleons.to_owned(),
             subgrid.alphas.to_owned(),
@@ -395,10 +536,8 @@ impl InterpolatorFactory {
         subgrid: &SubGrid,
         pid_index: usize,
     ) -> Box<dyn DynInterpolator> {
-        let grid_data = subgrid
-            .grid
-            .slice(s![.., 0, pid_index, .., .., ..])
-            .to_owned();
+        let grid_view = subgrid.grid.view();
+        let grid_data = grid_view.slice(s![.., 0, pid_index, .., .., ..]).to_owned();
         let coords = vec![
             subgrid.nucleons.mapv(f64::ln),
             subgrid.kts.mapv(f64::ln),
@@ -428,10 +567,8 @@ impl InterpolatorFactory {
         subgrid: &SubGrid,
         pid_index: usize,
     ) -> Box<dyn DynInterpolator> {
-        let grid_data = subgrid
-            .grid
-            .slice(s![0, .., pid_index, .., .., ..])
-            .to_owned();
+        let grid_view = subgrid.grid.view();
+        let grid_data = grid_view.slice(s![0, .., pid_index, .., .., ..]).to_owned();
         let coords = vec![
             subgrid.alphas.mapv(f64::ln),
             subgrid.kts.mapv(f64::ln),
@@ -456,13 +593,51 @@ impl InterpolatorFactory {
         }
     }
 
+    fn interpolator_xfxq2_xi_delta(
+        interp_type: InterpolatorType,
+        subgrid: &SubGrid,
+        pid_index: usize,
+    ) -> Box<dyn DynInterpolator> {
+        let grid_view = subgrid.grid.view();
+        // For 4D xi/delta: [xi, delta, x, Q²] from 8D grid [A, alphas, xi, delta, kT, pids, x, Q²]
+        let grid_data = grid_view
+            .slice(s![0, 0, .., .., 0, pid_index, .., ..])
+            .to_owned();
+        let coords = vec![
+            subgrid.xis.mapv(f64::ln),
+            subgrid.deltas.mapv(f64::ln),
+            subgrid.xs.mapv(f64::ln),
+            subgrid.q2s.mapv(f64::ln),
+        ];
+        let reshaped_data = grid_data
+            .into_shape_with_order((
+                subgrid.xis.len(),
+                subgrid.deltas.len(),
+                subgrid.xs.len(),
+                subgrid.q2s.len(),
+            ))
+            .expect("Failed to reshape 4D data");
+
+        match interp_type {
+            InterpolatorType::InterpNDLinear => Box::new(
+                InterpND::new(coords, reshaped_data.into_dyn(), Linear, Extrapolate::Clamp)
+                    .expect("Failed to create 4D interpolator"),
+            ),
+            InterpolatorType::LogFourCubic => {
+                // TODO: Implement LogFourCubic interpolation strategy
+                panic!("LogFourCubic interpolation not yet implemented for 4D xi/delta grids")
+            }
+            _ => panic!("Unsupported 4D xi/delta interpolator: {:?}", interp_type),
+        }
+    }
+
     fn interpolator_xfxq2_5dim(
         interp_type: InterpolatorType,
         subgrid: &SubGrid,
         pid_index: usize,
     ) -> Box<dyn DynInterpolator> {
-        let grid_data = subgrid
-            .grid
+        let grid_view = subgrid.grid.view();
+        let grid_data = grid_view
             .slice(s![.., .., pid_index, .., .., ..])
             .to_owned();
         let coords = vec![
@@ -491,6 +666,98 @@ impl InterpolatorFactory {
         }
     }
 
+    fn interpolator_xfxq2_6dim(
+        interp_type: InterpolatorType,
+        subgrid: &SubGrid,
+        pid_index: usize,
+    ) -> Box<dyn DynInterpolator> {
+        let grid_view = subgrid.grid.view();
+        // For 6D: [nucleons, alphas, xi, delta, x, Q²]
+        // Grid layout: [nucleons, alphas, pids, kts, x, Q²] or [nucleons, alphas, xi, delta, kts, pids, x, Q²]
+        let grid_data = grid_view
+            .slice(s![.., .., .., .., 0, pid_index, .., ..])
+            .to_owned();
+        let coords = vec![
+            subgrid.nucleons.mapv(f64::ln),
+            subgrid.alphas.mapv(f64::ln),
+            subgrid.xis.mapv(f64::ln),
+            subgrid.deltas.mapv(f64::ln),
+            subgrid.xs.mapv(f64::ln),
+            subgrid.q2s.mapv(f64::ln),
+        ];
+        let reshaped_data = grid_data
+            .into_shape_with_order((
+                subgrid.nucleons.len(),
+                subgrid.alphas.len(),
+                subgrid.xis.len(),
+                subgrid.deltas.len(),
+                subgrid.xs.len(),
+                subgrid.q2s.len(),
+            ))
+            .expect("Failed to reshape 6D data");
+
+        match interp_type {
+            InterpolatorType::InterpNDLinear => Box::new(
+                InterpND::new(coords, reshaped_data.into_dyn(), Linear, Extrapolate::Clamp)
+                    .expect("Failed to create 6D interpolator"),
+            ),
+            InterpolatorType::LogFourCubic => {
+                // TODO: Implement LogFourCubic interpolation strategy
+                panic!("LogFourCubic interpolation not yet implemented for 6D grids")
+            }
+            _ => panic!("Unsupported 6D interpolator: {:?}", interp_type),
+        }
+    }
+
+    fn interpolator_xfxq2_7dim(
+        interp_type: InterpolatorType,
+        subgrid: &SubGrid,
+        pid_index: usize,
+    ) -> Box<dyn DynInterpolator> {
+        let grid_view = subgrid.grid.view();
+        // For 7D interpolation: [nucleons, alphas, xi, delta, kT, x, Q²]
+        // Grid layout is 8D: [nucleons, alphas, xi, delta, kts, pids, x, Q²]
+        // We slice out the pid dimension to get 7D for interpolation
+        let grid_data = grid_view
+            .slice(s![.., .., .., .., .., pid_index, .., ..])
+            .to_owned();
+        let coords = vec![
+            subgrid.nucleons.mapv(f64::ln),
+            subgrid.alphas.mapv(f64::ln),
+            subgrid.xis.mapv(f64::ln),
+            subgrid.deltas.mapv(f64::ln),
+            subgrid.kts.mapv(f64::ln),
+            subgrid.xs.mapv(f64::ln),
+            subgrid.q2s.mapv(f64::ln),
+        ];
+
+        // Use IxDyn for 7D interpolation since ndarray only supports tuples up to 6D
+        let shape = IxDyn(&[
+            subgrid.nucleons.len(),
+            subgrid.alphas.len(),
+            subgrid.xis.len(),
+            subgrid.deltas.len(),
+            subgrid.kts.len(),
+            subgrid.xs.len(),
+            subgrid.q2s.len(),
+        ]);
+        let reshaped_data = grid_data
+            .into_shape_with_order(shape)
+            .expect("Failed to reshape 7D interpolation data");
+
+        match interp_type {
+            InterpolatorType::InterpNDLinear => Box::new(
+                InterpND::new(coords, reshaped_data, Linear, Extrapolate::Clamp)
+                    .expect("Failed to create 7D interpolator"),
+            ),
+            InterpolatorType::LogFourCubic => {
+                // TODO: Implement LogFourCubic interpolation strategy
+                panic!("LogFourCubic interpolation not yet implemented for 8D grids")
+            }
+            _ => panic!("Unsupported 8D interpolator: {:?}", interp_type),
+        }
+    }
+
     pub fn create_batch_interpolator(
         subgrid: &SubGrid,
         pid_idx: usize,
@@ -512,7 +779,8 @@ impl InterpolatorFactory {
             }
             InterpolationConfig::ThreeDNucleons => {
                 let mut strategy = LogChebyshevBatchInterpolation::<3>::default();
-                let grid_data = subgrid.grid.slice(s![.., 0, pid_idx, 0, .., ..]).to_owned();
+                let grid_view = subgrid.grid.view();
+                let grid_data = grid_view.slice(s![.., 0, pid_idx, 0, .., ..]).to_owned();
 
                 let reshaped_data = grid_data
                     .into_shape_with_order((
@@ -535,7 +803,8 @@ impl InterpolatorFactory {
             }
             InterpolationConfig::ThreeDAlphas => {
                 let mut strategy = LogChebyshevBatchInterpolation::<3>::default();
-                let grid_data = subgrid.grid.slice(s![0, .., pid_idx, 0, .., ..]).to_owned();
+                let grid_view = subgrid.grid.view();
+                let grid_data = grid_view.slice(s![0, .., pid_idx, 0, .., ..]).to_owned();
 
                 let reshaped_data = grid_data
                     .into_shape_with_order((
@@ -558,7 +827,8 @@ impl InterpolatorFactory {
             }
             InterpolationConfig::ThreeDKt => {
                 let mut strategy = LogChebyshevBatchInterpolation::<3>::default();
-                let grid_data = subgrid.grid.slice(s![0, 0, pid_idx, .., .., ..]).to_owned();
+                let grid_view = subgrid.grid.view();
+                let grid_data = grid_view.slice(s![0, 0, pid_idx, .., .., ..]).to_owned();
 
                 let reshaped_data = grid_data
                     .into_shape_with_order((subgrid.kts.len(), subgrid.xs.len(), subgrid.q2s.len()))
@@ -632,35 +902,35 @@ mod tests {
     #[test]
     fn test_interpolation_config() {
         assert!(matches!(
-            InterpolationConfig::from_dimensions(1, 1, 1),
+            InterpolationConfig::from_dimensions(1, 1, 1, 1, 1),
             InterpolationConfig::TwoD
         ));
         assert!(matches!(
-            InterpolationConfig::from_dimensions(2, 1, 1),
+            InterpolationConfig::from_dimensions(2, 1, 1, 1, 1),
             InterpolationConfig::ThreeDNucleons
         ));
         assert!(matches!(
-            InterpolationConfig::from_dimensions(1, 2, 1),
+            InterpolationConfig::from_dimensions(1, 2, 1, 1, 1),
             InterpolationConfig::ThreeDAlphas
         ));
         assert!(matches!(
-            InterpolationConfig::from_dimensions(1, 1, 2),
+            InterpolationConfig::from_dimensions(1, 1, 1, 1, 2),
             InterpolationConfig::ThreeDKt
         ));
         assert!(matches!(
-            InterpolationConfig::from_dimensions(2, 2, 1),
+            InterpolationConfig::from_dimensions(2, 2, 1, 1, 1),
             InterpolationConfig::FourDNucleonsAlphas
         ));
         assert!(matches!(
-            InterpolationConfig::from_dimensions(2, 1, 2),
+            InterpolationConfig::from_dimensions(2, 1, 1, 1, 2),
             InterpolationConfig::FourDNucleonsKt
         ));
         assert!(matches!(
-            InterpolationConfig::from_dimensions(1, 2, 2),
+            InterpolationConfig::from_dimensions(1, 2, 1, 1, 2),
             InterpolationConfig::FourDAlphasKt
         ));
         assert!(matches!(
-            InterpolationConfig::from_dimensions(2, 2, 2),
+            InterpolationConfig::from_dimensions(2, 2, 1, 1, 2),
             InterpolationConfig::FiveD
         ));
     }

@@ -1363,10 +1363,11 @@ dependencies = [
 
 [[package]]
 name = "neopdf"
-version = "0.2.1-alpha1"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61b0aaca320ec52a7b70f90e14b5046b194db82fcdf59d0692e539aff111e816"
 dependencies = [
  "bincode",
- "criterion",
  "flate2",
  "git-version",
  "indicatif",
@@ -1385,12 +1386,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "neopdf"
+version = "0.2.1-alpha1"
+dependencies = [
+ "bincode",
+ "criterion",
+ "flate2",
+ "git-version",
+ "indicatif",
+ "itertools 0.13.0",
+ "lz4_flex",
+ "ndarray",
+ "neopdf 0.2.0",
+ "ninterp",
+ "rayon",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_yaml",
+ "tar",
+ "tempfile",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "neopdf_capi"
 version = "0.2.1-alpha1"
 dependencies = [
  "cbindgen",
  "ndarray",
- "neopdf",
+ "neopdf 0.2.1-alpha1",
 ]
 
 [[package]]
@@ -1401,7 +1426,7 @@ dependencies = [
  "assert_fs",
  "clap 4.5.41",
  "ndarray",
- "neopdf",
+ "neopdf 0.2.1-alpha1",
  "neopdf_tmdlib",
  "predicates",
  "serde",
@@ -1415,7 +1440,7 @@ name = "neopdf_pyapi"
 version = "0.2.1-alpha1"
 dependencies = [
  "ndarray",
- "neopdf",
+ "neopdf 0.2.1-alpha1",
  "numpy",
  "pyo3",
  "thiserror 1.0.69",
@@ -1436,7 +1461,7 @@ name = "neopdf_wolfram"
 version = "0.2.1-alpha1"
 dependencies = [
  "lazy_static",
- "neopdf",
+ "neopdf 0.2.1-alpha1",
  "parking_lot",
  "wolfram-library-link",
 ]

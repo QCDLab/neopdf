@@ -424,7 +424,7 @@ impl InterpolatorFactory {
         pid_index: usize,
     ) -> Box<dyn DynInterpolator> {
         let grid_view = subgrid.grid.view();
-        // For 3D xi: slice out [xi, x, Q²] from 7D grid [A, alphas, xi, delta, kT, pids, x, Q²]
+        // For 3D xi: slice out [xi, x, Q²] from 8D grid [A, alphas, xi, delta, kT, pids, x, Q²]
         let grid_data = grid_view
             .slice(s![0, 0, .., 0, 0, pid_index, .., ..])
             .to_owned();
@@ -465,7 +465,7 @@ impl InterpolatorFactory {
         pid_index: usize,
     ) -> Box<dyn DynInterpolator> {
         let grid_view = subgrid.grid.view();
-        // For 3D delta: slice out [delta, x, Q²] from 7D grid [A, alphas, xi, delta, kT, pids, x, Q²]
+        // For 3D delta: slice out [delta, x, Q²] from 8D grid [A, alphas, xi, delta, kT, pids, x, Q²]
         let grid_data = grid_view
             .slice(s![0, 0, 0, .., 0, pid_index, .., ..])
             .to_owned();
@@ -599,7 +599,7 @@ impl InterpolatorFactory {
         pid_index: usize,
     ) -> Box<dyn DynInterpolator> {
         let grid_view = subgrid.grid.view();
-        // For 4D xi/delta: [xi, delta, x, Q²] from 7D grid [A, alphas, xi, delta, kT, pids, x, Q²]
+        // For 4D xi/delta: [xi, delta, x, Q²] from 8D grid [A, alphas, xi, delta, kT, pids, x, Q²]
         let grid_data = grid_view
             .slice(s![0, 0, .., .., 0, pid_index, .., ..])
             .to_owned();
@@ -715,8 +715,9 @@ impl InterpolatorFactory {
         pid_index: usize,
     ) -> Box<dyn DynInterpolator> {
         let grid_view = subgrid.grid.view();
-        // For 7D: [nucleons, alphas, xi, delta, kT, x, Q²]
-        // Grid layout: [nucleons, alphas, xi, delta, kts, pids, x, Q²]
+        // For 7D interpolation: [nucleons, alphas, xi, delta, kT, x, Q²]
+        // Grid layout is 8D: [nucleons, alphas, xi, delta, kts, pids, x, Q²]
+        // We slice out the pid dimension to get 7D for interpolation
         let grid_data = grid_view
             .slice(s![.., .., .., .., .., pid_index, .., ..])
             .to_owned();
@@ -730,7 +731,7 @@ impl InterpolatorFactory {
             subgrid.q2s.mapv(f64::ln),
         ];
 
-        // Use IxDyn for 7D since ndarray only supports tuples up to 6D
+        // Use IxDyn for 7D interpolation since ndarray only supports tuples up to 6D
         let shape = IxDyn(&[
             subgrid.nucleons.len(),
             subgrid.alphas.len(),
@@ -742,7 +743,7 @@ impl InterpolatorFactory {
         ]);
         let reshaped_data = grid_data
             .into_shape_with_order(shape)
-            .expect("Failed to reshape 7D data");
+            .expect("Failed to reshape 7D interpolation data");
 
         match interp_type {
             InterpolatorType::InterpNDLinear => Box::new(
@@ -751,9 +752,9 @@ impl InterpolatorFactory {
             ),
             InterpolatorType::LogFourCubic => {
                 // TODO: Implement LogFourCubic interpolation strategy
-                panic!("LogFourCubic interpolation not yet implemented for 7D grids")
+                panic!("LogFourCubic interpolation not yet implemented for 8D grids")
             }
-            _ => panic!("Unsupported 7D interpolator: {:?}", interp_type),
+            _ => panic!("Unsupported 8D interpolator: {:?}", interp_type),
         }
     }
 

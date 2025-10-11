@@ -96,14 +96,14 @@ impl RangeParameters {
     }
 }
 
-/// Enum to hold either 6D or 7D grid data for backward compatibility.
+/// Enum to hold either 6D or 8D grid data for backward compatibility.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GridData {
     /// 6-dimensional grid data: [nucleons, alphas, pids, kT, x, Q²].
     Grid6D(Array6<f64>),
-    /// 7-dimensional grid data: [nucleons, alphas, xi, delta, kT, pids, x, Q²].
-    /// Using ArrayD since ndarray doesn't have Array7.
-    Grid7D(ArrayD<f64>),
+    /// 8-dimensional grid data: [nucleons, alphas, xi, delta, kT, pids, x, Q²].
+    /// Using ArrayD since ndarray doesn't have Array8.
+    Grid8D(ArrayD<f64>),
 }
 
 impl GridData {
@@ -111,23 +111,23 @@ impl GridData {
     pub fn view(&self) -> ndarray::ArrayViewD<'_, f64> {
         match self {
             GridData::Grid6D(arr) => arr.view().into_dyn(),
-            GridData::Grid7D(arr) => arr.view(),
+            GridData::Grid8D(arr) => arr.view(),
         }
     }
 
-    /// Returns a reference to the 6D grid, panicking if it's 7D.
+    /// Returns a reference to the 6D grid, panicking if it's 8D.
     pub fn as_6d(&self) -> &Array6<f64> {
         match self {
             GridData::Grid6D(arr) => arr,
-            GridData::Grid7D(_) => panic!("Cannot convert 7D grid to 6D"),
+            GridData::Grid8D(_) => panic!("Cannot convert 8D grid to 6D"),
         }
     }
 
-    /// Returns a reference to the 7D grid, panicking if it's 6D.
-    pub fn as_7d(&self) -> &ArrayD<f64> {
+    /// Returns a reference to the 8D grid, panicking if it's 6D.
+    pub fn as_8d(&self) -> &ArrayD<f64> {
         match self {
-            GridData::Grid6D(_) => panic!("Cannot convert 6D grid to 7D"),
-            GridData::Grid7D(arr) => arr,
+            GridData::Grid6D(_) => panic!("Cannot convert 6D grid to 8D"),
+            GridData::Grid8D(arr) => arr,
         }
     }
 }
@@ -242,7 +242,7 @@ impl SubGrid {
         }
     }
 
-    /// Creates a new 7D `SubGrid` from raw data.
+    /// Creates a new 8D `SubGrid` from raw data.
     ///
     /// # Arguments
     ///
@@ -260,7 +260,7 @@ impl SubGrid {
     ///
     /// Panics if the grid data cannot be reshaped to the expected dimensions.
     #[allow(clippy::too_many_arguments)]
-    pub fn new_7d(
+    pub fn new_8d(
         nucleon_numbers: Vec<f64>,
         alphas_values: Vec<f64>,
         xi_values: Vec<f64>,
@@ -299,7 +299,7 @@ impl SubGrid {
             q2_subgrid.len(),
         ]);
 
-        let subgrid = ArrayD::from_shape_vec(shape, grid_data).expect("Failed to create 7D grid");
+        let subgrid = ArrayD::from_shape_vec(shape, grid_data).expect("Failed to create 8D grid");
 
         Self {
             xs: Array1::from_vec(x_subgrid),
@@ -307,7 +307,7 @@ impl SubGrid {
             kts: Array1::from_vec(kt_subgrid),
             xis: Array1::from_vec(xi_values),
             deltas: Array1::from_vec(delta_values),
-            grid: GridData::Grid7D(subgrid),
+            grid: GridData::Grid8D(subgrid),
             nucleons: Array1::from_vec(nucleon_numbers),
             alphas: Array1::from_vec(alphas_values),
             nucleons_range: ncs_range,
@@ -457,7 +457,7 @@ impl SubGrid {
         match self.interpolation_config() {
             InterpolationConfig::TwoD => match &self.grid {
                 GridData::Grid6D(grid) => grid.slice(s![0, 0, pid_index, 0, .., ..]),
-                GridData::Grid7D(grid) => grid.slice(s![0, 0, pid_index, 0, 0, 0, .., ..]),
+                GridData::Grid8D(grid) => grid.slice(s![0, 0, 0, 0, 0, pid_index, .., ..]),
             },
             _ => panic!("grid_slice only valid for 2D interpolation"),
         }
@@ -467,29 +467,29 @@ impl SubGrid {
     ///
     /// # Panics
     ///
-    /// Panics if the grid is 7D.
+    /// Panics if the grid is 8D.
     pub fn grid_6d(&self) -> &Array6<f64> {
         match &self.grid {
             GridData::Grid6D(grid) => grid,
-            GridData::Grid7D(_) => panic!("Cannot access 7D grid as 6D"),
+            GridData::Grid8D(_) => panic!("Cannot access 8D grid as 6D"),
         }
     }
 
-    /// Returns a reference to the underlying grid (7D).
+    /// Returns a reference to the underlying grid (8D).
     ///
     /// # Panics
     ///
     /// Panics if the grid is 6D.
-    pub fn grid_7d(&self) -> &ArrayD<f64> {
+    pub fn grid_8d(&self) -> &ArrayD<f64> {
         match &self.grid {
-            GridData::Grid6D(_) => panic!("Cannot access 6D grid as 7D"),
-            GridData::Grid7D(grid) => grid,
+            GridData::Grid6D(_) => panic!("Cannot access 6D grid as 8D"),
+            GridData::Grid8D(grid) => grid,
         }
     }
 
-    /// Returns true if this is a 7D grid.
-    pub fn is_7d(&self) -> bool {
-        matches!(self.grid, GridData::Grid7D(_))
+    /// Returns true if this is an 8D grid.
+    pub fn is_8d(&self) -> bool {
+        matches!(self.grid, GridData::Grid8D(_))
     }
 }
 

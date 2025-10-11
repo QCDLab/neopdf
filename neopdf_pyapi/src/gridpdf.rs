@@ -110,10 +110,10 @@ impl PySubGrid {
     pub fn grid_shape(&self) -> (usize, usize, usize, usize, usize, usize) {
         match &self.subgrid.grid {
             GridData::Grid6D(grid) => grid.dim(),
-            GridData::Grid7D(_) => {
-                // For 7D grids, return the collapsed shape as 6D
+            GridData::Grid8D(_) => {
+                // For 8D grids, return the collapsed shape as 6D
                 // This is a simplification for the Python API
-                panic!("7D grids are not yet fully supported in Python API")
+                panic!("8D grids are not yet fully supported in Python API")
             }
         }
     }

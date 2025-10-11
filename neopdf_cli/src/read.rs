@@ -145,7 +145,7 @@ pub fn main(cli: ReadCli) {
                     ..,
                     ..
                 ]),
-                neopdf::subgrid::GridData::Grid7D(grid) => {
+                neopdf::subgrid::GridData::Grid8D(grid) => {
                     grid.slice(s![
                         args.nucleon_index,
                         args.alphas_index,

@@ -327,7 +327,7 @@ below in the case the grid should explicitly depend on more parameters.
 
 
 .. code-block:: cpp
-  :linenos: 
+  :linenos:
 
   #include <NeoPDF.hpp>
   #include <cassert>
@@ -506,7 +506,7 @@ a dependence on the transverse momentum :math:`k_T`. The following example makes
 the `TMDlib <https://tmdlib.hepforge.org/>`_ library to provide the TMD distributions.
 
 .. code-block:: cpp
-  :linenos: 
+  :linenos:
 
   #include "neopdf_capi.h"
   #include "tmdlib/TMDlib.h"

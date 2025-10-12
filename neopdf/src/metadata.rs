@@ -15,7 +15,7 @@ pub enum SetType {
 }
 
 /// Represents the type of interpolator used for the PDF.
-/// WARNING: When adding elements, always append to the end!!!
+/// WARNING: When adding elements, always append at the end!!!
 #[repr(C)]
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub enum InterpolatorType {
@@ -31,8 +31,8 @@ pub enum InterpolatorType {
 
 /// Represents the information block of a given PDF set.
 ///
-/// This struct is influenced by LHAPDF `.info` files and extends the format
-/// with support for 7-dimensional grids: (A, alphas, xi, delta, kt, x, Q2).
+/// In order to support LHAPDF formats, the fields here are very much influenced by the
+/// LHAPDF `.info` file. This struct is generally deserialized from a YAML-like format.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct MetaDataV2 {
     /// Description of the PDF set.
@@ -196,9 +196,7 @@ impl std::fmt::Display for MetaDataV2 {
     }
 }
 
-/// Main metadata type for v0.2.1+
-/// This is now a simple type alias to MetaDataV2 for the new format.
-/// For backward compatibility with v0.2.0, use the conversion functions.
+/// The following represent the main metadata type for v0.2.1+.
 pub type MetaData = MetaDataV2;
 
 /// Converts from legacy v0.2.0 MetaData to new v0.2.1 format
@@ -259,8 +257,8 @@ impl From<neopdf_legacy::metadata::MetaData> for MetaData {
             alphas_type: legacy.alphas_type.clone(),
             number_flavors: legacy.number_flavors,
             // New V2 fields with defaults
-            xi_min: 1.0,
-            xi_max: 1.0,
+            xi_min: 0.0,
+            xi_max: 0.0,
             delta_min: 0.0,
             delta_max: 0.0,
         }

@@ -99,10 +99,9 @@ impl RangeParameters {
 /// Enum to hold either 6D or 8D grid data for backward compatibility.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GridData {
-    /// 6-dimensional grid data: [nucleons, alphas, pids, kT, x, Q²].
+    /// 6-dimensional grid data: [nucleons, alphas, pids, kT, x, Q2].
     Grid6D(Array6<f64>),
-    /// 8-dimensional grid data: [nucleons, alphas, xi, delta, kT, pids, x, Q²].
-    /// Using ArrayD since ndarray doesn't have Array8.
+    /// 8-dimensional grid data: [nucleons, alphas, xi, delta, kT, pids, x, Q2].
     Grid8D(ArrayD<f64>),
 }
 
@@ -135,7 +134,7 @@ impl GridData {
 /// Stores the PDF grid data for a single subgrid.
 ///
 /// A subgrid represents a region of the phase space with a consistent
-/// grid of `x` and `Q²` values.
+/// grid of `x` and `Q2` values.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubGrid {
     /// Array of `x` values (momentum fraction).
@@ -227,15 +226,15 @@ impl SubGrid {
             xs: Array1::from_vec(x_subgrid),
             q2s: Array1::from_vec(q2_subgrid),
             kts: Array1::from_vec(kt_subgrid),
-            xis: Array1::from_vec(vec![1.0]), // Default value for 6D grids
-            deltas: Array1::from_vec(vec![0.0]), // Default value for 6D grids
+            xis: Array1::from_vec(vec![0.0]),
+            deltas: Array1::from_vec(vec![0.0]),
             grid: GridData::Grid6D(subgrid),
             nucleons: Array1::from_vec(nucleon_numbers),
             alphas: Array1::from_vec(alphas_values),
             nucleons_range: ncs_range,
             alphas_range: as_range,
-            xi_range: ParamRange::new(1.0, 1.0), // Default range for 6D grids
-            delta_range: ParamRange::new(0.0, 0.0), // Default range for 6D grids
+            xi_range: ParamRange::new(0.0, 0.0),
+            delta_range: ParamRange::new(0.0, 0.0),
             kt_range: kts_range,
             x_range: xs_range,
             q2_range: q2s_range,

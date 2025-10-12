@@ -11,7 +11,7 @@ use regex::Regex;
 use super::gridpdf::GridArray;
 use super::metadata::{InterpolatorType, MetaData};
 use super::parser::LhapdfSet;
-use super::subgrid::{ParamRange, SubGrid};
+use super::subgrid::{GridData, ParamRange, SubGrid};
 use super::writer::GridArrayCollection;
 
 /// Converts an LHAPDF set to the NeoPDF format and writes it to disk.
@@ -157,7 +157,7 @@ pub fn combine_lhapdf_npdfs<P: AsRef<std::path::Path>>(
                 kts: kts.clone(),
                 xis: subgrids[0].xis.clone(),
                 deltas: subgrids[0].deltas.clone(),
-                grid: super::subgrid::GridData::Grid6D(
+                grid: GridData::Grid6D(
                     concatenated
                         .into_dimensionality()
                         .expect("Failed to convert to 6D"),
@@ -294,7 +294,7 @@ pub fn combine_lhapdf_alphas<P: AsRef<std::path::Path>>(
                 kts: kts.clone(),
                 xis: subgrids[0].xis.clone(),
                 deltas: subgrids[0].deltas.clone(),
-                grid: super::subgrid::GridData::Grid6D(
+                grid: GridData::Grid6D(
                     concatenated
                         .into_dimensionality()
                         .expect("Failed to convert to 6D"),

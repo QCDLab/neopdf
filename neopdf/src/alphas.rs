@@ -164,7 +164,7 @@ impl AlphaSAnalytic {
         let mut tmp = 1.0;
 
         if self.qcd_order == 0 {
-            return 0.118; // _alpha_mz reference value
+            return 0.118; // `_alpha_mz` reference value
         }
 
         if self.qcd_order > 1 {

@@ -85,7 +85,6 @@ impl LhapdfSet {
         if info.alphas_vals.is_empty() {
             if let (Some(vals), Some(q_values)) = (pdf_data.alphas_vals, pdf_data.alphas_q_values) {
                 if !vals.is_empty() && !q_values.is_empty() {
-                    // Update alphas values directly
                     info.alphas_vals = vals;
                     info.alphas_q_values = q_values;
                 }

@@ -73,10 +73,10 @@ impl InterpolationConfig {
     /// # Arguments
     ///
     /// * `n_nucleons` - Number of nucleon values
-    /// * `n_alphas` - Number of alpha_s values
-    /// * `n_xis` - Number of xi values
-    /// * `n_deltas` - Number of delta values
-    /// * `n_kts` - Number of kT values
+    /// * `n_alphas` - Number of `alpha_s` values
+    /// * `n_xis` - Number of skeweness `xi` values
+    /// * `n_deltas` - Number of total momentum `delta` values
+    /// * `n_kts` - Number of transverse momentum `kT` values
     pub fn from_dimensions(
         n_nucleons: usize,
         n_alphas: usize,
@@ -93,32 +93,19 @@ impl InterpolationConfig {
         );
 
         match dims {
-            // 2D cases
             (false, false, false, false, false) => Self::TwoD,
-
-            // 3D cases (one additional dimension)
             (true, false, false, false, false) => Self::ThreeDNucleons,
             (false, true, false, false, false) => Self::ThreeDAlphas,
             (false, false, true, false, false) => Self::ThreeDXi,
             (false, false, false, true, false) => Self::ThreeDDelta,
             (false, false, false, false, true) => Self::ThreeDKt,
-
-            // 4D cases (two additional dimensions)
             (true, true, false, false, false) => Self::FourDNucleonsAlphas,
             (true, false, false, false, true) => Self::FourDNucleonsKt,
             (false, true, false, false, true) => Self::FourDAlphasKt,
             (false, false, true, true, false) => Self::FourDXiDelta,
-
-            // 5D cases (three additional dimensions)
             (true, true, false, false, true) => Self::FiveD,
-
-            // 6D cases (four additional dimensions)
             (true, true, true, true, false) => Self::SixD,
-
-            // 7D case (all five additional dimensions)
             (true, true, true, true, true) => Self::SevenD,
-
-            // Unsupported combinations
             _ => panic!(
                 "Unsupported dimension combination: nucleons={}, alphas={}, xis={}, deltas={}, kts={}",
                 n_nucleons, n_alphas, n_xis, n_deltas, n_kts
@@ -731,7 +718,6 @@ impl InterpolatorFactory {
             subgrid.q2s.mapv(f64::ln),
         ];
 
-        // Use IxDyn for 7D interpolation since ndarray only supports tuples up to 6D
         let shape = IxDyn(&[
             subgrid.nucleons.len(),
             subgrid.alphas.len(),

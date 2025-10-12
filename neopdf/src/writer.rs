@@ -80,7 +80,9 @@ impl GridArrayCollection {
         if metadata_mut.git_version.is_empty() || metadata_mut.git_version == "unknown" {
             metadata_mut.git_version = GIT_VERSION.to_string();
         }
-        metadata_mut.code_version = CODE_VERSION.to_string();
+        if metadata_mut.code_version.is_empty() {
+            metadata_mut.code_version = CODE_VERSION.to_string();
+        }
         let metadata_serialized = bincode::serialize(&metadata_mut)?;
         let metadata_size = metadata_serialized.len() as u64;
 

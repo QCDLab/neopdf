@@ -158,27 +158,25 @@ impl MetaDataV2 {
 
 impl std::fmt::Display for MetaDataV2 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "SetDesc: {}", self.set_desc)?;
-        writeln!(f, "SetIndex: {}", self.set_index)?;
-        writeln!(f, "NumMembers: {}", self.num_members)?;
+        writeln!(f, "Set Description: {}", self.set_desc)?;
+        writeln!(f, "Set Index: {}", self.set_index)?;
+        writeln!(f, "Number of Members: {}", self.num_members)?;
         writeln!(f, "XMin: {}", self.x_min)?;
         writeln!(f, "XMax: {}", self.x_max)?;
         writeln!(f, "QMin: {}", self.q_min)?;
         writeln!(f, "QMax: {}", self.q_max)?;
         writeln!(f, "Flavors: {:?}", self.flavors)?;
         writeln!(f, "Format: {}", self.format)?;
-        writeln!(f, "AlphaS_Qs: {:?}", self.alphas_q_values)?;
-        writeln!(f, "AlphaS_Vals: {:?}", self.alphas_vals)?;
+        writeln!(f, "AlphaS Q Values: {:?}", self.alphas_q_values)?;
+        writeln!(f, "AlphaS Values: {:?}", self.alphas_vals)?;
         writeln!(f, "Polarized: {}", self.polarised)?;
-        writeln!(f, "SetType: {:?}", self.set_type)?;
-        writeln!(f, "InterpolatorType: {:?}", self.interpolator_type)?;
-        writeln!(f, "ErrorType: {}", self.error_type)?;
+        writeln!(f, "Set Type: {:?}", self.set_type)?;
+        writeln!(f, "Interpolator Type: {:?}", self.interpolator_type)?;
+        writeln!(f, "Error Type: {}", self.error_type)?;
         writeln!(f, "Particle: {}", self.hadron_pid)?;
-        writeln!(f, "GitVersion: {}", self.git_version)?;
-        writeln!(f, "CodeVersion: {}", self.code_version)?;
-        writeln!(f, "FlavorScheme: {}", self.flavor_scheme)?;
-        writeln!(f, "OrderQCD: {}", self.order_qcd)?;
-        writeln!(f, "AlphaS_OrderQCD: {}", self.alphas_order_qcd)?;
+        writeln!(f, "Flavor Scheme: {}", self.flavor_scheme)?;
+        writeln!(f, "Order QCD: {}", self.order_qcd)?;
+        writeln!(f, "AlphaS Order QCD: {}", self.alphas_order_qcd)?;
         writeln!(f, "MW: {}", self.m_w)?;
         writeln!(f, "MZ: {}", self.m_z)?;
         writeln!(f, "MUp: {}", self.m_up)?;
@@ -187,8 +185,8 @@ impl std::fmt::Display for MetaDataV2 {
         writeln!(f, "MCharm: {}", self.m_charm)?;
         writeln!(f, "MBottom: {}", self.m_bottom)?;
         writeln!(f, "MTop: {}", self.m_top)?;
-        writeln!(f, "AlphaS_Type: {}", self.alphas_type)?;
-        writeln!(f, "NumFlavors: {}", self.number_flavors)?;
+        writeln!(f, "AlphaS Type: {}", self.alphas_type)?;
+        writeln!(f, "Number of PDF flavors: {}", self.number_flavors)?;
         writeln!(f, "XiMin: {}", self.xi_min)?;
         writeln!(f, "XiMax: {}", self.xi_max)?;
         writeln!(f, "DeltaMin: {}", self.delta_min)?;
@@ -202,8 +200,6 @@ pub type MetaData = MetaDataV2;
 /// Converts from legacy v0.2.0 MetaData to new v0.2.1 format
 impl From<neopdf_legacy::metadata::MetaData> for MetaData {
     fn from(legacy: neopdf_legacy::metadata::MetaData) -> Self {
-        // Convert from v0.2.0 format to v0.2.1 MetaDataV2
-        // Add default values for new xi and delta fields
         Self {
             set_desc: legacy.set_desc.clone(),
             set_index: legacy.set_index,

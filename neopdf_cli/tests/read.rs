@@ -48,7 +48,10 @@ MBottom: 4.92
 MTop: 172.5
 AlphaS Type: ipol
 Number of PDF flavors: 5
-
+XiMin: 0
+XiMax: 0
+DeltaMin: 0
+DeltaMax: 0
 ";
 
 const SUBGRID_INFO_LHAPDF: &str = "Nucleon Numbers A: [0.0], shape=[1], strides=[1], layout=CFcf (0xf), const ndim=1

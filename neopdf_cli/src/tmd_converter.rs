@@ -6,7 +6,7 @@ use std::f64::consts::PI;
 use std::fs;
 
 use neopdf::gridpdf::GridArray;
-use neopdf::metadata::{InterpolatorType, MetaData, MetaDataV1, SetType};
+use neopdf::metadata::{InterpolatorType, MetaDataV2, SetType};
 use neopdf::subgrid::SubGrid;
 use neopdf::writer::GridArrayCollection;
 use neopdf_tmdlib::Tmd;
@@ -246,7 +246,7 @@ pub fn convert_tmd(input_path: &str, output_path: &str) -> Result<(), Box<dyn st
 
     let member_grid_refs: Vec<&GridArray> = member_grids.iter().collect();
 
-    let meta = MetaData::new_v1(MetaDataV1 {
+    let meta = MetaDataV2 {
         set_desc: config.set_desc,
         set_index: config.set_index,
         num_members: n_members as u32,
@@ -278,7 +278,11 @@ pub fn convert_tmd(input_path: &str, output_path: &str) -> Result<(), Box<dyn st
         m_top: config.m_top,
         alphas_type: config.alphas_type,
         number_flavors: config.number_flavors,
-    });
+        xi_min: 0.0,
+        xi_max: 0.0,
+        delta_min: 0.0,
+        delta_max: 0.0,
+    };
 
     GridArrayCollection::compress(&member_grid_refs, &meta, output_path)?;
     println!("Compression succeeded!");

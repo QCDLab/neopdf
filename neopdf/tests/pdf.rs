@@ -270,7 +270,7 @@ pub fn test_multi_members_loader() {
 pub fn test_multi_members_lazy_loader() {
     let pdfs = PDF::load_pdfs_lazy("NNPDF40_nnlo_as_01180.neopdf.lz4");
 
-    let _ = pdfs.map(|pdf| {
+    pdfs.for_each(|pdf| {
         let result = match pdf {
             Ok(t) => t,
             Err(err) => unreachable!("{err}"),

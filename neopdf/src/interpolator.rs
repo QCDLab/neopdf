@@ -35,36 +35,36 @@ use super::subgrid::SubGrid;
 /// dimensions of the PDF grid data.
 #[derive(Debug, Clone, Copy)]
 pub enum InterpolationConfig {
-    /// 2D interpolation, typically in `x` (momentum fraction) and `Q²` (energy scale).
+    /// 2D interpolation, typically in `x` (momentum fraction) and `Q2` (energy scale).
     TwoD,
     /// 3D interpolation, including a dimension for varying nucleon numbers `A`,
-    /// in addition to `x` and `Q²`.
+    /// in addition to `x` and `Q2`.
     ThreeDNucleons,
     /// 3D interpolation, including a dimension for varying `alpha_s` values,
-    /// in addition to `x` and `Q²`.
+    /// in addition to `x` and `Q2`.
     ThreeDAlphas,
     /// 3D interpolation, including a dimension for varying `xi` values,
-    /// in addition to `x` and `Q²`.
+    /// in addition to `x` and `Q2`.
     ThreeDXi,
     /// 3D interpolation, including a dimension for varying `delta` values,
-    /// in addition to `x` and `Q²`.
+    /// in addition to `x` and `Q2`.
     ThreeDDelta,
     /// 3D interpolation, including a dimension for varying `kT` values,
-    /// in addition to `x` and `Q²`.
+    /// in addition to `x` and `Q2`.
     ThreeDKt,
-    /// 4D interpolation, covering nucleon numbers `A`, `alpha_s`, `x`, and `Q²`.
+    /// 4D interpolation, covering nucleon numbers `A`, `alpha_s`, `x`, and `Q2`.
     FourDNucleonsAlphas,
-    /// 4D interpolation, covering nucleon numbers `A`, kT, `x`, and `Q²`.
+    /// 4D interpolation, covering nucleon numbers `A`, kT, `x`, and `Q2`.
     FourDNucleonsKt,
-    /// 4D interpolation, covering `alpha_s`, kT, `x`, and `Q²`.
+    /// 4D interpolation, covering `alpha_s`, kT, `x`, and `Q2`.
     FourDAlphasKt,
-    /// 4D interpolation, covering `xi`, `delta`, `x`, and `Q²`.
+    /// 4D interpolation, covering `xi`, `delta`, `x`, and `Q2`.
     FourDXiDelta,
-    /// 5D interpolation, covering nucleon numbers `A`, `alpha_s`, `kT`, `x`, and `Q²`.
+    /// 5D interpolation, covering `kT`, `xi`, `delta`, `x`, and `Q2`.
     FiveD,
-    /// 6D interpolation, covering `A`, `alpha_s`, `xi`, `delta`, `x`, and `Q²`.
+    /// 6D interpolation, covering `A`, `kT`, `xi`, `delta`, `x`, and `Q2`.
     SixD,
-    /// 7D interpolation, covering `A`, `alpha_s`, `xi`, `delta`, `kT`, `x`, and `Q²`.
+    /// 7D interpolation, covering `A`, `alpha_s`, `xi`, `delta`, `kT`, `x`, and `Q2`.
     SevenD,
 }
 
@@ -104,8 +104,8 @@ impl InterpolationConfig {
             (true, false, false, false, true) => Self::FourDNucleonsKt,
             (false, true, false, false, true) => Self::FourDAlphasKt,
             (false, false, true, true, false) => Self::FourDXiDelta,
-            (true, true, false, false, true) => Self::FiveD,
-            (true, true, true, true, false) => Self::SixD,
+            (false, false, true, true, true) => Self::FiveD,
+            (true, false, true, true, true) => Self::SixD,
             (true, true, true, true, true) => Self::SevenD,
             _ => panic!(
                 "Unsupported dimension combination: nucleons={}, alphas={}, xis={}, deltas={}, kts={}",
@@ -412,7 +412,7 @@ impl InterpolatorFactory {
         pid_index: usize,
     ) -> Box<dyn DynInterpolator> {
         let grid_view = subgrid.grid.view();
-        // For 3D xi: slice out [xi, x, Q²] from 8D grid [A, alphas, xi, delta, kT, pids, x, Q²]
+        // For 3D xi: slice out [xi, x, Q2] from 8D grid [A, alphas, xi, delta, kT, pids, x, Q2]
         let grid_data = grid_view
             .slice(s![0, 0, .., 0, 0, pid_index, .., ..])
             .to_owned();
@@ -453,7 +453,7 @@ impl InterpolatorFactory {
         pid_index: usize,
     ) -> Box<dyn DynInterpolator> {
         let grid_view = subgrid.grid.view();
-        // For 3D delta: slice out [delta, x, Q²] from 8D grid [A, alphas, xi, delta, kT, pids, x, Q²]
+        // For 3D delta: slice out [delta, x, Q2] from 8D grid [A, alphas, xi, delta, kT, pids, x, Q2]
         let grid_data = grid_view
             .slice(s![0, 0, 0, .., 0, pid_index, .., ..])
             .to_owned();
@@ -587,7 +587,6 @@ impl InterpolatorFactory {
         pid_index: usize,
     ) -> Box<dyn DynInterpolator> {
         let grid_view = subgrid.grid.view();
-        // For 4D xi/delta: [xi, delta, x, Q²] from 8D grid [A, alphas, xi, delta, kT, pids, x, Q²]
         let grid_data = grid_view
             .slice(s![0, 0, .., .., 0, pid_index, .., ..])
             .to_owned();
@@ -631,20 +630,20 @@ impl InterpolatorFactory {
     ) -> Box<dyn DynInterpolator> {
         let grid_view = subgrid.grid.view();
         let grid_data = grid_view
-            .slice(s![.., .., pid_index, .., .., ..])
+            .slice(s![0, 0, .., .., .., pid_index, .., ..])
             .to_owned();
         let coords = vec![
-            subgrid.nucleons.mapv(f64::ln),
-            subgrid.alphas.mapv(f64::ln),
             subgrid.kts.mapv(f64::ln),
+            subgrid.xis.mapv(f64::ln),
+            subgrid.deltas.mapv(f64::ln),
             subgrid.xs.mapv(f64::ln),
             subgrid.q2s.mapv(f64::ln),
         ];
         let reshaped_data = grid_data
             .into_shape_with_order((
-                subgrid.nucleons.len(),
-                subgrid.alphas.len(),
                 subgrid.kts.len(),
+                subgrid.xis.len(),
+                subgrid.deltas.len(),
                 subgrid.xs.len(),
                 subgrid.q2s.len(),
             ))
@@ -679,14 +678,12 @@ impl InterpolatorFactory {
         pid_index: usize,
     ) -> Box<dyn DynInterpolator> {
         let grid_view = subgrid.grid.view();
-        // For 6D: [nucleons, alphas, xi, delta, x, Q²]
-        // Grid layout: [nucleons, alphas, pids, kts, x, Q²] or [nucleons, alphas, xi, delta, kts, pids, x, Q²]
         let grid_data = grid_view
-            .slice(s![.., .., .., .., 0, pid_index, .., ..])
+            .slice(s![.., 0, .., .., .., pid_index, .., ..])
             .to_owned();
         let coords = vec![
             subgrid.nucleons.mapv(f64::ln),
-            subgrid.alphas.mapv(f64::ln),
+            subgrid.kts.mapv(f64::ln),
             subgrid.xis.mapv(f64::ln),
             subgrid.deltas.mapv(f64::ln),
             subgrid.xs.mapv(f64::ln),
@@ -695,7 +692,7 @@ impl InterpolatorFactory {
         let reshaped_data = grid_data
             .into_shape_with_order((
                 subgrid.nucleons.len(),
-                subgrid.alphas.len(),
+                subgrid.kts.len(),
                 subgrid.xis.len(),
                 subgrid.deltas.len(),
                 subgrid.xs.len(),
@@ -718,9 +715,6 @@ impl InterpolatorFactory {
         pid_index: usize,
     ) -> Box<dyn DynInterpolator> {
         let grid_view = subgrid.grid.view();
-        // For 7D interpolation: [nucleons, alphas, xi, delta, kT, x, Q²]
-        // Grid layout is 8D: [nucleons, alphas, xi, delta, kts, pids, x, Q²]
-        // We slice out the pid dimension to get 7D for interpolation
         let grid_data = grid_view
             .slice(s![.., .., .., .., .., pid_index, .., ..])
             .to_owned();
@@ -937,7 +931,7 @@ mod tests {
             InterpolationConfig::FourDAlphasKt
         ));
         assert!(matches!(
-            InterpolationConfig::from_dimensions(2, 2, 1, 1, 2),
+            InterpolationConfig::from_dimensions(1, 1, 2, 2, 2),
             InterpolationConfig::FiveD
         ));
     }

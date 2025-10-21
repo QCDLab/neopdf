@@ -344,15 +344,14 @@ impl SubGrid {
             InterpolationConfig::FourDNucleonsKt => (4, vec![&self.nucleons_range, &self.kt_range]),
             InterpolationConfig::FourDAlphasKt => (4, vec![&self.alphas_range, &self.kt_range]),
             InterpolationConfig::FourDXiDelta => (4, vec![&self.xi_range, &self.delta_range]),
-            InterpolationConfig::FiveD => (
-                5,
-                vec![&self.nucleons_range, &self.alphas_range, &self.kt_range],
-            ),
+            InterpolationConfig::FiveD => {
+                (5, vec![&self.kt_range, &self.xi_range, &self.delta_range])
+            }
             InterpolationConfig::SixD => (
                 6,
                 vec![
                     &self.nucleons_range,
-                    &self.alphas_range,
+                    &self.kt_range,
                     &self.xi_range,
                     &self.delta_range,
                 ],

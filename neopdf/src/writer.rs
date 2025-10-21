@@ -251,23 +251,23 @@ impl GridArrayReader {
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn std::error::Error>> {
         match Self::from_file_v2(path.as_ref()) {
             Ok(reader) => Ok(reader),
-            Err(e) => {
-                let error_string = format!("{:?}", e);
+            Err(err) => {
+                let error_string = format!("{:?}", err);
 
                 if error_string.contains("UnexpectedEof")
                     || error_string.contains("Eof")
-                    || error_string.contains("unexpected end of file")
+                    || error_string.contains("Grid is not v2")
                 {
                     match Self::from_file_legacy(path.as_ref()) {
                         Ok(reader) => Ok(reader),
                         Err(legacy_err) => Err(format!(
                             "Failed to load PDF with both v0.2.1+ ({}) and v0.2.0 ({}) loaders",
-                            e, legacy_err
+                            err, legacy_err
                         )
                         .into()),
                     }
                 } else {
-                    Err(e)
+                    Err(err)
                 }
             }
         }

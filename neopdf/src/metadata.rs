@@ -27,6 +27,7 @@ pub enum InterpolatorType {
     InterpNDLinear,
     LogChebyshev,
     LogFourCubic,
+    LogFiveCubic,
 }
 
 /// Represents the information block of a given PDF set.

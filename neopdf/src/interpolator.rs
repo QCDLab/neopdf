@@ -24,7 +24,8 @@ use ninterp::strategy::Linear;
 use super::metadata::InterpolatorType;
 use super::strategy::{
     BilinearInterpolation, LogBicubicInterpolation, LogBilinearInterpolation,
-    LogChebyshevBatchInterpolation, LogChebyshevInterpolation, LogTricubicInterpolation,
+    LogChebyshevBatchInterpolation, LogChebyshevInterpolation, LogFiveCubicInterpolation,
+    LogFourCubicInterpolation, LogTricubicInterpolation,
 };
 use super::subgrid::SubGrid;
 
@@ -610,10 +611,15 @@ impl InterpolatorFactory {
                 InterpND::new(coords, reshaped_data.into_dyn(), Linear, Extrapolate::Clamp)
                     .expect("Failed to create 4D interpolator"),
             ),
-            InterpolatorType::LogFourCubic => {
-                // TODO: Implement LogFourCubic interpolation strategy
-                panic!("LogFourCubic interpolation not yet implemented for 4D xi/delta grids")
-            }
+            InterpolatorType::LogFourCubic => Box::new(
+                InterpND::new(
+                    coords,
+                    reshaped_data.into_dyn(),
+                    LogFourCubicInterpolation,
+                    Extrapolate::Clamp,
+                )
+                .expect("Failed to create 4D LogFourCubic interpolator"),
+            ),
             _ => panic!("Unsupported 4D xi/delta interpolator: {:?}", interp_type),
         }
     }
@@ -646,8 +652,22 @@ impl InterpolatorFactory {
 
         match interp_type {
             InterpolatorType::InterpNDLinear => Box::new(
-                InterpND::new(coords, reshaped_data.into_dyn(), Linear, Extrapolate::Clamp)
-                    .expect("Failed to create 5D interpolator"),
+                InterpND::new(
+                    coords.clone(),
+                    reshaped_data.clone().into_dyn(),
+                    Linear,
+                    Extrapolate::Clamp,
+                )
+                .expect("Failed to create 5D interpolator"),
+            ),
+            InterpolatorType::LogFiveCubic => Box::new(
+                InterpND::new(
+                    coords,
+                    reshaped_data.into_dyn(),
+                    LogFiveCubicInterpolation,
+                    Extrapolate::Clamp,
+                )
+                .expect("Failed to create 5D LogFiveCubic interpolator"),
             ),
             _ => panic!("Unsupported 5D interpolator: {:?}", interp_type),
         }
@@ -688,10 +708,6 @@ impl InterpolatorFactory {
                 InterpND::new(coords, reshaped_data.into_dyn(), Linear, Extrapolate::Clamp)
                     .expect("Failed to create 6D interpolator"),
             ),
-            InterpolatorType::LogFourCubic => {
-                // TODO: Implement LogFourCubic interpolation strategy
-                panic!("LogFourCubic interpolation not yet implemented for 6D grids")
-            }
             _ => panic!("Unsupported 6D interpolator: {:?}", interp_type),
         }
     }
@@ -733,14 +749,19 @@ impl InterpolatorFactory {
 
         match interp_type {
             InterpolatorType::InterpNDLinear => Box::new(
-                InterpND::new(coords, reshaped_data, Linear, Extrapolate::Clamp)
+                InterpND::new(coords, reshaped_data.clone(), Linear, Extrapolate::Clamp)
                     .expect("Failed to create 7D interpolator"),
             ),
-            InterpolatorType::LogFourCubic => {
-                // TODO: Implement LogFourCubic interpolation strategy
-                panic!("LogFourCubic interpolation not yet implemented for 8D grids")
-            }
-            _ => panic!("Unsupported 8D interpolator: {:?}", interp_type),
+            InterpolatorType::LogFourCubic => Box::new(
+                InterpND::new(
+                    coords,
+                    reshaped_data,
+                    LogFourCubicInterpolation,
+                    Extrapolate::Clamp,
+                )
+                .expect("Failed to create 7D LogFourCubic interpolator"),
+            ),
+            _ => panic!("Unsupported 7D interpolator: {:?}", interp_type),
         }
     }
 

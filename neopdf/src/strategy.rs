@@ -14,10 +14,10 @@
 //! All interpolation strategies are designed to work with `ninterp`'s data structures and traits,
 //! ensuring compatibility and extensibility.
 
-use ndarray::{Array2, Axis, Data, RawDataClone};
-use ninterp::data::{InterpData1D, InterpData2D, InterpData3D};
+use ndarray::{Array2, Axis, Data, IxDyn, RawDataClone};
+use ninterp::data::{InterpData1D, InterpData2D, InterpData3D, InterpDataND};
 use ninterp::error::{InterpolateError, ValidateError};
-use ninterp::strategy::traits::{Strategy1D, Strategy2D, Strategy3D};
+use ninterp::strategy::traits::{Strategy1D, Strategy2D, Strategy3D, StrategyND};
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
 
@@ -684,6 +684,665 @@ where
         let w = (z - z_coords[k]) / dz;
 
         let result = self.hermite_tricubic_interpolate(data, (i, j, k), (u, v, w), (dx, dy, dz));
+
+        Ok(result)
+    }
+
+    fn allow_extrapolate(&self) -> bool {
+        true
+    }
+}
+
+/// Implements four-cubic (4D cubic) interpolation in log space.
+///
+/// This strategy extends the LogTricubic interpolation to 4 dimensions,
+/// providing cubic Hermite interpolation in log-log-log-log space.
+/// It is suitable for 4D PDF grids where all four dimensions benefit from
+/// logarithmic scaling and smooth cubic interpolation.
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct LogFourCubicInterpolation;
+
+impl LogFourCubicInterpolation {
+    /// Returns the index i such that we can use points [i-1, i, i+1, i+2] for interpolation.
+    fn find_fourcubic_interval(coords: &[f64], x: f64) -> Result<usize, InterpolateError> {
+        // Find the interval [i, i+1] such that coords[i] <= x < coords[i+1]
+        let i = utils::find_interval_index(coords, x)?;
+        Ok(i)
+    }
+
+    /// Calculates the derivative with respect to the first dimension at a given knot.
+    pub fn calculate_dd0<D>(data: &InterpDataND<D>, idx: &[usize]) -> f64
+    where
+        D: Data<Elem = f64> + RawDataClone + Clone,
+    {
+        let n_knots = data.grid[0].len();
+        let coords = data.grid[0].as_slice().unwrap();
+        let values = &data.values;
+
+        let i0 = idx[0];
+        let del1 = match i0 {
+            0 => 0.0,
+            i => coords[i] - coords[i - 1],
+        };
+
+        let del2 = match coords.get(i0 + 1) {
+            Some(&next) => next - coords[i0],
+            None => 0.0,
+        };
+
+        if i0 != 0 && i0 != n_knots - 1 {
+            let mut idx_prev = idx.to_vec();
+            idx_prev[0] = i0 - 1;
+            let mut idx_next = idx.to_vec();
+            idx_next[0] = i0 + 1;
+
+            let ldd = (values[IxDyn(idx)] - values[IxDyn(&idx_prev)]) / del1;
+            let rdd = (values[IxDyn(&idx_next)] - values[IxDyn(idx)]) / del2;
+            (ldd + rdd) / 2.0
+        } else if i0 == 0 {
+            let mut idx_next = idx.to_vec();
+            idx_next[0] = i0 + 1;
+            (values[IxDyn(&idx_next)] - values[IxDyn(idx)]) / del2
+        } else if i0 == n_knots - 1 {
+            let mut idx_prev = idx.to_vec();
+            idx_prev[0] = i0 - 1;
+            (values[IxDyn(idx)] - values[IxDyn(&idx_prev)]) / del1
+        } else {
+            panic!("Should not reach here: Invalid index for derivative calculation.");
+        }
+    }
+
+    /// Calculates the derivative with respect to the second dimension at a given knot.
+    pub fn calculate_dd1<D>(data: &InterpDataND<D>, idx: &[usize]) -> f64
+    where
+        D: Data<Elem = f64> + RawDataClone + Clone,
+    {
+        let n_knots = data.grid[1].len();
+        let coords = data.grid[1].as_slice().unwrap();
+        let values = &data.values;
+
+        let i1 = idx[1];
+        let del1 = match i1 {
+            0 => 0.0,
+            i => coords[i] - coords[i - 1],
+        };
+
+        let del2 = match coords.get(i1 + 1) {
+            Some(&next) => next - coords[i1],
+            None => 0.0,
+        };
+
+        if i1 != 0 && i1 != n_knots - 1 {
+            let mut idx_prev = idx.to_vec();
+            idx_prev[1] = i1 - 1;
+            let mut idx_next = idx.to_vec();
+            idx_next[1] = i1 + 1;
+
+            let ldd = (values[IxDyn(idx)] - values[IxDyn(&idx_prev)]) / del1;
+            let rdd = (values[IxDyn(&idx_next)] - values[IxDyn(idx)]) / del2;
+            (ldd + rdd) / 2.0
+        } else if i1 == 0 {
+            let mut idx_next = idx.to_vec();
+            idx_next[1] = i1 + 1;
+            (values[IxDyn(&idx_next)] - values[IxDyn(idx)]) / del2
+        } else if i1 == n_knots - 1 {
+            let mut idx_prev = idx.to_vec();
+            idx_prev[1] = i1 - 1;
+            (values[IxDyn(idx)] - values[IxDyn(&idx_prev)]) / del1
+        } else {
+            panic!("Should not reach here: Invalid index for derivative calculation.");
+        }
+    }
+
+    /// Calculates the derivative with respect to the third dimension at a given knot.
+    pub fn calculate_dd2<D>(data: &InterpDataND<D>, idx: &[usize]) -> f64
+    where
+        D: Data<Elem = f64> + RawDataClone + Clone,
+    {
+        let n_knots = data.grid[2].len();
+        let coords = data.grid[2].as_slice().unwrap();
+        let values = &data.values;
+
+        let i2 = idx[2];
+        let del1 = match i2 {
+            0 => 0.0,
+            i => coords[i] - coords[i - 1],
+        };
+
+        let del2 = match coords.get(i2 + 1) {
+            Some(&next) => next - coords[i2],
+            None => 0.0,
+        };
+
+        if i2 != 0 && i2 != n_knots - 1 {
+            let mut idx_prev = idx.to_vec();
+            idx_prev[2] = i2 - 1;
+            let mut idx_next = idx.to_vec();
+            idx_next[2] = i2 + 1;
+
+            let ldd = (values[IxDyn(idx)] - values[IxDyn(&idx_prev)]) / del1;
+            let rdd = (values[IxDyn(&idx_next)] - values[IxDyn(idx)]) / del2;
+            (ldd + rdd) / 2.0
+        } else if i2 == 0 {
+            let mut idx_next = idx.to_vec();
+            idx_next[2] = i2 + 1;
+            (values[IxDyn(&idx_next)] - values[IxDyn(idx)]) / del2
+        } else if i2 == n_knots - 1 {
+            let mut idx_prev = idx.to_vec();
+            idx_prev[2] = i2 - 1;
+            (values[IxDyn(idx)] - values[IxDyn(&idx_prev)]) / del1
+        } else {
+            panic!("Should not reach here: Invalid index for derivative calculation.");
+        }
+    }
+
+    /// Calculates the derivative with respect to the fourth dimension at a given knot.
+    pub fn calculate_dd3<D>(data: &InterpDataND<D>, idx: &[usize]) -> f64
+    where
+        D: Data<Elem = f64> + RawDataClone + Clone,
+    {
+        let n_knots = data.grid[3].len();
+        let coords = data.grid[3].as_slice().unwrap();
+        let values = &data.values;
+
+        let i3 = idx[3];
+        let del1 = match i3 {
+            0 => 0.0,
+            i => coords[i] - coords[i - 1],
+        };
+
+        let del2 = match coords.get(i3 + 1) {
+            Some(&next) => next - coords[i3],
+            None => 0.0,
+        };
+
+        if i3 != 0 && i3 != n_knots - 1 {
+            let mut idx_prev = idx.to_vec();
+            idx_prev[3] = i3 - 1;
+            let mut idx_next = idx.to_vec();
+            idx_next[3] = i3 + 1;
+
+            let ldd = (values[IxDyn(idx)] - values[IxDyn(&idx_prev)]) / del1;
+            let rdd = (values[IxDyn(&idx_next)] - values[IxDyn(idx)]) / del2;
+            (ldd + rdd) / 2.0
+        } else if i3 == 0 {
+            let mut idx_next = idx.to_vec();
+            idx_next[3] = i3 + 1;
+            (values[IxDyn(&idx_next)] - values[IxDyn(idx)]) / del2
+        } else if i3 == n_knots - 1 {
+            let mut idx_prev = idx.to_vec();
+            idx_prev[3] = i3 - 1;
+            (values[IxDyn(idx)] - values[IxDyn(&idx_prev)]) / del1
+        } else {
+            panic!("Should not reach here: Invalid index for derivative calculation.");
+        }
+    }
+
+    /// Hermite cubic interpolation with derivatives (same as LogTricubic)
+    fn cubic_interpolate(t: f64, f0: f64, f0_prime: f64, f1: f64, f1_prime: f64) -> f64 {
+        let t2 = t * t;
+        let t3 = t2 * t;
+
+        // Hermite basis functions
+        let h00 = 2.0 * t3 - 3.0 * t2 + 1.0;
+        let h10 = t3 - 2.0 * t2 + t;
+        let h01 = -2.0 * t3 + 3.0 * t2;
+        let h11 = t3 - t2;
+
+        h00 * f0 + h10 * f0_prime + h01 * f1 + h11 * f1_prime
+    }
+
+    /// Four-cubic Hermite interpolation in 4D
+    fn hermite_fourcubic_interpolate<D>(
+        &self,
+        data: &InterpDataND<D>,
+        indices: (usize, usize, usize, usize),
+        coords: (f64, f64, f64, f64),
+        deltas: (f64, f64, f64, f64),
+    ) -> f64
+    where
+        D: Data<Elem = f64> + RawDataClone + Clone,
+    {
+        let (i0, i1, i2, i3) = indices;
+        let (u, v, w, t) = coords;
+        let (d0, d1, d2, d3) = deltas;
+
+        // Helper closures to access values and derivatives
+        let get = |o0: usize, o1: usize, o2: usize, o3: usize| {
+            data.values[IxDyn(&[i0 + o0, i1 + o1, i2 + o2, i3 + o3])]
+        };
+        let dd0 = |o0: usize, o1: usize, o2: usize, o3: usize| {
+            Self::calculate_dd0(data, &[i0 + o0, i1 + o1, i2 + o2, i3 + o3])
+        };
+        let dd1 = |o0: usize, o1: usize, o2: usize, o3: usize| {
+            Self::calculate_dd1(data, &[i0 + o0, i1 + o1, i2 + o2, i3 + o3])
+        };
+        let dd2 = |o0: usize, o1: usize, o2: usize, o3: usize| {
+            Self::calculate_dd2(data, &[i0 + o0, i1 + o1, i2 + o2, i3 + o3])
+        };
+        let dd3 = |o0: usize, o1: usize, o2: usize, o3: usize| {
+            Self::calculate_dd3(data, &[i0 + o0, i1 + o1, i2 + o2, i3 + o3])
+        };
+
+        // First, interpolate along dimension 0 for all combinations of (dim1, dim2, dim3)
+        // This creates a 2x2x2 cube of interpolated values and derivatives
+        let mut interp_dim0 = vec![];
+        for &o3 in &[0, 1] {
+            for &o2 in &[0, 1] {
+                for &o1 in &[0, 1] {
+                    let (f0, f1) = (get(0, o1, o2, o3), get(1, o1, o2, o3));
+                    let (deriv0, deriv1) = (dd0(0, o1, o2, o3) * d0, dd0(1, o1, o2, o3) * d0);
+                    let interp_val = Self::cubic_interpolate(u, f0, deriv0, f1, deriv1);
+
+                    // Interpolate derivatives for dimension 1
+                    let (df0, df1) = (dd1(0, o1, o2, o3) * d1, dd1(1, o1, o2, o3) * d1);
+                    let interp_deriv1 = (1.0 - u) * df0 + u * df1;
+
+                    interp_dim0.push([interp_val, interp_deriv1]);
+                }
+            }
+        }
+
+        // Now interpolate along dimension 1, creating a 2x2 grid
+        let mut interp_dim1 = vec![];
+        for o3 in 0..2 {
+            for o2 in 0..2 {
+                let idx0 = o3 * 4 + o2 * 2;
+                let (f0, f1) = (interp_dim0[idx0][0], interp_dim0[idx0 + 1][0]);
+                let (deriv0, deriv1) = (interp_dim0[idx0][1], interp_dim0[idx0 + 1][1]);
+                let interp_val = Self::cubic_interpolate(v, f0, deriv0, f1, deriv1);
+
+                // Calculate derivative for dimension 2
+                let calc_d2_deriv = |o1_offset: usize| {
+                    let (df0, df1) = (
+                        dd2(0, o1_offset, o2, o3) * d2,
+                        dd2(1, o1_offset, o2, o3) * d2,
+                    );
+                    (1.0 - u) * df0 + u * df1
+                };
+                let interp_deriv2 = (1.0 - v) * calc_d2_deriv(0) + v * calc_d2_deriv(1);
+
+                interp_dim1.push([interp_val, interp_deriv2]);
+            }
+        }
+
+        // Interpolate along dimension 2, creating a 1x2 vector
+        let mut interp_dim2 = vec![];
+        for o3 in 0..2 {
+            let idx0 = o3 * 2;
+            let (f0, f1) = (interp_dim1[idx0][0], interp_dim1[idx0 + 1][0]);
+            let (deriv0, deriv1) = (interp_dim1[idx0][1], interp_dim1[idx0 + 1][1]);
+            let interp_val = Self::cubic_interpolate(w, f0, deriv0, f1, deriv1);
+
+            // Calculate derivative for dimension 3
+            let calc_d3_deriv = |o2_offset: usize| {
+                let calc_d3_inner = |o1_offset: usize| {
+                    let (df0, df1) = (
+                        dd3(0, o1_offset, o2_offset, o3) * d3,
+                        dd3(1, o1_offset, o2_offset, o3) * d3,
+                    );
+                    (1.0 - u) * df0 + u * df1
+                };
+                (1.0 - v) * calc_d3_inner(0) + v * calc_d3_inner(1)
+            };
+            let interp_deriv3 = (1.0 - w) * calc_d3_deriv(0) + w * calc_d3_deriv(1);
+
+            interp_dim2.push([interp_val, interp_deriv3]);
+        }
+
+        // Final interpolation along dimension 3
+        let (f0, f1) = (interp_dim2[0][0], interp_dim2[1][0]);
+        let (deriv0, deriv1) = (interp_dim2[0][1], interp_dim2[1][1]);
+        Self::cubic_interpolate(t, f0, deriv0, f1, deriv1)
+    }
+}
+
+impl<D> StrategyND<D> for LogFourCubicInterpolation
+where
+    D: Data<Elem = f64> + RawDataClone + Clone,
+{
+    fn init(&mut self, data: &InterpDataND<D>) -> Result<(), ValidateError> {
+        if data.grid.len() != 4 {
+            return Err(ValidateError::Other(
+                "LogFourCubic requires exactly 4 dimensions".to_string(),
+            ));
+        }
+
+        for (i, grid) in data.grid.iter().enumerate() {
+            if grid.len() < 4 {
+                return Err(ValidateError::Other(format!(
+                    "Need at least 4 grid points in dimension {}, got {}",
+                    i,
+                    grid.len()
+                )));
+            }
+        }
+
+        Ok(())
+    }
+
+    fn interpolate(&self, data: &InterpDataND<D>, point: &[f64]) -> Result<f64, InterpolateError> {
+        if point.len() != 4 {
+            return Err(InterpolateError::Other(
+                "LogFourCubic requires exactly 4-dimensional point".to_string(),
+            ));
+        }
+
+        let [x0, x1, x2, x3] = [point[0], point[1], point[2], point[3]];
+
+        let coords0 = data.grid[0].as_slice().unwrap();
+        let coords1 = data.grid[1].as_slice().unwrap();
+        let coords2 = data.grid[2].as_slice().unwrap();
+        let coords3 = data.grid[3].as_slice().unwrap();
+
+        let i0 = Self::find_fourcubic_interval(coords0, x0)?;
+        let i1 = Self::find_fourcubic_interval(coords1, x1)?;
+        let i2 = Self::find_fourcubic_interval(coords2, x2)?;
+        let i3 = Self::find_fourcubic_interval(coords3, x3)?;
+
+        let d0 = coords0[i0 + 1] - coords0[i0];
+        let d1 = coords1[i1 + 1] - coords1[i1];
+        let d2 = coords2[i2 + 1] - coords2[i2];
+        let d3 = coords3[i3 + 1] - coords3[i3];
+
+        if d0 == 0.0 || d1 == 0.0 || d2 == 0.0 || d3 == 0.0 {
+            return Err(InterpolateError::Other("Grid spacing is zero".to_string()));
+        }
+
+        let u = (x0 - coords0[i0]) / d0;
+        let v = (x1 - coords1[i1]) / d1;
+        let w = (x2 - coords2[i2]) / d2;
+        let t = (x3 - coords3[i3]) / d3;
+
+        let result = self.hermite_fourcubic_interpolate(
+            data,
+            (i0, i1, i2, i3),
+            (u, v, w, t),
+            (d0, d1, d2, d3),
+        );
+
+        Ok(result)
+    }
+
+    fn allow_extrapolate(&self) -> bool {
+        true
+    }
+}
+
+/// Implements five-cubic (5D cubic) interpolation in log space.
+///
+/// This strategy extends the LogFourCubic interpolation to 5 dimensions,
+/// providing cubic Hermite interpolation in log-log-log-log-log space.
+/// It is suitable for 5D PDF grids where all five dimensions benefit from
+/// logarithmic scaling and smooth cubic interpolation.
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct LogFiveCubicInterpolation;
+
+impl LogFiveCubicInterpolation {
+    /// Returns the index i such that we can use points [i-1, i, i+1, i+2] for interpolation.
+    fn find_fivecubic_interval(coords: &[f64], x: f64) -> Result<usize, InterpolateError> {
+        // Find the interval [i, i+1] such that coords[i] <= x < coords[i+1]
+        let i = utils::find_interval_index(coords, x)?;
+        Ok(i)
+    }
+
+    /// Calculates the derivative with respect to dimension k at a given knot.
+    fn calculate_ddk<D>(data: &InterpDataND<D>, idx: &[usize], dim: usize) -> f64
+    where
+        D: Data<Elem = f64> + RawDataClone + Clone,
+    {
+        let n_knots = data.grid[dim].len();
+        let coords = data.grid[dim].as_slice().unwrap();
+        let values = &data.values;
+
+        let ik = idx[dim];
+        let del1 = match ik {
+            0 => 0.0,
+            i => coords[i] - coords[i - 1],
+        };
+
+        let del2 = match coords.get(ik + 1) {
+            Some(&next) => next - coords[ik],
+            None => 0.0,
+        };
+
+        if ik != 0 && ik != n_knots - 1 {
+            let mut idx_prev = idx.to_vec();
+            idx_prev[dim] = ik - 1;
+            let mut idx_next = idx.to_vec();
+            idx_next[dim] = ik + 1;
+
+            let ldd = (values[IxDyn(idx)] - values[IxDyn(&idx_prev)]) / del1;
+            let rdd = (values[IxDyn(&idx_next)] - values[IxDyn(idx)]) / del2;
+            (ldd + rdd) / 2.0
+        } else if ik == 0 {
+            let mut idx_next = idx.to_vec();
+            idx_next[dim] = ik + 1;
+            (values[IxDyn(&idx_next)] - values[IxDyn(idx)]) / del2
+        } else if ik == n_knots - 1 {
+            let mut idx_prev = idx.to_vec();
+            idx_prev[dim] = ik - 1;
+            (values[IxDyn(idx)] - values[IxDyn(&idx_prev)]) / del1
+        } else {
+            panic!("Should not reach here: Invalid index for derivative calculation.");
+        }
+    }
+
+    /// Hermite cubic interpolation with derivatives (same as LogTricubic/LogFourCubic)
+    fn cubic_interpolate(t: f64, f0: f64, f0_prime: f64, f1: f64, f1_prime: f64) -> f64 {
+        let t2 = t * t;
+        let t3 = t2 * t;
+
+        // Hermite basis functions
+        let h00 = 2.0 * t3 - 3.0 * t2 + 1.0;
+        let h10 = t3 - 2.0 * t2 + t;
+        let h01 = -2.0 * t3 + 3.0 * t2;
+        let h11 = t3 - t2;
+
+        h00 * f0 + h10 * f0_prime + h01 * f1 + h11 * f1_prime
+    }
+
+    /// Five-cubic Hermite interpolation in 5D
+    fn hermite_fivecubic_interpolate<D>(
+        &self,
+        data: &InterpDataND<D>,
+        indices: (usize, usize, usize, usize, usize),
+        coords: (f64, f64, f64, f64, f64),
+        deltas: (f64, f64, f64, f64, f64),
+    ) -> f64
+    where
+        D: Data<Elem = f64> + RawDataClone + Clone,
+    {
+        let (i0, i1, i2, i3, i4) = indices;
+        let (u, v, w, t, s) = coords;
+        let (d0, d1, d2, d3, d4) = deltas;
+
+        // Helper closures to access values and derivatives
+        let get = |o0: usize, o1: usize, o2: usize, o3: usize, o4: usize| {
+            data.values[IxDyn(&[i0 + o0, i1 + o1, i2 + o2, i3 + o3, i4 + o4])]
+        };
+        let ddk = |o0: usize, o1: usize, o2: usize, o3: usize, o4: usize, dim: usize| {
+            Self::calculate_ddk(data, &[i0 + o0, i1 + o1, i2 + o2, i3 + o3, i4 + o4], dim)
+        };
+
+        // Interpolate along dimension 0 for all 2^4 = 16 combinations
+        let mut interp_dim0 = vec![];
+        for &o4 in &[0, 1] {
+            for &o3 in &[0, 1] {
+                for &o2 in &[0, 1] {
+                    for &o1 in &[0, 1] {
+                        let (f0, f1) = (get(0, o1, o2, o3, o4), get(1, o1, o2, o3, o4));
+                        let (deriv0, deriv1) = (
+                            ddk(0, o1, o2, o3, o4, 0) * d0,
+                            ddk(1, o1, o2, o3, o4, 0) * d0,
+                        );
+                        let interp_val = Self::cubic_interpolate(u, f0, deriv0, f1, deriv1);
+
+                        // Interpolate derivatives for dimension 1
+                        let (df0, df1) = (
+                            ddk(0, o1, o2, o3, o4, 1) * d1,
+                            ddk(1, o1, o2, o3, o4, 1) * d1,
+                        );
+                        let interp_deriv1 = (1.0 - u) * df0 + u * df1;
+
+                        interp_dim0.push([interp_val, interp_deriv1]);
+                    }
+                }
+            }
+        }
+
+        // Interpolate along dimension 1, creating a 2^3 = 8 element array
+        let mut interp_dim1 = vec![];
+        for o4 in 0..2 {
+            for o3 in 0..2 {
+                for o2 in 0..2 {
+                    let idx0 = o4 * 8 + o3 * 4 + o2 * 2;
+                    let (f0, f1) = (interp_dim0[idx0][0], interp_dim0[idx0 + 1][0]);
+                    let (deriv0, deriv1) = (interp_dim0[idx0][1], interp_dim0[idx0 + 1][1]);
+                    let interp_val = Self::cubic_interpolate(v, f0, deriv0, f1, deriv1);
+
+                    // Calculate derivative for dimension 2
+                    let calc_d2_deriv = |o1_offset: usize| {
+                        let (df0, df1) = (
+                            ddk(0, o1_offset, o2, o3, o4, 2) * d2,
+                            ddk(1, o1_offset, o2, o3, o4, 2) * d2,
+                        );
+                        (1.0 - u) * df0 + u * df1
+                    };
+                    let interp_deriv2 = (1.0 - v) * calc_d2_deriv(0) + v * calc_d2_deriv(1);
+
+                    interp_dim1.push([interp_val, interp_deriv2]);
+                }
+            }
+        }
+
+        // Interpolate along dimension 2, creating a 2^2 = 4 element array
+        let mut interp_dim2 = vec![];
+        for o4 in 0..2 {
+            for o3 in 0..2 {
+                let idx0 = o4 * 4 + o3 * 2;
+                let (f0, f1) = (interp_dim1[idx0][0], interp_dim1[idx0 + 1][0]);
+                let (deriv0, deriv1) = (interp_dim1[idx0][1], interp_dim1[idx0 + 1][1]);
+                let interp_val = Self::cubic_interpolate(w, f0, deriv0, f1, deriv1);
+
+                // Calculate derivative for dimension 3
+                let calc_d3_deriv = |o2_offset: usize| {
+                    let calc_d3_inner = |o1_offset: usize| {
+                        let (df0, df1) = (
+                            ddk(0, o1_offset, o2_offset, o3, o4, 3) * d3,
+                            ddk(1, o1_offset, o2_offset, o3, o4, 3) * d3,
+                        );
+                        (1.0 - u) * df0 + u * df1
+                    };
+                    (1.0 - v) * calc_d3_inner(0) + v * calc_d3_inner(1)
+                };
+                let interp_deriv3 = (1.0 - w) * calc_d3_deriv(0) + w * calc_d3_deriv(1);
+
+                interp_dim2.push([interp_val, interp_deriv3]);
+            }
+        }
+
+        // Interpolate along dimension 3, creating a 2 element array
+        let mut interp_dim3 = vec![];
+        for o4 in 0..2 {
+            let idx0 = o4 * 2;
+            let (f0, f1) = (interp_dim2[idx0][0], interp_dim2[idx0 + 1][0]);
+            let (deriv0, deriv1) = (interp_dim2[idx0][1], interp_dim2[idx0 + 1][1]);
+            let interp_val = Self::cubic_interpolate(t, f0, deriv0, f1, deriv1);
+
+            // Calculate derivative for dimension 4
+            let calc_d4_deriv = |o3_offset: usize| {
+                let calc_d4_mid = |o2_offset: usize| {
+                    let calc_d4_inner = |o1_offset: usize| {
+                        let (df0, df1) = (
+                            ddk(0, o1_offset, o2_offset, o3_offset, o4, 4) * d4,
+                            ddk(1, o1_offset, o2_offset, o3_offset, o4, 4) * d4,
+                        );
+                        (1.0 - u) * df0 + u * df1
+                    };
+                    (1.0 - v) * calc_d4_inner(0) + v * calc_d4_inner(1)
+                };
+                (1.0 - w) * calc_d4_mid(0) + w * calc_d4_mid(1)
+            };
+            let interp_deriv4 = (1.0 - t) * calc_d4_deriv(0) + t * calc_d4_deriv(1);
+
+            interp_dim3.push([interp_val, interp_deriv4]);
+        }
+
+        // Final interpolation along dimension 4
+        let (f0, f1) = (interp_dim3[0][0], interp_dim3[1][0]);
+        let (deriv0, deriv1) = (interp_dim3[0][1], interp_dim3[1][1]);
+        Self::cubic_interpolate(s, f0, deriv0, f1, deriv1)
+    }
+}
+
+impl<D> StrategyND<D> for LogFiveCubicInterpolation
+where
+    D: Data<Elem = f64> + RawDataClone + Clone,
+{
+    fn init(&mut self, data: &InterpDataND<D>) -> Result<(), ValidateError> {
+        if data.grid.len() != 5 {
+            return Err(ValidateError::Other(
+                "LogFiveCubic requires exactly 5 dimensions".to_string(),
+            ));
+        }
+
+        for (i, grid) in data.grid.iter().enumerate() {
+            if grid.len() < 4 {
+                return Err(ValidateError::Other(format!(
+                    "Need at least 4 grid points in dimension {}, got {}",
+                    i,
+                    grid.len()
+                )));
+            }
+        }
+
+        Ok(())
+    }
+
+    fn interpolate(&self, data: &InterpDataND<D>, point: &[f64]) -> Result<f64, InterpolateError> {
+        if point.len() != 5 {
+            return Err(InterpolateError::Other(
+                "LogFiveCubic requires exactly 5-dimensional point".to_string(),
+            ));
+        }
+
+        let [x0, x1, x2, x3, x4] = [point[0], point[1], point[2], point[3], point[4]];
+
+        let coords0 = data.grid[0].as_slice().unwrap();
+        let coords1 = data.grid[1].as_slice().unwrap();
+        let coords2 = data.grid[2].as_slice().unwrap();
+        let coords3 = data.grid[3].as_slice().unwrap();
+        let coords4 = data.grid[4].as_slice().unwrap();
+
+        let i0 = Self::find_fivecubic_interval(coords0, x0)?;
+        let i1 = Self::find_fivecubic_interval(coords1, x1)?;
+        let i2 = Self::find_fivecubic_interval(coords2, x2)?;
+        let i3 = Self::find_fivecubic_interval(coords3, x3)?;
+        let i4 = Self::find_fivecubic_interval(coords4, x4)?;
+
+        let d0 = coords0[i0 + 1] - coords0[i0];
+        let d1 = coords1[i1 + 1] - coords1[i1];
+        let d2 = coords2[i2 + 1] - coords2[i2];
+        let d3 = coords3[i3 + 1] - coords3[i3];
+        let d4 = coords4[i4 + 1] - coords4[i4];
+
+        if d0 == 0.0 || d1 == 0.0 || d2 == 0.0 || d3 == 0.0 || d4 == 0.0 {
+            return Err(InterpolateError::Other("Grid spacing is zero".to_string()));
+        }
+
+        let u = (x0 - coords0[i0]) / d0;
+        let v = (x1 - coords1[i1]) / d1;
+        let w = (x2 - coords2[i2]) / d2;
+        let t = (x3 - coords3[i3]) / d3;
+        let s = (x4 - coords4[i4]) / d4;
+
+        let result = self.hermite_fivecubic_interpolate(
+            data,
+            (i0, i1, i2, i3, i4),
+            (u, v, w, t, s),
+            (d0, d1, d2, d3, d4),
+        );
 
         Ok(result)
     }
@@ -1973,5 +2632,319 @@ mod tests {
         for (res, exp) in results.iter().zip(expected.iter()) {
             assert_close(*res, *exp, EPSILON);
         }
+    }
+
+    #[test]
+    fn test_log_fourcubic_interpolation() {
+        use ndarray::Array4;
+        use ninterp::data::InterpDataND;
+
+        // Create 4D test grid
+        let x0_coords = create_logspaced(1e-5, 1e-3, 6);
+        let x1_coords = create_logspaced(1e2, 1e4, 6);
+        let x2_coords = vec![1.0, 5.0, 25.0, 100.0, 150.0, 200.0];
+        let x3_coords = vec![0.5, 1.0, 2.0, 5.0, 10.0, 20.0];
+
+        // Generate test values: f(x0, x1, x2, x3) = x0 * x1 * x2 * x3
+        let values: Vec<f64> = x0_coords
+            .iter()
+            .cartesian_product(x1_coords.iter())
+            .cartesian_product(x2_coords.iter())
+            .cartesian_product(x3_coords.iter())
+            .map(|(((&a, &b), &c), &d)| a * b * c * d)
+            .collect();
+
+        // Transform to log space
+        let values_ln: Vec<f64> = values.iter().map(|val| val.ln()).collect();
+
+        // Create 4D array
+        let shape = (
+            x0_coords.len(),
+            x1_coords.len(),
+            x2_coords.len(),
+            x3_coords.len(),
+        );
+        let values_array = Array4::from_shape_vec(shape, values_ln.clone())
+            .unwrap()
+            .into_dyn();
+
+        // Create InterpDataND
+        let grids = vec![
+            x0_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+            x1_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+            x2_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+            x3_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+        ];
+        let interp_data_ln = InterpDataND::new(grids, values_array).unwrap();
+
+        // Initialize strategy
+        let mut strategy = LogFourCubicInterpolation;
+        strategy.init(&interp_data_ln).unwrap();
+
+        // Test interpolation at a point
+        let point: [f64; 4] = [1e-4, 2e3, 25.0, 5.0];
+        let log_point = [point[0].ln(), point[1].ln(), point[2].ln(), point[3].ln()];
+        let expected: f64 = point.iter().product();
+        let result = strategy
+            .interpolate(&interp_data_ln, &log_point)
+            .unwrap()
+            .exp();
+
+        // Allow for some numerical error in 4D interpolation
+        let tolerance = 1e-6 * expected.abs();
+        assert_close(result, expected, tolerance);
+    }
+
+    #[test]
+    fn test_log_fourcubic_grid_point() {
+        use ndarray::Array4;
+        use ninterp::data::InterpDataND;
+
+        // Test that interpolation at grid points returns exact values
+        let x0_coords = vec![0.1, 0.2, 0.3, 0.4];
+        let x1_coords = vec![1.0, 2.0, 3.0, 4.0];
+        let x2_coords = vec![10.0, 20.0, 30.0, 40.0];
+        let x3_coords = vec![100.0, 200.0, 300.0, 400.0];
+
+        let values: Vec<f64> = x0_coords
+            .iter()
+            .cartesian_product(x1_coords.iter())
+            .cartesian_product(x2_coords.iter())
+            .cartesian_product(x3_coords.iter())
+            .map(|(((&a, &b), &c), &d)| a + b + c + d)
+            .collect();
+
+        let values_ln: Vec<f64> = values.iter().map(|val| val.ln()).collect();
+
+        let shape = (
+            x0_coords.len(),
+            x1_coords.len(),
+            x2_coords.len(),
+            x3_coords.len(),
+        );
+        let values_array = Array4::from_shape_vec(shape, values_ln).unwrap().into_dyn();
+
+        let grids = vec![
+            x0_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+            x1_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+            x2_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+            x3_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+        ];
+        let interp_data = InterpDataND::new(grids, values_array).unwrap();
+
+        let mut strategy = LogFourCubicInterpolation;
+        strategy.init(&interp_data).unwrap();
+
+        // Test at a grid point (should be exact)
+        let test_point = [0.2f64.ln(), 2.0f64.ln(), 20.0f64.ln(), 200.0f64.ln()];
+        let expected = (0.2f64 + 2.0 + 20.0 + 200.0).ln();
+        let result = strategy.interpolate(&interp_data, &test_point).unwrap();
+
+        assert_close(result, expected, EPSILON);
+    }
+
+    #[test]
+    fn test_log_fourcubic_init_validation() {
+        use ndarray::Array4;
+        use ninterp::data::InterpDataND;
+
+        // Test that init fails with too few grid points
+        let x0_coords = vec![0.1, 0.2, 0.3]; // Only 3 points
+        let x1_coords = vec![1.0, 2.0, 3.0, 4.0];
+        let x2_coords = vec![10.0, 20.0, 30.0, 40.0];
+        let x3_coords = vec![100.0, 200.0, 300.0, 400.0];
+
+        let n_total = x0_coords.len() * x1_coords.len() * x2_coords.len() * x3_coords.len();
+        let values = vec![1.0; n_total];
+
+        let shape = (
+            x0_coords.len(),
+            x1_coords.len(),
+            x2_coords.len(),
+            x3_coords.len(),
+        );
+        let values_array = Array4::from_shape_vec(shape, values).unwrap().into_dyn();
+
+        let grids = vec![
+            x0_coords.into(),
+            x1_coords.into(),
+            x2_coords.into(),
+            x3_coords.into(),
+        ];
+        let interp_data = InterpDataND::new(grids, values_array).unwrap();
+
+        let mut strategy = LogFourCubicInterpolation;
+        let result = strategy.init(&interp_data);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_log_fivecubic_interpolation() {
+        use ndarray::Array5;
+        use ninterp::data::InterpDataND;
+
+        // Create 5D test grid
+        let x0_coords = create_logspaced(1e-5, 1e-3, 5);
+        let x1_coords = create_logspaced(1e2, 1e4, 5);
+        let x2_coords = vec![1.0, 5.0, 25.0, 100.0, 200.0];
+        let x3_coords = vec![0.5, 1.0, 2.0, 5.0, 10.0];
+        let x4_coords = vec![10.0, 20.0, 50.0, 100.0, 200.0];
+
+        // Generate test values: f(x0, x1, x2, x3, x4) = x0 * x1 * x2 * x3 * x4
+        let values: Vec<f64> = x0_coords
+            .iter()
+            .cartesian_product(x1_coords.iter())
+            .cartesian_product(x2_coords.iter())
+            .cartesian_product(x3_coords.iter())
+            .cartesian_product(x4_coords.iter())
+            .map(|((((&a, &b), &c), &d), &e)| a * b * c * d * e)
+            .collect();
+
+        // Transform to log space
+        let values_ln: Vec<f64> = values.iter().map(|val| val.ln()).collect();
+
+        // Create 5D array
+        let shape = (
+            x0_coords.len(),
+            x1_coords.len(),
+            x2_coords.len(),
+            x3_coords.len(),
+            x4_coords.len(),
+        );
+        let values_array = Array5::from_shape_vec(shape, values_ln.clone())
+            .unwrap()
+            .into_dyn();
+
+        // Create InterpDataND
+        let grids = vec![
+            x0_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+            x1_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+            x2_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+            x3_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+            x4_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+        ];
+        let interp_data_ln = InterpDataND::new(grids, values_array).unwrap();
+
+        // Initialize strategy
+        let mut strategy = LogFiveCubicInterpolation;
+        strategy.init(&interp_data_ln).unwrap();
+
+        // Test interpolation at a point
+        let point: [f64; 5] = [1e-4, 2e3, 25.0, 5.0, 100.0];
+        let log_point = [
+            point[0].ln(),
+            point[1].ln(),
+            point[2].ln(),
+            point[3].ln(),
+            point[4].ln(),
+        ];
+        let expected: f64 = point.iter().product();
+        let result = strategy
+            .interpolate(&interp_data_ln, &log_point)
+            .unwrap()
+            .exp();
+
+        // Allow for some numerical error in 5D interpolation
+        let tolerance = 1e-5 * expected.abs();
+        assert_close(result, expected, tolerance);
+    }
+
+    #[test]
+    fn test_log_fivecubic_grid_point() {
+        use ndarray::Array5;
+        use ninterp::data::InterpDataND;
+
+        // Test that interpolation at grid points returns exact values
+        let x0_coords = vec![0.1, 0.2, 0.3, 0.4];
+        let x1_coords = vec![1.0, 2.0, 3.0, 4.0];
+        let x2_coords = vec![10.0, 20.0, 30.0, 40.0];
+        let x3_coords = vec![100.0, 200.0, 300.0, 400.0];
+        let x4_coords = vec![1000.0, 2000.0, 3000.0, 4000.0];
+
+        let values: Vec<f64> = x0_coords
+            .iter()
+            .cartesian_product(x1_coords.iter())
+            .cartesian_product(x2_coords.iter())
+            .cartesian_product(x3_coords.iter())
+            .cartesian_product(x4_coords.iter())
+            .map(|((((&a, &b), &c), &d), &e)| a + b + c + d + e)
+            .collect();
+
+        let values_ln: Vec<f64> = values.iter().map(|val| val.ln()).collect();
+
+        let shape = (
+            x0_coords.len(),
+            x1_coords.len(),
+            x2_coords.len(),
+            x3_coords.len(),
+            x4_coords.len(),
+        );
+        let values_array = Array5::from_shape_vec(shape, values_ln).unwrap().into_dyn();
+
+        let grids = vec![
+            x0_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+            x1_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+            x2_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+            x3_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+            x4_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+        ];
+        let interp_data = InterpDataND::new(grids, values_array).unwrap();
+
+        let mut strategy = LogFiveCubicInterpolation;
+        strategy.init(&interp_data).unwrap();
+
+        // Test at a grid point (should be exact)
+        let test_point = [
+            0.2f64.ln(),
+            2.0f64.ln(),
+            20.0f64.ln(),
+            200.0f64.ln(),
+            2000.0f64.ln(),
+        ];
+        let expected = (0.2f64 + 2.0 + 20.0 + 200.0 + 2000.0).ln();
+        let result = strategy.interpolate(&interp_data, &test_point).unwrap();
+
+        assert_close(result, expected, EPSILON);
+    }
+
+    #[test]
+    fn test_log_fivecubic_init_validation() {
+        use ndarray::Array5;
+        use ninterp::data::InterpDataND;
+
+        // Test that init fails with too few grid points
+        let x0_coords = vec![0.1, 0.2, 0.3]; // Only 3 points
+        let x1_coords = vec![1.0, 2.0, 3.0, 4.0];
+        let x2_coords = vec![10.0, 20.0, 30.0, 40.0];
+        let x3_coords = vec![100.0, 200.0, 300.0, 400.0];
+        let x4_coords = vec![1000.0, 2000.0, 3000.0, 4000.0];
+
+        let n_total =
+            x0_coords.len() * x1_coords.len() * x2_coords.len() * x3_coords.len() * x4_coords.len();
+        let values = vec![1.0; n_total];
+
+        let shape = (
+            x0_coords.len(),
+            x1_coords.len(),
+            x2_coords.len(),
+            x3_coords.len(),
+            x4_coords.len(),
+        );
+        let values_array = Array5::from_shape_vec(shape, values).unwrap().into_dyn();
+
+        let grids = vec![
+            x0_coords.into(),
+            x1_coords.into(),
+            x2_coords.into(),
+            x3_coords.into(),
+            x4_coords.into(),
+        ];
+        let interp_data = InterpDataND::new(grids, values_array).unwrap();
+
+        let mut strategy = LogFiveCubicInterpolation;
+        let result = strategy.init(&interp_data);
+
+        assert!(result.is_err());
     }
 }

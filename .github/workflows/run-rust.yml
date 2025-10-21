@@ -38,9 +38,12 @@ jobs:
         run: |
           export NEOPDF_DATA_PATH=${PWD}/neopdf-data
           cargo test --workspace --exclude neopdf_pyapi --exclude neopdf_tmdlib --exclude neopdf_wolfram --no-fail-fast 2> >(tee stderr 1>&2)
-          sed -i 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g' stderr
+          if [ "${{ matrix.os }}" != "macos-latest" ]; then
+            sed -i 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g' stderr
+          fi
 
       - name: Generate code coverage
+        if: matrix.os == 'ubuntu-latest'
         run: |
           find . -name '*.profraw' -exec $(rustc --print target-libdir)/../bin/llvm-profdata merge -sparse -o neopdf.profdata {} +
           ( sed -nE 's/[[:space:]]+Running( unittests|) [^[:space:]]+ \(([^)]+)\)/\2/p' stderr && echo target/debug/doctestbins/*/rust_out | tr ' ' "\n" ) | \
@@ -58,6 +61,7 @@ jobs:
           grep SF lcov.info | sort -u | sed 's/SF://'
 
       - name: Upload to codecov.io
+        if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

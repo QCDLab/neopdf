@@ -29,6 +29,7 @@ use std::sync::Arc;
 
 use git_version::git_version;
 use lz4_flex::frame::{FrameDecoder, FrameEncoder};
+use tempfile::NamedTempFile;
 
 use super::gridpdf::GridArray;
 use super::metadata::MetaData;
@@ -131,7 +132,12 @@ impl GridArrayCollection {
             encoder.write_all(serialized)?;
         }
 
-        encoder.finish()?;
+        let mut writer = encoder.finish()?;
+        writer.flush()?;
+
+        // Sync to disk to ensure data is written before returning
+        writer.get_mut().sync_all()?;
+
         Ok(())
     }
 
@@ -324,13 +330,12 @@ impl GridArrayReader {
             new_grids.push(converted_grid);
         }
 
-        let temp_path =
-            std::env::temp_dir().join(format!("neopdf_conversion_{}.tmp", std::process::id()));
-        let grid_refs: Vec<&GridArray> = new_grids.iter().collect();
-        GridArrayCollection::compress(&grid_refs, &metadata, &temp_path)?;
+        let temp_file = NamedTempFile::new()?;
+        let temp_path = temp_file.path();
 
-        let result = Self::from_file_v2(&temp_path)?;
-        std::fs::remove_file(&temp_path).ok();
+        let grid_refs: Vec<&GridArray> = new_grids.iter().collect();
+        GridArrayCollection::compress(&grid_refs, &metadata, temp_path)?;
+        let result = Self::from_file_v2(temp_path)?;
 
         Ok(result)
     }
@@ -543,13 +548,12 @@ impl LazyGridArrayIterator {
             new_grids.push(converted_grid);
         }
 
-        let temp_path =
-            std::env::temp_dir().join(format!("neopdf_lazy_conversion_{}.tmp", std::process::id()));
-        let grid_refs: Vec<&GridArray> = new_grids.iter().collect();
-        GridArrayCollection::compress(&grid_refs, &metadata, &temp_path)?;
+        let temp_file = NamedTempFile::new()?;
+        let temp_path = temp_file.path();
 
-        let result = Self::from_file_v2(&temp_path)?;
-        std::fs::remove_file(&temp_path).ok();
+        let grid_refs: Vec<&GridArray> = new_grids.iter().collect();
+        GridArrayCollection::compress(&grid_refs, &metadata, temp_path)?;
+        let result = Self::from_file_v2(temp_path)?;
 
         Ok(result)
     }

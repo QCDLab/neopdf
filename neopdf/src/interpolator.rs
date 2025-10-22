@@ -412,7 +412,6 @@ impl InterpolatorFactory {
         pid_index: usize,
     ) -> Box<dyn DynInterpolator> {
         let grid_view = subgrid.grid.view();
-        // For 3D xi: slice out [xi, x, Q2] from 8D grid [A, alphas, xi, delta, kT, pids, x, Q2]
         let grid_data = grid_view
             .slice(s![0, 0, .., 0, 0, pid_index, .., ..])
             .to_owned();
@@ -453,7 +452,6 @@ impl InterpolatorFactory {
         pid_index: usize,
     ) -> Box<dyn DynInterpolator> {
         let grid_view = subgrid.grid.view();
-        // For 3D delta: slice out [delta, x, Q2] from 8D grid [A, alphas, xi, delta, kT, pids, x, Q2]
         let grid_data = grid_view
             .slice(s![0, 0, 0, .., 0, pid_index, .., ..])
             .to_owned();

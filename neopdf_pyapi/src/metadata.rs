@@ -159,7 +159,7 @@ impl PyPhysicsParameters {
     /// # Errors
     ///
     /// Raises an error if the values are not Python compatible.
-    pub fn to_dict(&self, py: Python) -> PyResult<PyObject> {
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyAny>> {
         let dict = pyo3::types::PyDict::new(py);
         dict.set_item("flavor_scheme", &self.flavor_scheme)?;
         dict.set_item("order_qcd", self.order_qcd)?;
@@ -297,7 +297,7 @@ impl PyMetaData {
     /// # Errors
     ///
     /// Raises an erro if the values are not Python compatible.
-    pub fn to_dict(&self, py: Python) -> PyResult<PyObject> {
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyAny>> {
         let dict = pyo3::types::PyDict::new(py);
 
         let set_type = match &self.meta.set_type {

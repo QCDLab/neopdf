@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added `LogFourCubic` and `LogFiveCubic` interpolation strategies.
+
+### Changed
+
+- Bump `PyO3` and `numpy` versions to `v0.27` to support Python `3.14`.
+- Extended the Grid layout to support GTMDs and GPDs (https://github.com/QCDLab/neopdf/pull/79).
+
 ## [0.2.0] - 06/10/2025
 
 ### Added

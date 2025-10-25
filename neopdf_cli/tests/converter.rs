@@ -49,7 +49,10 @@ MBottom: 4.92
 MTop: 172.5
 AlphaS Type: ipol
 Number of PDF flavors: 5
-
+XiMin: 0
+XiMax: 0
+DeltaMin: 0
+DeltaMax: 0
 ";
 
 #[test]

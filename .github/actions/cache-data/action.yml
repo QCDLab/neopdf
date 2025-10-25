@@ -10,7 +10,7 @@ runs:
       uses: actions/cache@v4
       with:
         path: neopdf-data
-        key: data-v11
+        key: data-v12
     - name: Download data if cache miss
       if: steps.cache-data.outputs.cache-hit != 'true'
       run: |

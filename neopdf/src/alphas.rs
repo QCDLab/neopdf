@@ -82,12 +82,14 @@ impl AlphaSAnalytic {
             meta.alphas_order_qcd
         };
 
+        let (_m_up, _m_down, _m_strange, m_charm, m_bottom, m_top) = meta.quark_masses();
+
         Ok(Self {
             qcd_order: alphas_order_qcd,
             lambda_maps,
-            mc_sq: meta.m_charm * meta.m_charm,
-            mb_sq: meta.m_bottom * meta.m_bottom,
-            mt_sq: meta.m_top * meta.m_top,
+            mc_sq: m_charm * m_charm,
+            mb_sq: m_bottom * m_bottom,
+            mt_sq: m_top * m_top,
             num_fl: meta.number_flavors,
             fl_scheme: meta.flavor_scheme.clone(),
         })
@@ -162,7 +164,7 @@ impl AlphaSAnalytic {
         let mut tmp = 1.0;
 
         if self.qcd_order == 0 {
-            return 0.118; // _alpha_mz reference value
+            return 0.118; // `_alpha_mz` reference value
         }
 
         if self.qcd_order > 1 {
@@ -202,12 +204,14 @@ pub struct AlphaSInterpol {
 
 impl AlphaSInterpol {
     pub fn from_metadata(meta: &MetaData) -> Result<Self, String> {
-        let (q_values, alphas_vals): (Vec<_>, Vec<_>) = meta
-            .alphas_q_values
+        let alphas_q_values = &meta.alphas_q_values;
+        let alphas_vals = &meta.alphas_vals;
+
+        let (q_values, alphas_vals_filtered): (Vec<_>, Vec<_>) = alphas_q_values
             .iter()
-            .zip(&meta.alphas_vals)
+            .zip(alphas_vals)
             .enumerate()
-            .filter(|(i, (&q, _))| *i == 0 || q != meta.alphas_q_values[i - 1])
+            .filter(|(i, (&q, _))| *i == 0 || q != alphas_q_values[i - 1])
             .map(|(_, (&q, &alpha))| (q, alpha))
             .unzip();
 
@@ -215,7 +219,7 @@ impl AlphaSInterpol {
 
         let interpolator = Interp1D::new(
             q2_values.into(),
-            alphas_vals.into(),
+            alphas_vals_filtered.into(),
             AlphaSCubicInterpolation,
             Extrapolate::Error,
         )

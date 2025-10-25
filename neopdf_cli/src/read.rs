@@ -30,6 +30,9 @@ pub enum ReadCommands {
     /// Print the git version of the code that generated the PDF.
     #[command(name = "git-version")]
     GitVersion(PdfNameArgs),
+    /// Print the code version of the code that generated the PDF.
+    #[command(name = "code-version")]
+    CodeVersion(PdfNameArgs),
 }
 
 /// Arguments for the metadata subcommand.
@@ -197,6 +200,10 @@ pub fn main(cli: ReadCli) {
         ReadCommands::GitVersion(args) => {
             let pdf = neopdf::pdf::PDF::load(&args.pdf_name, 0);
             println!("{}", pdf.metadata().git_version);
+        }
+        ReadCommands::CodeVersion(args) => {
+            let pdf = neopdf::pdf::PDF::load(&args.pdf_name, 0);
+            println!("{}", pdf.metadata().code_version);
         }
     }
 }

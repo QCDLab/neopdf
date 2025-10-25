@@ -13,6 +13,7 @@ Commands:
   subgrid-info  Print the subgrid info (nucleons, alphas, x, Q2) for a given subgrid index
   subgrid       Print the contents of a subgrid
   git-version   Print the git version of the code that generated the PDF
+  code-version  Print the code version of the code that generated the PDF
   help          Print this message or the help of the given subcommand(s)
 
 Options:

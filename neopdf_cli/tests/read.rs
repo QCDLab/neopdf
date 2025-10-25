@@ -100,6 +100,13 @@ fn read_gitversion_neopdf() {
         .assert()
         .success()
         .stdout("v0.2.0-alpha1-22-gfb6af13-dirty\n");
+
+    Command::cargo_bin("neopdf")
+        .unwrap()
+        .args(["read", "code-version", "NNPDF40_nnlo_as_01180.neopdf.lz4"])
+        .assert()
+        .success()
+        .stdout("0.2.0-alpha1\n");
 }
 
 #[test]

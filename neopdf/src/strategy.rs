@@ -1790,6 +1790,174 @@ where
     }
 }
 
+impl<D> StrategyND<D> for LogChebyshevInterpolation<4>
+where
+    D: Data<Elem = f64> + RawDataClone + Clone,
+{
+    fn init(&mut self, data: &InterpDataND<D>) -> Result<(), ValidateError> {
+        if data.grid.len() != 4 {
+            return Err(ValidateError::Other(
+                "LogChebyshevInterpolation<4> requires exactly 4 dimensions".to_string(),
+            ));
+        }
+        for dim in 0..4 {
+            let x_coords = data.grid[dim].as_slice().unwrap();
+            let n = x_coords.len();
+            if n < 2 {
+                return Err(ValidateError::Other(
+                    "LogChebyshevInterpolation requires at least 2 grid points per dimension."
+                        .to_string(),
+                ));
+            }
+            self.t_coords[dim] = (0..n)
+                .map(|j| (PI * (n - 1 - j) as f64 / (n - 1) as f64).cos())
+                .collect();
+            self.weights[dim] = Self::compute_barycentric_weights(n);
+        }
+        Ok(())
+    }
+
+    fn interpolate(&self, data: &InterpDataND<D>, point: &[f64]) -> Result<f64, InterpolateError> {
+        if point.len() != 4 {
+            return Err(InterpolateError::Other(
+                "LogChebyshevInterpolation<4> requires a 4D point".to_string(),
+            ));
+        }
+        let [x, y, z, w] = [point[0], point[1], point[2], point[3]];
+
+        let x_coords = data.grid[0].as_slice().unwrap();
+        let y_coords = data.grid[1].as_slice().unwrap();
+        let z_coords = data.grid[2].as_slice().unwrap();
+        let w_coords = data.grid[3].as_slice().unwrap();
+
+        let x_min = *x_coords.first().unwrap();
+        let x_max = *x_coords.last().unwrap();
+        let y_min = *y_coords.first().unwrap();
+        let y_max = *y_coords.last().unwrap();
+        let z_min = *z_coords.first().unwrap();
+        let z_max = *z_coords.last().unwrap();
+        let w_min = *w_coords.first().unwrap();
+        let w_max = *w_coords.last().unwrap();
+
+        let t_x = 2.0 * (x - x_min) / (x_max - x_min) - 1.0;
+        let t_y = 2.0 * (y - y_min) / (y_max - y_min) - 1.0;
+        let t_z = 2.0 * (z - z_min) / (z_max - z_min) - 1.0;
+        let t_w = 2.0 * (w - w_min) / (w_max - w_min) - 1.0;
+
+        let x_coeffs = Self::barycentric_coefficients(t_x, &self.t_coords[0], &self.weights[0]);
+        let y_coeffs = Self::barycentric_coefficients(t_y, &self.t_coords[1], &self.weights[1]);
+        let z_coeffs = Self::barycentric_coefficients(t_z, &self.t_coords[2], &self.weights[2]);
+        let w_coeffs = Self::barycentric_coefficients(t_w, &self.t_coords[3], &self.weights[3]);
+
+        let mut result = 0.0;
+        for (i, &x_coeff) in x_coeffs.iter().enumerate() {
+            for (j, &y_coeff) in y_coeffs.iter().enumerate() {
+                for (k, &z_coeff) in z_coeffs.iter().enumerate() {
+                    for (l, &w_coeff) in w_coeffs.iter().enumerate() {
+                        result += x_coeff * y_coeff * z_coeff * w_coeff * data.values[[i, j, k, l]];
+                    }
+                }
+            }
+        }
+
+        Ok(result)
+    }
+
+    fn allow_extrapolate(&self) -> bool {
+        true
+    }
+}
+
+impl<D> StrategyND<D> for LogChebyshevInterpolation<5>
+where
+    D: Data<Elem = f64> + RawDataClone + Clone,
+{
+    fn init(&mut self, data: &InterpDataND<D>) -> Result<(), ValidateError> {
+        if data.grid.len() != 5 {
+            return Err(ValidateError::Other(
+                "LogChebyshevInterpolation<5> requires exactly 5 dimensions".to_string(),
+            ));
+        }
+        for dim in 0..5 {
+            let x_coords = data.grid[dim].as_slice().unwrap();
+            let n = x_coords.len();
+            if n < 2 {
+                return Err(ValidateError::Other(
+                    "LogChebyshevInterpolation requires at least 2 grid points per dimension."
+                        .to_string(),
+                ));
+            }
+            self.t_coords[dim] = (0..n)
+                .map(|j| (PI * (n - 1 - j) as f64 / (n - 1) as f64).cos())
+                .collect();
+            self.weights[dim] = Self::compute_barycentric_weights(n);
+        }
+        Ok(())
+    }
+
+    fn interpolate(&self, data: &InterpDataND<D>, point: &[f64]) -> Result<f64, InterpolateError> {
+        if point.len() != 5 {
+            return Err(InterpolateError::Other(
+                "LogChebyshevInterpolation<5> requires a 5D point".to_string(),
+            ));
+        }
+        let [x, y, z, w, v_] = [point[0], point[1], point[2], point[3], point[4]];
+
+        let x_coords = data.grid[0].as_slice().unwrap();
+        let y_coords = data.grid[1].as_slice().unwrap();
+        let z_coords = data.grid[2].as_slice().unwrap();
+        let w_coords = data.grid[3].as_slice().unwrap();
+        let v_coords = data.grid[4].as_slice().unwrap();
+
+        let x_min = *x_coords.first().unwrap();
+        let x_max = *x_coords.last().unwrap();
+        let y_min = *y_coords.first().unwrap();
+        let y_max = *y_coords.last().unwrap();
+        let z_min = *z_coords.first().unwrap();
+        let z_max = *z_coords.last().unwrap();
+        let w_min = *w_coords.first().unwrap();
+        let w_max = *w_coords.last().unwrap();
+        let v_min = *v_coords.first().unwrap();
+        let v_max = *v_coords.last().unwrap();
+
+        let t_x = 2.0 * (x - x_min) / (x_max - x_min) - 1.0;
+        let t_y = 2.0 * (y - y_min) / (y_max - y_min) - 1.0;
+        let t_z = 2.0 * (z - z_min) / (z_max - z_min) - 1.0;
+        let t_w = 2.0 * (w - w_min) / (w_max - w_min) - 1.0;
+        let t_v = 2.0 * (v_ - v_min) / (v_max - v_min) - 1.0;
+
+        let x_coeffs = Self::barycentric_coefficients(t_x, &self.t_coords[0], &self.weights[0]);
+        let y_coeffs = Self::barycentric_coefficients(t_y, &self.t_coords[1], &self.weights[1]);
+        let z_coeffs = Self::barycentric_coefficients(t_z, &self.t_coords[2], &self.weights[2]);
+        let w_coeffs = Self::barycentric_coefficients(t_w, &self.t_coords[3], &self.weights[3]);
+        let v_coeffs = Self::barycentric_coefficients(t_v, &self.t_coords[4], &self.weights[4]);
+
+        let mut result = 0.0;
+        for (i, &x_coeff) in x_coeffs.iter().enumerate() {
+            for (j, &y_coeff) in y_coeffs.iter().enumerate() {
+                for (k, &z_coeff) in z_coeffs.iter().enumerate() {
+                    for (l, &w_coeff) in w_coeffs.iter().enumerate() {
+                        for (m, &v_coeff) in v_coeffs.iter().enumerate() {
+                            result += x_coeff
+                                * y_coeff
+                                * z_coeff
+                                * w_coeff
+                                * v_coeff
+                                * data.values[[i, j, k, l, m]];
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(result)
+    }
+
+    fn allow_extrapolate(&self) -> bool {
+        true
+    }
+}
+
 /// Implements a global N-dimensional batch interpolation using Chebyshev polynomials
 /// with logarithmic coordinate scaling.
 ///
@@ -2094,12 +2262,14 @@ impl LogChebyshevBatchInterpolation<3> {
 mod tests {
     use super::*;
     use itertools::Itertools;
-    use ndarray::{Array1, Array2, Array3, OwnedRepr};
-    use ninterp::data::{InterpData1D, InterpData2D};
+    use ndarray::{Array, Array1, Array2, Array3, OwnedRepr};
+    use std::f64::consts::PI;
+
+    use ninterp::data::{InterpData1D, InterpData2D, InterpDataND};
     use ninterp::interpolator::{Extrapolate, InterpND};
+    use ninterp::num_traits::Float;
     use ninterp::prelude::Interpolator;
     use ninterp::strategy::Linear;
-    use std::f64::consts::PI;
 
     const EPSILON: f64 = 1e-9;
 
@@ -2946,5 +3116,99 @@ mod tests {
         let result = strategy.init(&interp_data);
 
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_log_chebyshev_4d() {
+        let n = 4;
+        let x_coords = create_cheby_grid(n, 0.1, 10.0);
+        let y_coords = create_cheby_grid(n, 0.1, 10.0);
+        let z_coords = create_cheby_grid(n, 0.1, 10.0);
+        let w_coords = create_cheby_grid(n, 0.1, 10.0);
+
+        let f_values: Vec<f64> = x_coords
+            .iter()
+            .cartesian_product(y_coords.iter())
+            .cartesian_product(z_coords.iter())
+            .cartesian_product(w_coords.iter())
+            .map(|(((&x, &y), &z), &w)| x.ln() + y.ln() + z.ln() + w.ln())
+            .collect();
+
+        let shape = (
+            x_coords.len(),
+            y_coords.len(),
+            z_coords.len(),
+            w_coords.len(),
+        );
+        let values_array = Array::from_shape_vec(shape, f_values).unwrap().into_dyn();
+
+        let data = InterpDataND {
+            grid: vec![
+                x_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+                y_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+                z_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+                w_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+            ],
+            values: values_array,
+        };
+
+        let mut strategy = LogChebyshevInterpolation::<4>::default();
+        strategy.init(&data).unwrap();
+
+        let point = [2.5, 3.5, 4.5, 5.5];
+        let log_point: Vec<f64> = point.iter().map(|v| v.ln()).collect();
+        let expected = log_point.iter().sum();
+        let result = strategy.interpolate(&data, &log_point).unwrap();
+
+        assert_close(result, expected, EPSILON);
+    }
+
+    #[test]
+    fn test_log_chebyshev_5d() {
+        let n = 4;
+        let x_coords = create_cheby_grid(n, 0.1, 10.0);
+        let y_coords = create_cheby_grid(n, 0.1, 10.0);
+        let z_coords = create_cheby_grid(n, 0.1, 10.0);
+        let w_coords = create_cheby_grid(n, 0.1, 10.0);
+        let v_coords = create_cheby_grid(n, 0.1, 10.0);
+
+        let f_values: Vec<f64> = x_coords
+            .iter()
+            .cartesian_product(y_coords.iter())
+            .cartesian_product(z_coords.iter())
+            .cartesian_product(w_coords.iter())
+            .cartesian_product(v_coords.iter())
+            .map(|((((&x, &y), &z), &w), &v)| x.ln() + y.ln() + z.ln() + w.ln() + v.ln())
+            .collect();
+
+        let shape = (
+            x_coords.len(),
+            y_coords.len(),
+            z_coords.len(),
+            w_coords.len(),
+            v_coords.len(),
+        );
+        let values_array = Array::from_shape_vec(shape, f_values).unwrap().into_dyn();
+
+        let data = InterpDataND {
+            grid: vec![
+                x_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+                y_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+                z_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+                w_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+                v_coords.iter().map(|v| v.ln()).collect::<Vec<_>>().into(),
+            ],
+            values: values_array,
+        };
+
+        let mut strategy = LogChebyshevInterpolation::<5>::default();
+        strategy.init(&data).unwrap();
+
+        let point = [2.5, 3.5, 4.5, 5.5, 6.5];
+        let log_point: Vec<f64> = point.iter().map(|v| v.ln()).collect();
+        let expected = log_point.iter().sum();
+        let result = strategy.interpolate(&data, &log_point).unwrap();
+
+        assert_close(result, expected, EPSILON);
     }
 }

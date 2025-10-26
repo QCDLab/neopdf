@@ -513,6 +513,24 @@ impl InterpolatorFactory {
                 InterpND::new(coords, reshaped_data.into_dyn(), Linear, Extrapolate::Clamp)
                     .expect("Failed to create 4D interpolator"),
             ),
+            InterpolatorType::LogFourCubic => Box::new(
+                InterpND::new(
+                    coords,
+                    reshaped_data.into_dyn(),
+                    LogFourCubicInterpolation,
+                    Extrapolate::Clamp,
+                )
+                .expect("Failed to create 4D LogFourCubic interpolator"),
+            ),
+            InterpolatorType::LogChebyshev => Box::new(
+                InterpND::new(
+                    coords,
+                    reshaped_data.into_dyn(),
+                    LogChebyshevInterpolation::<4>::default(),
+                    Extrapolate::Clamp,
+                )
+                .expect("Failed to create 4D LogChebyshev interpolator"),
+            ),
             _ => panic!("Unsupported 4D interpolator: {:?}", interp_type),
         }
     }
@@ -544,6 +562,24 @@ impl InterpolatorFactory {
                 InterpND::new(coords, reshaped_data.into_dyn(), Linear, Extrapolate::Clamp)
                     .expect("Failed to create 4D interpolator"),
             ),
+            InterpolatorType::LogFourCubic => Box::new(
+                InterpND::new(
+                    coords,
+                    reshaped_data.into_dyn(),
+                    LogFourCubicInterpolation,
+                    Extrapolate::Clamp,
+                )
+                .expect("Failed to create 4D LogFourCubic interpolator"),
+            ),
+            InterpolatorType::LogChebyshev => Box::new(
+                InterpND::new(
+                    coords,
+                    reshaped_data.into_dyn(),
+                    LogChebyshevInterpolation::<4>::default(),
+                    Extrapolate::Clamp,
+                )
+                .expect("Failed to create 4D LogChebyshev interpolator"),
+            ),
             _ => panic!("Unsupported 4D interpolator: {:?}", interp_type),
         }
     }
@@ -574,6 +610,24 @@ impl InterpolatorFactory {
             InterpolatorType::InterpNDLinear => Box::new(
                 InterpND::new(coords, reshaped_data.into_dyn(), Linear, Extrapolate::Clamp)
                     .expect("Failed to create 4D interpolator"),
+            ),
+            InterpolatorType::LogFourCubic => Box::new(
+                InterpND::new(
+                    coords,
+                    reshaped_data.into_dyn(),
+                    LogFourCubicInterpolation,
+                    Extrapolate::Clamp,
+                )
+                .expect("Failed to create 4D LogFourCubic interpolator"),
+            ),
+            InterpolatorType::LogChebyshev => Box::new(
+                InterpND::new(
+                    coords,
+                    reshaped_data.into_dyn(),
+                    LogChebyshevInterpolation::<4>::default(),
+                    Extrapolate::Clamp,
+                )
+                .expect("Failed to create 4D LogChebyshev interpolator"),
             ),
             _ => panic!("Unsupported 4D interpolator: {:?}", interp_type),
         }
@@ -616,6 +670,15 @@ impl InterpolatorFactory {
                     Extrapolate::Clamp,
                 )
                 .expect("Failed to create 4D LogFourCubic interpolator"),
+            ),
+            InterpolatorType::LogChebyshev => Box::new(
+                InterpND::new(
+                    coords,
+                    reshaped_data.into_dyn(),
+                    LogChebyshevInterpolation::<4>::default(),
+                    Extrapolate::Clamp,
+                )
+                .expect("Failed to create 4D LogChebyshev interpolator"),
             ),
             _ => panic!("Unsupported 4D xi/delta interpolator: {:?}", interp_type),
         }
@@ -665,6 +728,15 @@ impl InterpolatorFactory {
                     Extrapolate::Clamp,
                 )
                 .expect("Failed to create 5D LogFiveCubic interpolator"),
+            ),
+            InterpolatorType::LogChebyshev => Box::new(
+                InterpND::new(
+                    coords,
+                    reshaped_data.into_dyn(),
+                    LogChebyshevInterpolation::<5>::default(),
+                    Extrapolate::Clamp,
+                )
+                .expect("Failed to create 5D LogChebyshev interpolator"),
             ),
             _ => panic!("Unsupported 5D interpolator: {:?}", interp_type),
         }

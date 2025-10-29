@@ -54,15 +54,29 @@ impl GridArray {
         let subgrids = subgrid_data
             .into_iter()
             .map(|data| {
-                SubGrid::new(
-                    data.nucleons,
-                    data.alphas,
-                    data.kts,
-                    data.xs,
-                    data.q2s,
-                    nflav,
-                    data.grid_data,
-                )
+                if data.xis.len() > 1 || data.deltas.len() > 1 {
+                    SubGrid::new_8d(
+                        data.nucleons,
+                        data.alphas,
+                        data.xis,
+                        data.deltas,
+                        data.kts,
+                        data.xs,
+                        data.q2s,
+                        nflav,
+                        data.grid_data,
+                    )
+                } else {
+                    SubGrid::new(
+                        data.nucleons,
+                        data.alphas,
+                        data.kts,
+                        data.xs,
+                        data.q2s,
+                        nflav,
+                        data.grid_data,
+                    )
+                }
             })
             .collect();
 
@@ -465,6 +479,8 @@ mod tests {
             nucleons: vec![1.0],
             alphas: vec![0.118],
             kts: vec![0.0],
+            xis: vec![0.0],
+            deltas: vec![0.0],
             xs: vec![1.0, 2.0, 3.0],
             q2s: vec![4.0, 5.0],
             grid_data: vec![

@@ -314,6 +314,8 @@ impl GridPDF {
             InterpolatorType::LogBilinear
                 | InterpolatorType::LogBicubic
                 | InterpolatorType::LogTricubic
+                | InterpolatorType::LogFourCubic
+                | InterpolatorType::LogFiveCubic
                 | InterpolatorType::LogChebyshev
         );
 

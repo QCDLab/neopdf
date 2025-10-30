@@ -3,7 +3,7 @@ FFLAGS = -Wall -Wextra -O0 -g -ffree-line-length-none
 NEOPDF_LIBS != pkg-config neopdf_capi --libs
 LHAPDF_LIBS != pkg-config lhapdf --libs
 
-PROGRAMS = check-fapi check-lazy-fapi check-writer-fapi
+PROGRAMS = check-fapi check-lazy-fapi check-writer-fapi check-writer-8d-fapi
 
 all: $(PROGRAMS)
 
@@ -20,6 +20,9 @@ check-lazy-fapi: check-lazy-fapi.f90 neopdf.o
 	$(FC) $(FFLAGS) $< neopdf.o $(NEOPDF_LIBS) -o $@
 
 check-writer-fapi: check-writer-fapi.f90 neopdf.o
+	$(FC) $(FFLAGS) $< neopdf.o $(NEOPDF_LIBS) -o $@
+
+check-writer-8d-fapi: check-writer-8d-fapi.f90 neopdf.o
 	$(FC) $(FFLAGS) $< neopdf.o $(NEOPDF_LIBS) -o $@
 
 .PHONY: clean

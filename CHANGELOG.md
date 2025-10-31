@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Breaking change to the Python API for the `PyMetaData` and `PySubgrid`.
 - Bump `PyO3` and `numpy` versions to `v0.27` to support Python `3.14`.
 - Extended the Grid layout to support GTMDs and GPDs (https://github.com/QCDLab/neopdf/pull/79).
 

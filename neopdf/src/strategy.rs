@@ -2812,8 +2812,8 @@ mod tests {
         // Create 4D test grid
         let x0_coords = create_logspaced(1e-5, 1e-3, 6);
         let x1_coords = create_logspaced(1e2, 1e4, 6);
-        let x2_coords = vec![1.0, 5.0, 25.0, 100.0, 150.0, 200.0];
-        let x3_coords = vec![0.5, 1.0, 2.0, 5.0, 10.0, 20.0];
+        let x2_coords = [1.0, 5.0, 25.0, 100.0, 150.0, 200.0];
+        let x3_coords = [0.5, 1.0, 2.0, 5.0, 10.0, 20.0];
 
         // Generate test values: f(x0, x1, x2, x3) = x0 * x1 * x2 * x3
         let values: Vec<f64> = x0_coords
@@ -2871,10 +2871,10 @@ mod tests {
         use ninterp::data::InterpDataND;
 
         // Test that interpolation at grid points returns exact values
-        let x0_coords = vec![0.1, 0.2, 0.3, 0.4];
-        let x1_coords = vec![1.0, 2.0, 3.0, 4.0];
-        let x2_coords = vec![10.0, 20.0, 30.0, 40.0];
-        let x3_coords = vec![100.0, 200.0, 300.0, 400.0];
+        let x0_coords = [0.1, 0.2, 0.3, 0.4];
+        let x1_coords = [1.0, 2.0, 3.0, 4.0];
+        let x2_coords = [10.0, 20.0, 30.0, 40.0];
+        let x3_coords = [100.0, 200.0, 300.0, 400.0];
 
         let values: Vec<f64> = x0_coords
             .iter()
@@ -2957,9 +2957,9 @@ mod tests {
         // Create 5D test grid
         let x0_coords = create_logspaced(1e-5, 1e-3, 5);
         let x1_coords = create_logspaced(1e2, 1e4, 5);
-        let x2_coords = vec![1.0, 5.0, 25.0, 100.0, 200.0];
-        let x3_coords = vec![0.5, 1.0, 2.0, 5.0, 10.0];
-        let x4_coords = vec![10.0, 20.0, 50.0, 100.0, 200.0];
+        let x2_coords = [1.0, 5.0, 25.0, 100.0, 200.0];
+        let x3_coords = [0.5, 1.0, 2.0, 5.0, 10.0];
+        let x4_coords = [10.0, 20.0, 50.0, 100.0, 200.0];
 
         // Generate test values: f(x0, x1, x2, x3, x4) = x0 * x1 * x2 * x3 * x4
         let values: Vec<f64> = x0_coords
@@ -3026,11 +3026,11 @@ mod tests {
         use ninterp::data::InterpDataND;
 
         // Test that interpolation at grid points returns exact values
-        let x0_coords = vec![0.1, 0.2, 0.3, 0.4];
-        let x1_coords = vec![1.0, 2.0, 3.0, 4.0];
-        let x2_coords = vec![10.0, 20.0, 30.0, 40.0];
-        let x3_coords = vec![100.0, 200.0, 300.0, 400.0];
-        let x4_coords = vec![1000.0, 2000.0, 3000.0, 4000.0];
+        let x0_coords = [0.1, 0.2, 0.3, 0.4];
+        let x1_coords = [1.0, 2.0, 3.0, 4.0];
+        let x2_coords = [10.0, 20.0, 30.0, 40.0];
+        let x3_coords = [100.0, 200.0, 300.0, 400.0];
+        let x4_coords = [1000.0, 2000.0, 3000.0, 4000.0];
 
         let values: Vec<f64> = x0_coords
             .iter()

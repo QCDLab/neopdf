@@ -92,6 +92,7 @@ pub struct SubgridArgs {
 /// # Panics
 ///
 /// This function panics when a PID not present in the Grid is requested.
+#[allow(clippy::too_many_lines)]
 #[allow(clippy::needless_pass_by_value)]
 pub fn main(cli: ReadCli) {
     match &cli.command {

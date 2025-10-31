@@ -2,9 +2,7 @@
 //!
 //! It includes the `MetaData` struct (deserialized from .info files), PDF set
 //! and interpolator type enums, and related utilities for handling PDF set information.
-use serde::{Deserialize, Deserializer, Serialize};
-use std::fmt;
-use std::ops::{Deref, DerefMut};
+use serde::{Deserialize, Serialize};
 
 /// Represents the type of PDF set.
 #[repr(C)]
@@ -17,7 +15,7 @@ pub enum SetType {
 }
 
 /// Represents the type of interpolator used for the PDF.
-/// WARNING: When adding elements, always append to the end!!!
+/// WARNING: When adding elements, always append at the end!!!
 #[repr(C)]
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub enum InterpolatorType {
@@ -28,14 +26,16 @@ pub enum InterpolatorType {
     LogTricubic,
     InterpNDLinear,
     LogChebyshev,
+    LogFourCubic,
+    LogFiveCubic,
 }
 
-/// Represents the information block of a given set.
+/// Represents the information block of a given PDF set.
 ///
 /// In order to support LHAPDF formats, the fields here are very much influenced by the
 /// LHAPDF `.info` file. This struct is generally deserialized from a YAML-like format.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct MetaDataV1 {
+pub struct MetaDataV2 {
     /// Description of the PDF set.
     #[serde(rename = "SetDesc")]
     pub set_desc: String,
@@ -129,65 +129,36 @@ pub struct MetaDataV1 {
     /// Number of active PDF flavors.
     #[serde(rename = "NumFlavors", default)]
     pub number_flavors: u32,
+    /// Minimum xi-value for which the PDF is valid.
+    #[serde(rename = "XiMin", default)]
+    pub xi_min: f64,
+    /// Maximum xi-value for which the PDF is valid.
+    #[serde(rename = "XiMax", default)]
+    pub xi_max: f64,
+    /// Minimum delta-value for which the PDF is valid.
+    #[serde(rename = "DeltaMin", default)]
+    pub delta_min: f64,
+    /// Maximum delta-value for which the PDF is valid.
+    #[serde(rename = "DeltaMax", default)]
+    pub delta_max: f64,
 }
 
-/// Version-aware metadata wrapper that handles serialization compatibility.
-#[derive(Clone, Debug, Serialize)]
-#[serde(untagged)]
-pub enum MetaData {
-    V1(MetaDataV1),
-}
-
-impl MetaData {
-    /// Creates a new instance of V1 `MetaData`.
-    pub fn new_v1(data: MetaDataV1) -> Self {
-        Self::V1(data)
-    }
-
-    /// Gets the current version as the latest available version.
-    pub fn current_v1(data: MetaDataV1) -> Self {
-        Self::V1(data)
-    }
-
-    /// Gets the underlying data as the latest version.
-    pub fn as_latest(&self) -> MetaDataV1 {
-        match self {
-            MetaData::V1(data) => data.clone(),
-        }
-    }
-}
-
-impl Deref for MetaData {
-    type Target = MetaDataV1;
-
-    fn deref(&self) -> &Self::Target {
-        match self {
-            MetaData::V1(data) => data,
-        }
+impl MetaDataV2 {
+    /// Helper to get quark masses as a tuple
+    pub fn quark_masses(&self) -> (f64, f64, f64, f64, f64, f64) {
+        (
+            self.m_up,
+            self.m_down,
+            self.m_strange,
+            self.m_charm,
+            self.m_bottom,
+            self.m_top,
+        )
     }
 }
 
-impl DerefMut for MetaData {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        match self {
-            MetaData::V1(data) => data,
-        }
-    }
-}
-
-impl<'de> Deserialize<'de> for MetaData {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let v1 = MetaDataV1::deserialize(deserializer)?;
-
-        Ok(MetaData::V1(v1))
-    }
-}
-
-impl fmt::Display for MetaData {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for MetaDataV2 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Set Description: {}", self.set_desc)?;
         writeln!(f, "Set Index: {}", self.set_index)?;
         writeln!(f, "Number of Members: {}", self.num_members)?;
@@ -216,6 +187,77 @@ impl fmt::Display for MetaData {
         writeln!(f, "MBottom: {}", self.m_bottom)?;
         writeln!(f, "MTop: {}", self.m_top)?;
         writeln!(f, "AlphaS Type: {}", self.alphas_type)?;
-        writeln!(f, "Number of PDF flavors: {}", self.number_flavors)
+        writeln!(f, "Number of PDF flavors: {}", self.number_flavors)?;
+        writeln!(f, "XiMin: {}", self.xi_min)?;
+        writeln!(f, "XiMax: {}", self.xi_max)?;
+        writeln!(f, "DeltaMin: {}", self.delta_min)?;
+        write!(f, "DeltaMax: {}", self.delta_max)
+    }
+}
+
+/// The following represent the main metadata type for v0.2.1+.
+pub type MetaData = MetaDataV2;
+
+/// Converts from legacy v0.2.0 MetaData to new v0.2.1 format
+impl From<neopdf_legacy::metadata::MetaData> for MetaData {
+    fn from(legacy: neopdf_legacy::metadata::MetaData) -> Self {
+        Self {
+            set_desc: legacy.set_desc.clone(),
+            set_index: legacy.set_index,
+            num_members: legacy.num_members,
+            x_min: legacy.x_min,
+            x_max: legacy.x_max,
+            q_min: legacy.q_min,
+            q_max: legacy.q_max,
+            flavors: legacy.flavors.clone(),
+            format: legacy.format.clone(),
+            alphas_q_values: legacy.alphas_q_values.clone(),
+            alphas_vals: legacy.alphas_vals.clone(),
+            polarised: legacy.polarised,
+            set_type: match legacy.set_type {
+                neopdf_legacy::metadata::SetType::SpaceLike => SetType::SpaceLike,
+                neopdf_legacy::metadata::SetType::TimeLike => SetType::TimeLike,
+            },
+            interpolator_type: match legacy.interpolator_type {
+                neopdf_legacy::metadata::InterpolatorType::Bilinear => InterpolatorType::Bilinear,
+                neopdf_legacy::metadata::InterpolatorType::LogBilinear => {
+                    InterpolatorType::LogBilinear
+                }
+                neopdf_legacy::metadata::InterpolatorType::LogBicubic => {
+                    InterpolatorType::LogBicubic
+                }
+                neopdf_legacy::metadata::InterpolatorType::LogTricubic => {
+                    InterpolatorType::LogTricubic
+                }
+                neopdf_legacy::metadata::InterpolatorType::InterpNDLinear => {
+                    InterpolatorType::InterpNDLinear
+                }
+                neopdf_legacy::metadata::InterpolatorType::LogChebyshev => {
+                    InterpolatorType::LogChebyshev
+                }
+            },
+            error_type: legacy.error_type.clone(),
+            hadron_pid: legacy.hadron_pid,
+            git_version: legacy.git_version.clone(),
+            code_version: legacy.code_version.clone(),
+            flavor_scheme: legacy.flavor_scheme.clone(),
+            order_qcd: legacy.order_qcd,
+            alphas_order_qcd: legacy.alphas_order_qcd,
+            m_w: legacy.m_w,
+            m_z: legacy.m_z,
+            m_up: legacy.m_up,
+            m_down: legacy.m_down,
+            m_strange: legacy.m_strange,
+            m_charm: legacy.m_charm,
+            m_bottom: legacy.m_bottom,
+            m_top: legacy.m_top,
+            alphas_type: legacy.alphas_type.clone(),
+            number_flavors: legacy.number_flavors,
+            // New V2 fields with defaults
+            xi_min: 0.0,
+            xi_max: 0.0,
+            delta_min: 0.0,
+            delta_max: 0.0,
+        }
     }
 }

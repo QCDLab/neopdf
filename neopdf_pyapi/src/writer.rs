@@ -6,7 +6,7 @@ use pyo3::prelude::*;
 use super::gridpdf::PyGridArray;
 use super::metadata::PyMetaData;
 
-/// Python interface for GridArrayCollection utilities.
+/// Python interface for `GridArrayCollection` utilities.
 ///
 /// This module provides functions to compress, decompress, and extract metadata from
 /// collections of PDF grids.
@@ -23,7 +23,7 @@ pub fn writer(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     Ok(())
 }
 
-/// Compresses and writes a collection of GridArrays and shared metadata to a file.
+/// Compresses and writes a collection of `GridArrays` and shared metadata to a file.
 ///
 /// Compresses the provided grids and metadata and writes them to the specified file path.
 ///
@@ -52,7 +52,7 @@ pub fn py_compress(
         .map_err(|e| PyRuntimeError::new_err(format!("Compress failed: {e}")))
 }
 
-/// Decompresses and loads all GridArrays and shared metadata from a file.
+/// Decompresses and loads all `GridArrays` and shared metadata from a file.
 ///
 /// Loads and decompresses all grid arrays and their associated metadata from the specified file.
 ///

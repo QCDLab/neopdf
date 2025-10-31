@@ -12,7 +12,7 @@ pub struct PyLhapdfSet {
 
 #[pymethods]
 impl PyLhapdfSet {
-    /// Create a new LhapdfSet instance for a given PDF set name.
+    /// Create a new `LhapdfSet` instance for a given PDF set name.
     #[new]
     #[must_use]
     pub fn new(pdf_name: &str) -> Self {
@@ -56,7 +56,7 @@ pub struct PyNeopdfSet {
 
 #[pymethods]
 impl PyNeopdfSet {
-    /// Create a new NeopdfSet instance for a given PDF set name.
+    /// Create a new `NeopdfSet` instance for a given PDF set name.
     #[new]
     #[must_use]
     pub fn new(pdf_name: &str) -> Self {

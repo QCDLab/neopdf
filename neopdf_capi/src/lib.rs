@@ -5,7 +5,7 @@ use std::os::raw::{c_char, c_double, c_int};
 use std::slice;
 
 use neopdf::gridpdf::{ForcePositive, GridArray};
-use neopdf::metadata::{InterpolatorType, MetaData, MetaDataV1, SetType};
+use neopdf::metadata::{InterpolatorType, MetaData, SetType};
 use neopdf::parser::SubgridData;
 use neopdf::pdf::PDF;
 use neopdf::writer::GridArrayCollection;
@@ -478,6 +478,10 @@ pub enum NeopdfSubgridParams {
     Nucleons,
     /// The strong coupling constant (`alpha_s`) parameter.
     Alphas,
+    /// The xi parameter.
+    Xi,
+    /// The delta parameter.
+    Delta,
     /// The transverse momentum `kT` parameter.
     Kt,
     /// The momentum fraction (x) parameter.
@@ -531,6 +535,11 @@ pub unsafe extern "C" fn neopdf_pdf_param_range(
             pdf_obj.param_ranges().alphas.min,
             pdf_obj.param_ranges().alphas.max,
         ],
+        NeopdfSubgridParams::Xi => &[pdf_obj.param_ranges().xi.min, pdf_obj.param_ranges().xi.max],
+        NeopdfSubgridParams::Delta => &[
+            pdf_obj.param_ranges().delta.min,
+            pdf_obj.param_ranges().delta.max,
+        ],
         NeopdfSubgridParams::Kt => &[pdf_obj.param_ranges().kt.min, pdf_obj.param_ranges().kt.max],
         NeopdfSubgridParams::Momentum => {
             &[pdf_obj.param_ranges().x.min, pdf_obj.param_ranges().x.max]
@@ -570,6 +579,8 @@ pub unsafe extern "C" fn neopdf_pdf_subgrids_shape_for_param(
         .map(|sub| match subgrid_param {
             NeopdfSubgridParams::Nucleons => sub.nucleons.len(),
             NeopdfSubgridParams::Alphas => sub.alphas.len(),
+            NeopdfSubgridParams::Xi => sub.xis.len(),
+            NeopdfSubgridParams::Delta => sub.deltas.len(),
             NeopdfSubgridParams::Kt => sub.kts.len(),
             NeopdfSubgridParams::Momentum => sub.xs.len(),
             NeopdfSubgridParams::Scale => sub.q2s.len(),
@@ -606,6 +617,8 @@ pub unsafe extern "C" fn neopdf_pdf_subgrids_for_param(
     let subgrid_knots = match subgrid_param {
         NeopdfSubgridParams::Nucleons => &pdf_obj.subgrids()[subgrid_index].nucleons,
         NeopdfSubgridParams::Alphas => &pdf_obj.subgrids()[subgrid_index].alphas,
+        NeopdfSubgridParams::Xi => &pdf_obj.subgrids()[subgrid_index].xis,
+        NeopdfSubgridParams::Delta => &pdf_obj.subgrids()[subgrid_index].deltas,
         NeopdfSubgridParams::Kt => &pdf_obj.subgrids()[subgrid_index].kts,
         NeopdfSubgridParams::Momentum => &pdf_obj.subgrids()[subgrid_index].xs,
         NeopdfSubgridParams::Scale => &pdf_obj.subgrids()[subgrid_index].q2s,
@@ -662,6 +675,8 @@ impl NeoPDFGrid {
             SubgridData {
                 nucleons: slice::from_raw_parts(nucleons, num_nucleons).to_vec(),
                 alphas: slice::from_raw_parts(alphas, num_alphas).to_vec(),
+                xis: vec![0.0],
+                deltas: vec![0.0],
                 kts: slice::from_raw_parts(kts, num_kts).to_vec(),
                 xs: slice::from_raw_parts(xs, num_xs).to_vec(),
                 q2s: slice::from_raw_parts(q2s, num_q2s).to_vec(),
@@ -679,6 +694,57 @@ impl NeoPDFGrid {
             return NeopdfResult::ErrorNullPointer;
         }
         self.flavors = unsafe { slice::from_raw_parts(flavors, num_flavors).to_vec() };
+
+        NeopdfResult::Success
+    }
+
+    /// Adds a subgrid to the grid (v2 for 8D)
+    #[allow(clippy::too_many_arguments)]
+    unsafe fn add_subgrid_v2(
+        &mut self,
+        nucleons: *const c_double,
+        num_nucleons: usize,
+        alphas: *const c_double,
+        num_alphas: usize,
+        xis: *const c_double,
+        num_xis: usize,
+        deltas: *const c_double,
+        num_deltas: usize,
+        kts: *const c_double,
+        num_kts: usize,
+        xs: *const c_double,
+        num_xs: usize,
+        q2s: *const c_double,
+        num_q2s: usize,
+        grid_data: *const c_double,
+        grid_data_len: usize,
+    ) -> NeopdfResult {
+        // Check for null pointers
+        if nucleons.is_null()
+            || alphas.is_null()
+            || xis.is_null()
+            || deltas.is_null()
+            || kts.is_null()
+            || xs.is_null()
+            || q2s.is_null()
+            || grid_data.is_null()
+        {
+            return NeopdfResult::ErrorNullPointer;
+        }
+
+        let subgrid = unsafe {
+            SubgridData {
+                nucleons: slice::from_raw_parts(nucleons, num_nucleons).to_vec(),
+                alphas: slice::from_raw_parts(alphas, num_alphas).to_vec(),
+                xis: slice::from_raw_parts(xis, num_xis).to_vec(),
+                deltas: slice::from_raw_parts(deltas, num_deltas).to_vec(),
+                kts: slice::from_raw_parts(kts, num_kts).to_vec(),
+                xs: slice::from_raw_parts(xs, num_xs).to_vec(),
+                q2s: slice::from_raw_parts(q2s, num_q2s).to_vec(),
+                grid_data: slice::from_raw_parts(grid_data, grid_data_len).to_vec(),
+            }
+        };
+        self.subgrids.push(subgrid);
 
         NeopdfResult::Success
     }
@@ -723,6 +789,58 @@ pub unsafe extern "C" fn neopdf_grid_add_subgrid(
                     num_nucleons,
                     alphas,
                     num_alphas,
+                    kts,
+                    num_kts,
+                    xs,
+                    num_xs,
+                    q2s,
+                    num_q2s,
+                    grid_data,
+                    grid_data_len,
+                )
+            })
+    }
+}
+
+/// Adds a subgrid to an existing `NeoPDFGrid` (v2 for 8D).
+///
+/// This function takes ownership of the provided data arrays and resizes them as needed.
+///
+/// # Safety
+/// - `grid` must be a valid pointer to a `NeoPDFGrid` created by `neopdf_grid_new`.
+/// - The data pointers must be valid for the specified lengths.
+#[no_mangle]
+pub unsafe extern "C" fn neopdf_grid_add_subgridv2(
+    grid: *mut NeoPDFGrid,
+    nucleons: *const c_double,
+    num_nucleons: usize,
+    alphas: *const c_double,
+    num_alphas: usize,
+    xis: *const c_double,
+    num_xis: usize,
+    deltas: *const c_double,
+    num_deltas: usize,
+    kts: *const c_double,
+    num_kts: usize,
+    xs: *const c_double,
+    num_xs: usize,
+    q2s: *const c_double,
+    num_q2s: usize,
+    grid_data: *const c_double,
+    grid_data_len: usize,
+) -> NeopdfResult {
+    unsafe {
+        grid.as_mut()
+            .map_or(NeopdfResult::ErrorNullPointer, |grid| {
+                grid.add_subgrid_v2(
+                    nucleons,
+                    num_nucleons,
+                    alphas,
+                    num_alphas,
+                    xis,
+                    num_xis,
+                    deltas,
+                    num_deltas,
                     kts,
                     num_kts,
                     xs,
@@ -822,6 +940,35 @@ pub struct NeoPDFMetaData {
     phys_params: NeoPDFPhysicsParameters,
 }
 
+/// Metadata for PDF grids (V2 with extended fields)
+#[repr(C)]
+pub struct NeoPDFMetaDataV2 {
+    set_desc: *const c_char,
+    set_index: u32,
+    num_members: u32,
+    x_min: c_double,
+    x_max: c_double,
+    q_min: c_double,
+    q_max: c_double,
+    flavors: *const c_int,
+    num_flavors: usize,
+    format: *const c_char,
+    alphas_q_values: *const c_double,
+    num_alphas_q: usize,
+    alphas_vals: *const c_double,
+    num_alphas_vals: usize,
+    polarised: bool,
+    set_type: SetType,
+    interpolator_type: InterpolatorType,
+    error_type: *const c_char,
+    hadron_pid: c_int,
+    phys_params: NeoPDFPhysicsParameters,
+    xi_min: c_double,
+    xi_max: c_double,
+    delta_min: c_double,
+    delta_max: c_double,
+}
+
 /// Safely converts C string to Rust string
 unsafe fn cstr_to_string(ptr: *const c_char) -> Option<String> {
     if ptr.is_null() {
@@ -857,7 +1004,8 @@ fn process_metadata(meta: *const NeoPDFMetaData) -> Option<MetaData> {
     let flavor_scheme = unsafe { cstr_to_string(meta.phys_params.flavor_scheme) }?;
     let alphas_type = unsafe { cstr_to_string(meta.phys_params.alphas_type) }?;
 
-    let metadata_v1 = MetaDataV1 {
+    // Create MetaData (now MetaDataV2) directly
+    let metadata = MetaData {
         set_desc,
         set_index: meta.set_index,
         num_members: meta.num_members,
@@ -889,8 +1037,72 @@ fn process_metadata(meta: *const NeoPDFMetaData) -> Option<MetaData> {
         m_top: meta.phys_params.m_top,
         alphas_type,
         number_flavors: meta.phys_params.number_flavors,
+        // New V2 fields with defaults
+        xi_min: 1.0,
+        xi_max: 1.0,
+        delta_min: 0.0,
+        delta_max: 0.0,
     };
-    let metadata = MetaData::new_v1(metadata_v1);
+
+    Some(metadata)
+}
+
+/// Processes metadata from C struct to Rust struct (V2)
+fn process_metadata_v2(meta: *const NeoPDFMetaDataV2) -> Option<MetaData> {
+    if meta.is_null() {
+        return None;
+    }
+
+    let meta = unsafe { &*meta };
+
+    let set_desc = unsafe { cstr_to_string(meta.set_desc) }?;
+    let format = unsafe { cstr_to_string(meta.format) }?;
+    let flavors = unsafe { carray_to_vec(meta.flavors, meta.num_flavors) }?;
+    let alphas_q_values = unsafe { carray_to_vec(meta.alphas_q_values, meta.num_alphas_q) }?;
+    let alphas_vals = unsafe { carray_to_vec(meta.alphas_vals, meta.num_alphas_vals) }?;
+    let error_type = unsafe { cstr_to_string(meta.error_type) }?;
+    let flavor_scheme = unsafe { cstr_to_string(meta.phys_params.flavor_scheme) }?;
+    let alphas_type = unsafe { cstr_to_string(meta.phys_params.alphas_type) }?;
+
+    // Create MetaData directly from V2 struct
+    let metadata = MetaData {
+        set_desc,
+        set_index: meta.set_index,
+        num_members: meta.num_members,
+        x_min: meta.x_min,
+        x_max: meta.x_max,
+        q_min: meta.q_min,
+        q_max: meta.q_max,
+        flavors,
+        format,
+        alphas_q_values,
+        alphas_vals,
+        polarised: meta.polarised,
+        set_type: meta.set_type.clone(),
+        interpolator_type: meta.interpolator_type.clone(),
+        error_type,
+        hadron_pid: meta.hadron_pid,
+        git_version: String::new(),  // placeholder to be overwritten
+        code_version: String::new(), // placeholder to be overwritten
+        flavor_scheme,
+        order_qcd: meta.phys_params.order_qcd,
+        alphas_order_qcd: meta.phys_params.alphas_order_qcd,
+        m_w: meta.phys_params.m_w,
+        m_z: meta.phys_params.m_z,
+        m_up: meta.phys_params.m_up,
+        m_down: meta.phys_params.m_down,
+        m_strange: meta.phys_params.m_strange,
+        m_charm: meta.phys_params.m_charm,
+        m_bottom: meta.phys_params.m_bottom,
+        m_top: meta.phys_params.m_top,
+        alphas_type,
+        number_flavors: meta.phys_params.number_flavors,
+        // New V2 fields
+        xi_min: meta.xi_min,
+        xi_max: meta.xi_max,
+        delta_min: meta.delta_min,
+        delta_max: meta.delta_max,
+    };
 
     Some(metadata)
 }
@@ -1090,6 +1302,54 @@ pub unsafe extern "C" fn neopdf_grid_compress(
     let collection = unsafe { &*collection };
 
     let Some(meta) = process_metadata(metadata) else {
+        return NeopdfResult::ErrorInvalidData;
+    };
+
+    let out_path = unsafe { CStr::from_ptr(output_path).to_str() };
+    let Ok(out_path) = out_path else {
+        return NeopdfResult::ErrorInvalidData;
+    };
+
+    let mut grid_arrays = Vec::with_capacity(collection.len());
+
+    for i in 0..collection.len() {
+        let Some(grid) = collection.get(i) else {
+            return NeopdfResult::ErrorInvalidData;
+        };
+        let grid_array = GridArray::new(grid.subgrids.clone(), grid.flavors.clone());
+        grid_arrays.push(grid_array);
+    }
+
+    let grid_refs: Vec<&GridArray> = grid_arrays.iter().collect();
+
+    match GridArrayCollection::compress(&grid_refs, &meta, out_path) {
+        Ok(()) => NeopdfResult::Success,
+        Err(_) => NeopdfResult::ErrorMemoryError,
+    }
+}
+
+/// Compresses a collection of `NeoPDFGrid` objects and writes them to a file (V2).
+///
+/// This function iterates through the grids in the collection, converts them to `GridArray`s,
+/// and then uses the `neopdf::writer::GridArrayCollection::compress` function to write them.
+///
+/// # Safety
+/// - `collection` must be a valid, non-null pointer to a `NeoPDFGridArrayCollection`.
+/// - `metadata` must be a valid, non-null pointer to a `NeoPDFMetaDataV2` struct.
+/// - `output_path` must be a valid, null-terminated C string representing the output file path.
+#[no_mangle]
+pub unsafe extern "C" fn neopdf_grid_compress_v2(
+    collection: *const NeoPDFGridArrayCollection,
+    metadata: *const NeoPDFMetaDataV2,
+    output_path: *const c_char,
+) -> NeopdfResult {
+    if collection.is_null() || metadata.is_null() || output_path.is_null() {
+        return NeopdfResult::ErrorNullPointer;
+    }
+
+    let collection = unsafe { &*collection };
+
+    let Some(meta) = process_metadata_v2(metadata) else {
         return NeopdfResult::ErrorInvalidData;
     };
 

@@ -95,6 +95,44 @@ struct MetaData {
     }
 };
 
+/** @brief C++ representation of NeoPDFMetaDataV2. */
+struct MetaDataV2 : public MetaData {
+    double xi_min = 1.0;
+    double xi_max = 1.0;
+    double delta_min = 0.0;
+    double delta_max = 0.0;
+
+    // Conversion to C struct
+    NeoPDFMetaDataV2 to_c_v2() const {
+        NeoPDFMetaDataV2 c_meta;
+        c_meta.set_desc = set_desc.c_str();
+        c_meta.set_index = set_index;
+        c_meta.num_members = num_members;
+        c_meta.x_min = x_min;
+        c_meta.x_max = x_max;
+        c_meta.q_min = q_min;
+        c_meta.q_max = q_max;
+        c_meta.flavors = flavors.data();
+        c_meta.num_flavors = flavors.size();
+        c_meta.format = format.c_str();
+        c_meta.alphas_q_values = alphas_q_values.data();
+        c_meta.num_alphas_q = alphas_q_values.size();
+        c_meta.alphas_vals = alphas_vals.data();
+        c_meta.num_alphas_vals = alphas_vals.size();
+        c_meta.polarised = polarised;
+        c_meta.set_type = set_type;
+        c_meta.interpolator_type = interpolator_type;
+        c_meta.error_type = error_type.c_str();
+        c_meta.hadron_pid = hadron_pid;
+        c_meta.phys_params = phys_params.to_c();
+        c_meta.xi_min = xi_min;
+        c_meta.xi_max = xi_max;
+        c_meta.delta_min = delta_min;
+        c_meta.delta_max = delta_max;
+        return c_meta;
+    }
+};
+
 class NeoPDFs; // Forward declaration
 
 /** @brief Base PDF class that instantiates the PDF object. */
@@ -421,6 +459,47 @@ class GridWriter {
         }
 
         /**
+         * @brief Adds a subgrid to the current grid (v2 for 8D).
+         *
+         * @param nucleons Vector of nucleon numbers.
+         * @param alphas Vector of alpha_s values.
+         * @param xis Vector of xi values.
+         * @param deltas Vector of delta values.
+         * @param kts Vector of kt values.
+         * @param xs Vector of x values.
+         * @param q2s Vector of Q2 values.
+         * @param grid_data Vector of grid data.
+         */
+        void add_subgrid_v2(
+            const std::vector<double>& nucleons,
+            const std::vector<double>& alphas,
+            const std::vector<double>& xis,
+            const std::vector<double>& deltas,
+            const std::vector<double>& kts,
+            const std::vector<double>& xs,
+            const std::vector<double>& q2s,
+            const std::vector<double>& grid_data
+        ) {
+            if (!current_grid) {
+                throw std::runtime_error("No grid started. Call new_grid() first.");
+            }
+            NeopdfResult result = neopdf_grid_add_subgridv2(
+                current_grid,
+                nucleons.data(), nucleons.size(),
+                alphas.data(), alphas.size(),
+                xis.data(), xis.size(),
+                deltas.data(), deltas.size(),
+                kts.data(), kts.size(),
+                xs.data(), xs.size(),
+                q2s.data(), q2s.size(),
+                grid_data.data(), grid_data.size()
+            );
+            if (result != NeopdfResult::NEOPDF_RESULT_SUCCESS) {
+                throw std::runtime_error("Failed to add subgrid (v2)");
+            }
+        }
+
+        /**
          * @brief Finalizes the current grid, sets its flavors, and adds it to the collection.
          *
          * @param flavors Vector of flavor IDs.
@@ -466,6 +545,27 @@ class GridWriter {
 
             if (result != NeopdfResult::NEOPDF_RESULT_SUCCESS) {
                 throw std::runtime_error("Failed to compress grid data");
+            }
+        }
+
+        /**
+         * @brief Compresses the added grids and writes them to a file using V2 metadata.
+         *
+         * @param metadata The V2 metadata for the PDF set.
+         * @param output_path The path to the output file.
+         */
+        void compress_v2(const MetaDataV2& metadata, const std::string& output_path) {
+            if (current_grid) {
+                neopdf_grid_free(current_grid);
+                current_grid = nullptr;
+                throw std::runtime_error("A grid was being built but was not committed before compress().");
+            }
+
+            NeoPDFMetaDataV2 c_meta = metadata.to_c_v2();
+            NeopdfResult result = neopdf_grid_compress_v2(collection_raw, &c_meta, output_path.c_str());
+
+            if (result != NeopdfResult::NEOPDF_RESULT_SUCCESS) {
+                throw std::runtime_error("Failed to compress grid data (v2)");
             }
         }
 };

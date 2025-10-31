@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 
-use neopdf::metadata::{InterpolatorType, MetaData, MetaDataV1, SetType};
+use neopdf::metadata::{InterpolatorType, MetaData, SetType};
 
 /// The type of the set.
 #[pyclass(eq, eq_int, name = "SetType")]
@@ -46,6 +46,10 @@ pub enum PyInterpolatorType {
     NDLinear,
     /// Chebyshev logarithmic interpolation strategy.
     LogChebyshev,
+    /// Four-dimensional cubic logarithmic interpolation strategy.
+    LogFourCubic,
+    /// Five-dimensional cubic logarithmic interpolation strategy.
+    LogFiveCubic,
 }
 
 impl From<&InterpolatorType> for PyInterpolatorType {
@@ -57,6 +61,8 @@ impl From<&InterpolatorType> for PyInterpolatorType {
             InterpolatorType::LogTricubic => Self::LogTricubic,
             InterpolatorType::InterpNDLinear => Self::NDLinear,
             InterpolatorType::LogChebyshev => Self::LogChebyshev,
+            InterpolatorType::LogFourCubic => Self::LogFourCubic,
+            InterpolatorType::LogFiveCubic => Self::LogFiveCubic,
         }
     }
 }
@@ -70,6 +76,8 @@ impl From<&PyInterpolatorType> for InterpolatorType {
             PyInterpolatorType::LogTricubic => Self::LogTricubic,
             PyInterpolatorType::NDLinear => Self::InterpNDLinear,
             PyInterpolatorType::LogChebyshev => Self::LogChebyshev,
+            PyInterpolatorType::LogFourCubic => Self::LogFourCubic,
+            PyInterpolatorType::LogFiveCubic => Self::LogFiveCubic,
         }
     }
 }
@@ -95,7 +103,7 @@ pub struct PyPhysicsParameters {
 
 #[pymethods]
 impl PyPhysicsParameters {
-    /// Constructor for PyPhysicsParameters.
+    /// Constructor for `PyPhysicsParameters`.
     #[new]
     #[must_use]
     #[allow(clippy::too_many_arguments)]
@@ -151,7 +159,7 @@ impl PyPhysicsParameters {
     /// # Errors
     ///
     /// Raises an error if the values are not Python compatible.
-    pub fn to_dict(&self, py: Python) -> PyResult<PyObject> {
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyAny>> {
         let dict = pyo3::types::PyDict::new(py);
         dict.set_item("flavor_scheme", &self.flavor_scheme)?;
         dict.set_item("order_qcd", self.order_qcd)?;
@@ -199,11 +207,11 @@ pub struct PyMetaData {
 
 #[pymethods]
 impl PyMetaData {
-    /// Constructor for PyMetaData.
+    /// Constructor for `PyMetaData`.
     #[new]
     #[must_use]
-    #[allow(clippy::needless_pass_by_value)]
     #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::needless_pass_by_value)]
     #[pyo3(signature = (
         set_desc,
         set_index,
@@ -212,6 +220,10 @@ impl PyMetaData {
         x_max,
         q_min,
         q_max,
+        xsi_min,
+        xsi_max,
+        delta_min,
+        delta_max,
         flavors,
         format,
         alphas_q_values = vec![],
@@ -231,6 +243,10 @@ impl PyMetaData {
         x_max: f64,
         q_min: f64,
         q_max: f64,
+        xsi_min: f64,
+        xsi_max: f64,
+        delta_min: f64,
+        delta_max: f64,
         flavors: Vec<i32>,
         format: String,
         alphas_q_values: Vec<f64>,
@@ -242,45 +258,45 @@ impl PyMetaData {
         hadron_pid: i32,
         phys_params: PyPhysicsParameters,
     ) -> Self {
-        let git_version = String::new();
-        let code_version = String::new();
-
-        let meta_v1 = MetaDataV1 {
-            set_desc,
-            set_index,
-            num_members,
-            x_min,
-            x_max,
-            q_min,
-            q_max,
-            flavors,
-            format,
-            alphas_q_values,
-            alphas_vals,
-            polarised,
-            set_type: SetType::from(&set_type),
-            interpolator_type: InterpolatorType::from(&interpolator_type),
-            error_type,
-            hadron_pid,
-            git_version,  // placeholder to be overwritten
-            code_version, // placeholder to be overwritten
-            flavor_scheme: phys_params.flavor_scheme,
-            order_qcd: phys_params.order_qcd,
-            alphas_order_qcd: phys_params.alphas_order_qcd,
-            m_w: phys_params.m_w,
-            m_z: phys_params.m_z,
-            m_up: phys_params.m_up,
-            m_down: phys_params.m_down,
-            m_strange: phys_params.m_strange,
-            m_charm: phys_params.m_charm,
-            m_bottom: phys_params.m_bottom,
-            m_top: phys_params.m_top,
-            alphas_type: phys_params.alphas_type,
-            number_flavors: phys_params.number_flavors,
-        };
-
         Self {
-            meta: MetaData::new_v1(meta_v1),
+            meta: MetaData {
+                set_desc,
+                set_index,
+                num_members,
+                x_min,
+                x_max,
+                q_min,
+                q_max,
+                flavors,
+                format,
+                alphas_q_values,
+                alphas_vals,
+                polarised,
+                set_type: SetType::from(&set_type),
+                interpolator_type: InterpolatorType::from(&interpolator_type),
+                error_type,
+                hadron_pid,
+                git_version: String::new(), // placeholder to be overwritten
+                code_version: String::new(), // placeholder to be overwritten
+                flavor_scheme: phys_params.flavor_scheme,
+                order_qcd: phys_params.order_qcd,
+                alphas_order_qcd: phys_params.alphas_order_qcd,
+                m_w: phys_params.m_w,
+                m_z: phys_params.m_z,
+                m_up: phys_params.m_up,
+                m_down: phys_params.m_down,
+                m_strange: phys_params.m_strange,
+                m_charm: phys_params.m_charm,
+                m_bottom: phys_params.m_bottom,
+                m_top: phys_params.m_top,
+                alphas_type: phys_params.alphas_type,
+                number_flavors: phys_params.number_flavors,
+                // New V2 fields with defaults
+                xi_min: xsi_min,
+                xi_max: xsi_max,
+                delta_min,
+                delta_max,
+            },
         }
     }
 
@@ -289,7 +305,7 @@ impl PyMetaData {
     /// # Errors
     ///
     /// Raises an erro if the values are not Python compatible.
-    pub fn to_dict(&self, py: Python) -> PyResult<PyObject> {
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyAny>> {
         let dict = pyo3::types::PyDict::new(py);
 
         let set_type = match &self.meta.set_type {
@@ -304,6 +320,8 @@ impl PyMetaData {
             InterpolatorType::LogTricubic => "LogTricubic",
             InterpolatorType::InterpNDLinear => "NDLinear",
             InterpolatorType::LogChebyshev => "LogChebyshev",
+            InterpolatorType::LogFourCubic => "LogFourCubic",
+            InterpolatorType::LogFiveCubic => "LogFiveCubic",
         };
 
         dict.set_item("set_desc", &self.meta.set_desc)?;
@@ -341,73 +359,97 @@ impl PyMetaData {
 
     /// The description of the set.
     #[must_use]
-    pub fn set_desc(&self) -> &String {
+    pub const fn set_desc(&self) -> &String {
         &self.meta.set_desc
     }
 
     /// The index of the grid.
     #[must_use]
-    pub fn set_index(&self) -> u32 {
+    pub const fn set_index(&self) -> u32 {
         self.meta.set_index
     }
 
     /// The number of sets in the grid.
     #[must_use]
-    pub fn number_sets(&self) -> u32 {
+    pub const fn number_sets(&self) -> u32 {
         self.meta.num_members
     }
 
     /// The minimum value of `x` in the grid.
     #[must_use]
-    pub fn x_min(&self) -> f64 {
+    pub const fn x_min(&self) -> f64 {
         self.meta.x_min
     }
 
     /// The maximum value of `x` in the grid.
     #[must_use]
-    pub fn x_max(&self) -> f64 {
+    pub const fn x_max(&self) -> f64 {
         self.meta.x_max
     }
 
     /// The minimum value of `q` in the grid.
     #[must_use]
-    pub fn q_min(&self) -> f64 {
+    pub const fn q_min(&self) -> f64 {
         self.meta.q_min
     }
 
     /// The maximum value of `q` in the grid.
     #[must_use]
-    pub fn q_max(&self) -> f64 {
+    pub const fn q_max(&self) -> f64 {
         self.meta.q_max
+    }
+
+    /// The minimum value of `xi` in the grid.
+    #[must_use]
+    pub const fn xi_min(&self) -> f64 {
+        self.meta.xi_min
+    }
+
+    /// The maximum value of `xi` in the grid.
+    #[must_use]
+    pub const fn xi_max(&self) -> f64 {
+        self.meta.xi_max
+    }
+
+    /// The minimum value of `delta` in the grid.
+    #[must_use]
+    pub const fn delta_min(&self) -> f64 {
+        self.meta.delta_min
+    }
+
+    /// The maximum value of `delta` in the grid.
+    #[must_use]
+    pub const fn delta_max(&self) -> f64 {
+        self.meta.delta_max
     }
 
     /// The particle IDs of the grid.
     #[must_use]
-    pub fn pids(&self) -> &Vec<i32> {
+    pub const fn pids(&self) -> &Vec<i32> {
         &self.meta.flavors
     }
 
     /// The format of the grid.
     #[must_use]
-    pub fn format(&self) -> &String {
+    pub const fn format(&self) -> &String {
         &self.meta.format
     }
 
     /// The values of `q` for the running of the strong coupling constant.
     #[must_use]
-    pub fn alphas_q(&self) -> &Vec<f64> {
+    pub const fn alphas_q(&self) -> &Vec<f64> {
         &self.meta.alphas_q_values
     }
 
     /// The values of the running of the strong coupling constant.
     #[must_use]
-    pub fn alphas_values(&self) -> &Vec<f64> {
+    pub const fn alphas_values(&self) -> &Vec<f64> {
         &self.meta.alphas_vals
     }
 
     /// Whether the grid is polarised.
     #[must_use]
-    pub fn is_polarised(&self) -> bool {
+    pub const fn is_polarised(&self) -> bool {
         self.meta.polarised
     }
 
@@ -425,13 +467,13 @@ impl PyMetaData {
 
     /// The type of error.
     #[must_use]
-    pub fn error_type(&self) -> &String {
+    pub const fn error_type(&self) -> &String {
         &self.meta.error_type
     }
 
     /// The hadron PID.
     #[must_use]
-    pub fn hadron_pid(&self) -> i32 {
+    pub const fn hadron_pid(&self) -> i32 {
         self.meta.hadron_pid
     }
 }

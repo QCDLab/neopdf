@@ -121,6 +121,7 @@ pub struct PyPDF {
 }
 
 #[pymethods]
+#[allow(clippy::doc_markdown)]
 impl PyPDF {
     /// Creates a new `PDF` instance for a given PDF set and member.
     ///

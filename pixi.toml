@@ -6,7 +6,7 @@ channels = ["conda-forge"]
 platforms = ["linux-64", "osx-64", "win-64", "osx-arm64"]
 
 [dependencies]
-python = ">=3.10,<3.12"
+python = "3.14.*"
 pip = "*"
 rust = "*"
 

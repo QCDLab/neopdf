@@ -54,15 +54,29 @@ impl GridArray {
         let subgrids = subgrid_data
             .into_iter()
             .map(|data| {
-                SubGrid::new(
-                    data.nucleons,
-                    data.alphas,
-                    data.kts,
-                    data.xs,
-                    data.q2s,
-                    nflav,
-                    data.grid_data,
-                )
+                if data.xis.len() > 1 || data.deltas.len() > 1 {
+                    SubGrid::new_8d(
+                        data.nucleons,
+                        data.alphas,
+                        data.xis,
+                        data.deltas,
+                        data.kts,
+                        data.xs,
+                        data.q2s,
+                        nflav,
+                        data.grid_data,
+                    )
+                } else {
+                    SubGrid::new(
+                        data.nucleons,
+                        data.alphas,
+                        data.kts,
+                        data.xs,
+                        data.q2s,
+                        nflav,
+                        data.grid_data,
+                    )
+                }
             })
             .collect();
 
@@ -103,7 +117,8 @@ impl GridArray {
         subgrid_idx: usize,
     ) -> f64 {
         let pid_idx = self.pid_index(flavor_id).expect("Invalid flavor ID");
-        self.subgrids[subgrid_idx].grid[[nucleon_idx, alpha_idx, pid_idx, kt_idx, x_idx, q2_idx]]
+        let grid_view = self.subgrids[subgrid_idx].grid.view();
+        grid_view[[nucleon_idx, alpha_idx, pid_idx, kt_idx, x_idx, q2_idx]]
     }
 
     /// Finds the index of the subgrid that contains the given point.
@@ -169,6 +184,8 @@ impl GridArray {
         RangeParameters::new(
             global_range(&self.subgrids, |sg| &sg.nucleons_range),
             global_range(&self.subgrids, |sg| &sg.alphas_range),
+            global_range(&self.subgrids, |sg| &sg.xi_range),
+            global_range(&self.subgrids, |sg| &sg.delta_range),
             global_range(&self.subgrids, |sg| &sg.kt_range),
             global_range(&self.subgrids, |sg| &sg.x_range),
             global_range(&self.subgrids, |sg| &sg.q2_range),
@@ -261,7 +278,7 @@ impl GridPDF {
                 (0..knot_array.pids.len())
                     .map(|pid_idx| {
                         InterpolatorFactory::create(
-                            info.interpolator_type.to_owned(),
+                            info.interpolator_type.clone(),
                             subgrid,
                             pid_idx,
                         )
@@ -297,6 +314,8 @@ impl GridPDF {
             InterpolatorType::LogBilinear
                 | InterpolatorType::LogBicubic
                 | InterpolatorType::LogTricubic
+                | InterpolatorType::LogFourCubic
+                | InterpolatorType::LogFiveCubic
                 | InterpolatorType::LogChebyshev
         );
 
@@ -462,6 +481,8 @@ mod tests {
             nucleons: vec![1.0],
             alphas: vec![0.118],
             kts: vec![0.0],
+            xis: vec![0.0],
+            deltas: vec![0.0],
             xs: vec![1.0, 2.0, 3.0],
             q2s: vec![4.0, 5.0],
             grid_data: vec![
@@ -471,7 +492,13 @@ mod tests {
         let flavors = vec![21, 22];
         let grid_array = GridArray::new(subgrid_data, flavors);
 
-        assert_eq!(grid_array.subgrids[0].grid.shape(), &[1, 1, 2, 1, 3, 2]);
+        // Grid shape is 6D: [nucleons, alphas, pids, kT, x, Q²]
+        match &grid_array.subgrids[0].grid {
+            crate::subgrid::GridData::Grid6D(grid) => {
+                assert_eq!(grid.shape(), &[1, 1, 2, 1, 3, 2]);
+            }
+            _ => std::panic!("Expected 6D grid"),
+        }
         assert!(grid_array.find_subgrid(&[1.5, 4.5]).is_some());
     }
 }

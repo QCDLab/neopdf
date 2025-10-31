@@ -4,8 +4,8 @@ use pyo3::prelude::*;
 
 /// Python interface for PDF set conversion utilities.
 ///
-/// This module provides functions to convert LHAPDF sets to NeoPDF format and to combine
-/// nuclear PDF sets into a single NeoPDF file.
+/// This module provides functions to convert LHAPDF sets to `NeoPDF` format and to combine
+/// nuclear PDF sets into a single `NeoPDF` file.
 ///
 /// # Errors
 ///
@@ -18,15 +18,15 @@ pub fn converter(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     Ok(())
 }
 
-/// Converts an LHAPDF set to the NeoPDF format and writes it to disk.
+/// Converts an LHAPDF set to the `NeoPDF` format and writes it to disk.
 ///
-/// Converts the specified LHAPDF set into the NeoPDF format and saves the result to the given
+/// Converts the specified LHAPDF set into the `NeoPDF` format and saves the result to the given
 /// output path.
 ///
 /// # Parameters
 ///
-/// - `pdf_name`: The name of the LHAPDF set (e.g., "NNPDF40_nnlo_as_01180").
-/// - `output_path`: The path to the output NeoPDF file.
+/// - `pdf_name`: The name of the LHAPDF set (e.g., "`NNPDF40_nnlo_as_01180`").
+/// - `output_path`: The path to the output `NeoPDF` file.
 ///
 /// # Returns
 ///
@@ -42,15 +42,15 @@ pub fn py_convert_lhapdf(pdf_name: &str, output_path: &str) -> PyResult<()> {
         .map_err(|e| PyRuntimeError::new_err(format!("Conversion failed: {e}")))
 }
 
-/// Combines a list of nuclear PDF sets into a single NeoPDF file with explicit A dependence.
+/// Combines a list of nuclear PDF sets into a single `NeoPDF` file with explicit A dependence.
 ///
-/// Combines multiple LHAPDF nuclear PDF sets into a single NeoPDF file, allowing for explicit
+/// Combines multiple LHAPDF nuclear PDF sets into a single `NeoPDF` file, allowing for explicit
 /// nuclear dependence.
 ///
 /// # Parameters
 ///
 /// - `pdf_names`: List of PDF set names (each with a different A).
-/// - `output_path`: Output NeoPDF file path.
+/// - `output_path`: Output `NeoPDF` file path.
 ///
 /// # Returns
 ///

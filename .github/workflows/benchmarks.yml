@@ -34,7 +34,7 @@ jobs:
         id: bench
         run: |
           export NEOPDF_DATA_PATH=${PWD}/neopdf-data
-          # The awk command filters out the verbose test summary before the benchmark results.
+          # TODO: remove the version specification
           cargo bench -p neopdf -- --nocapture | awk '/^test result: ok\./ {p=1; next} p' | tee benchmark_results.txt
 
       - name: Post benchmark results as a PR comment

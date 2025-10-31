@@ -168,6 +168,7 @@ fn load_pdf_names(
 /// # Errors
 ///
 /// TODO
+#[allow(clippy::implicit_clone)]
 #[allow(clippy::needless_pass_by_value)]
 pub fn run_cli(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match &cli.command {

@@ -30,6 +30,9 @@ pub enum ReadCommands {
     /// Print the git version of the code that generated the PDF.
     #[command(name = "git-version")]
     GitVersion(PdfNameArgs),
+    /// Print the code version of the code that generated the PDF.
+    #[command(name = "code-version")]
+    CodeVersion(PdfNameArgs),
 }
 
 /// Arguments for the metadata subcommand.
@@ -89,6 +92,7 @@ pub struct SubgridArgs {
 /// # Panics
 ///
 /// This function panics when a PID not present in the Grid is requested.
+#[allow(clippy::too_many_lines)]
 #[allow(clippy::needless_pass_by_value)]
 pub fn main(cli: ReadCli) {
     match &cli.command {
@@ -136,14 +140,28 @@ pub fn main(cli: ReadCli) {
             }
             println!();
 
-            let grid_slice = subgrid.grid.slice(s![
-                args.nucleon_index,
-                args.alphas_index,
-                pid_idx,
-                args.kt_index,
-                ..,
-                ..
-            ]);
+            let grid_slice = match &subgrid.grid {
+                neopdf::subgrid::GridData::Grid6D(grid) => grid.slice(s![
+                    args.nucleon_index,
+                    args.alphas_index,
+                    pid_idx,
+                    args.kt_index,
+                    ..,
+                    ..
+                ]),
+                neopdf::subgrid::GridData::Grid8D(grid) => {
+                    grid.slice(s![
+                        args.nucleon_index,
+                        args.alphas_index,
+                        0, // xi_index - default to first
+                        0, // delta_index - default to first
+                        args.kt_index,
+                        pid_idx,
+                        ..,
+                        ..
+                    ])
+                }
+            };
 
             let width = if let Some((Width(w), _)) = terminal_size() {
                 w as usize
@@ -183,6 +201,10 @@ pub fn main(cli: ReadCli) {
         ReadCommands::GitVersion(args) => {
             let pdf = neopdf::pdf::PDF::load(&args.pdf_name, 0);
             println!("{}", pdf.metadata().git_version);
+        }
+        ReadCommands::CodeVersion(args) => {
+            let pdf = neopdf::pdf::PDF::load(&args.pdf_name, 0);
+            println!("{}", pdf.metadata().code_version);
         }
     }
 }

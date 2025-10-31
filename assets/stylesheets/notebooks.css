@@ -1,0 +1,22 @@
+/* Reduce spacing between headers in Jupyter notebooks */
+.jupyter-wrapper h1,
+.jupyter-wrapper h2,
+.jupyter-wrapper h3,
+.jupyter-wrapper h4,
+.jupyter-wrapper h5,
+.jupyter-wrapper h6 {
+    margin-top: 0.3em !important;
+    margin-bottom: 0.3em !important;
+}
+
+/* Remove gap before the notebook starts */
+.jupyter-wrapper {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+.jupyter-wrapper .jp-Cell:first-child,
+.jupyter-wrapper .cell:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}

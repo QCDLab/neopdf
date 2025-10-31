@@ -103,7 +103,7 @@ pub struct PyPhysicsParameters {
 
 #[pymethods]
 impl PyPhysicsParameters {
-    /// Constructor for PyPhysicsParameters.
+    /// Constructor for `PyPhysicsParameters`.
     #[new]
     #[must_use]
     #[allow(clippy::too_many_arguments)]
@@ -207,11 +207,11 @@ pub struct PyMetaData {
 
 #[pymethods]
 impl PyMetaData {
-    /// Constructor for PyMetaData.
+    /// Constructor for `PyMetaData`.
     #[new]
     #[must_use]
-    #[allow(clippy::needless_pass_by_value)]
     #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::needless_pass_by_value)]
     #[pyo3(signature = (
         set_desc,
         set_index,
@@ -220,6 +220,10 @@ impl PyMetaData {
         x_max,
         q_min,
         q_max,
+        xsi_min,
+        xsi_max,
+        delta_min,
+        delta_max,
         flavors,
         format,
         alphas_q_values = vec![],
@@ -239,6 +243,10 @@ impl PyMetaData {
         x_max: f64,
         q_min: f64,
         q_max: f64,
+        xsi_min: f64,
+        xsi_max: f64,
+        delta_min: f64,
+        delta_max: f64,
         flavors: Vec<i32>,
         format: String,
         alphas_q_values: Vec<f64>,
@@ -284,10 +292,10 @@ impl PyMetaData {
                 alphas_type: phys_params.alphas_type,
                 number_flavors: phys_params.number_flavors,
                 // New V2 fields with defaults
-                xi_min: 1.0,
-                xi_max: 1.0,
-                delta_min: 0.0,
-                delta_max: 0.0,
+                xi_min: xsi_min,
+                xi_max: xsi_max,
+                delta_min,
+                delta_max,
             },
         }
     }
@@ -351,73 +359,97 @@ impl PyMetaData {
 
     /// The description of the set.
     #[must_use]
-    pub fn set_desc(&self) -> &String {
+    pub const fn set_desc(&self) -> &String {
         &self.meta.set_desc
     }
 
     /// The index of the grid.
     #[must_use]
-    pub fn set_index(&self) -> u32 {
+    pub const fn set_index(&self) -> u32 {
         self.meta.set_index
     }
 
     /// The number of sets in the grid.
     #[must_use]
-    pub fn number_sets(&self) -> u32 {
+    pub const fn number_sets(&self) -> u32 {
         self.meta.num_members
     }
 
     /// The minimum value of `x` in the grid.
     #[must_use]
-    pub fn x_min(&self) -> f64 {
+    pub const fn x_min(&self) -> f64 {
         self.meta.x_min
     }
 
     /// The maximum value of `x` in the grid.
     #[must_use]
-    pub fn x_max(&self) -> f64 {
+    pub const fn x_max(&self) -> f64 {
         self.meta.x_max
     }
 
     /// The minimum value of `q` in the grid.
     #[must_use]
-    pub fn q_min(&self) -> f64 {
+    pub const fn q_min(&self) -> f64 {
         self.meta.q_min
     }
 
     /// The maximum value of `q` in the grid.
     #[must_use]
-    pub fn q_max(&self) -> f64 {
+    pub const fn q_max(&self) -> f64 {
         self.meta.q_max
+    }
+
+    /// The minimum value of `xi` in the grid.
+    #[must_use]
+    pub const fn xi_min(&self) -> f64 {
+        self.meta.xi_min
+    }
+
+    /// The maximum value of `xi` in the grid.
+    #[must_use]
+    pub const fn xi_max(&self) -> f64 {
+        self.meta.xi_max
+    }
+
+    /// The minimum value of `delta` in the grid.
+    #[must_use]
+    pub const fn delta_min(&self) -> f64 {
+        self.meta.delta_min
+    }
+
+    /// The maximum value of `delta` in the grid.
+    #[must_use]
+    pub const fn delta_max(&self) -> f64 {
+        self.meta.delta_max
     }
 
     /// The particle IDs of the grid.
     #[must_use]
-    pub fn pids(&self) -> &Vec<i32> {
+    pub const fn pids(&self) -> &Vec<i32> {
         &self.meta.flavors
     }
 
     /// The format of the grid.
     #[must_use]
-    pub fn format(&self) -> &String {
+    pub const fn format(&self) -> &String {
         &self.meta.format
     }
 
     /// The values of `q` for the running of the strong coupling constant.
     #[must_use]
-    pub fn alphas_q(&self) -> &Vec<f64> {
+    pub const fn alphas_q(&self) -> &Vec<f64> {
         &self.meta.alphas_q_values
     }
 
     /// The values of the running of the strong coupling constant.
     #[must_use]
-    pub fn alphas_values(&self) -> &Vec<f64> {
+    pub const fn alphas_values(&self) -> &Vec<f64> {
         &self.meta.alphas_vals
     }
 
     /// Whether the grid is polarised.
     #[must_use]
-    pub fn is_polarised(&self) -> bool {
+    pub const fn is_polarised(&self) -> bool {
         self.meta.polarised
     }
 
@@ -435,13 +467,13 @@ impl PyMetaData {
 
     /// The type of error.
     #[must_use]
-    pub fn error_type(&self) -> &String {
+    pub const fn error_type(&self) -> &String {
         &self.meta.error_type
     }
 
     /// The hadron PID.
     #[must_use]
-    pub fn hadron_pid(&self) -> i32 {
+    pub const fn hadron_pid(&self) -> i32 {
         self.meta.hadron_pid
     }
 }

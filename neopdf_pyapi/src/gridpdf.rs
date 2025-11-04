@@ -1,9 +1,9 @@
-use ndarray::Array1;
-use numpy::{PyArrayMethods, PyReadonlyArray6};
+use ndarray::{Array1, Dimension};
+use numpy::{PyArrayMethods, PyReadonlyArrayDyn};
 use pyo3::prelude::*;
 
 use neopdf::gridpdf::GridArray;
-use neopdf::subgrid::{ParamRange, SubGrid};
+use neopdf::subgrid::{GridData, ParamRange, SubGrid};
 
 /// Python wrapper for the `SubGrid` struct.
 #[pyclass(name = "SubGrid")]
@@ -20,9 +20,11 @@ impl PySubGrid {
     /// - `xs`: The x-axis values.
     /// - `q2s`: The Q^2-axis values.
     /// - `kts`: The kT-axis values.
+    /// - `xsis`: The Skeweness `\xi`.
+    /// - `deltas`: The total momentum fraction `\Delta`.
     /// - `nucleons`: The nucleon number axis values.
-    /// - `alphas`: The alpha_s axis values.
-    /// - `grid`: The 6D grid data as a NumPy array.
+    /// - `alphas`: The `alpha_s` axis values.
+    /// - `grid`: The 6D grid data as a `NumPy` array.
     ///
     /// # Returns
     ///
@@ -36,18 +38,23 @@ impl PySubGrid {
     ///
     /// Returns a `PyErr` if the grid cannot be constructed from the input data.
     #[new]
+    #[allow(clippy::too_many_arguments)]
     #[allow(clippy::needless_pass_by_value)]
     pub fn new(
         xs: Vec<f64>,
         q2s: Vec<f64>,
         kts: Vec<f64>,
+        xsis: Vec<f64>,
+        deltas: Vec<f64>,
         nucleons: Vec<f64>,
         alphas: Vec<f64>,
-        grid: PyReadonlyArray6<f64>,
+        grid: PyReadonlyArrayDyn<f64>,
     ) -> PyResult<Self> {
         let alphas_range = ParamRange::new(*alphas.first().unwrap(), *alphas.last().unwrap());
         let x_range = ParamRange::new(*xs.first().unwrap(), *xs.last().unwrap());
         let q2_range = ParamRange::new(*q2s.first().unwrap(), *q2s.last().unwrap());
+        let xsi_range = ParamRange::new(*xsis.first().unwrap(), *xsis.last().unwrap());
+        let delta_range = ParamRange::new(*deltas.first().unwrap(), *deltas.last().unwrap());
         let kt_range = ParamRange::new(*kts.first().unwrap(), *kts.last().unwrap());
         let nucleons_range = ParamRange::new(*nucleons.first().unwrap(), *nucleons.last().unwrap());
 
@@ -55,11 +62,15 @@ impl PySubGrid {
             xs: Array1::from(xs),
             q2s: Array1::from(q2s),
             kts: Array1::from(kts),
-            grid: grid.to_owned_array(),
+            xis: Array1::from(xsis),
+            deltas: Array1::from(deltas),
+            grid: GridData::Grid8D(grid.to_owned_array()),
             nucleons: Array1::from(nucleons),
             alphas: Array1::from(alphas),
             nucleons_range,
             alphas_range,
+            xi_range: xsi_range,
+            delta_range,
             kt_range,
             x_range,
             q2_range,
@@ -68,7 +79,7 @@ impl PySubGrid {
         Ok(Self { subgrid })
     }
 
-    /// Returns the minimum and maximum values of the alpha_s axis.
+    /// Returns the minimum and maximum values of the `alpha_s` axis.
     #[must_use]
     pub const fn alphas_range(&self) -> (f64, f64) {
         (self.subgrid.alphas_range.min, self.subgrid.alphas_range.max)
@@ -84,6 +95,18 @@ impl PySubGrid {
     #[must_use]
     pub const fn q2_range(&self) -> (f64, f64) {
         (self.subgrid.q2_range.min, self.subgrid.q2_range.max)
+    }
+
+    /// Returns the minimum and maximum values of the skeweness `xi`.
+    #[must_use]
+    pub const fn xi_range(&self) -> (f64, f64) {
+        (self.subgrid.xi_range.min, self.subgrid.xi_range.max)
+    }
+
+    /// Returns the minimum and maximum values of the total momentum fraction `delta`.
+    #[must_use]
+    pub const fn delta_range(&self) -> (f64, f64) {
+        (self.subgrid.delta_range.min, self.subgrid.delta_range.max)
     }
 
     /// Returns the minimum and maximum values of the Nucleon number `A`.
@@ -102,9 +125,19 @@ impl PySubGrid {
     }
 
     /// Returns the shape of the subgrid
+    ///
+    /// # Panics
+    ///
+    /// TODO
     #[must_use]
-    pub fn grid_shape(&self) -> (usize, usize, usize, usize, usize, usize) {
-        self.subgrid.grid.dim()
+    pub fn grid_shape(&self) -> Vec<usize> {
+        match &self.subgrid.grid {
+            GridData::Grid6D(grid) => {
+                let (d0, d1, d2, d3, d4, d5) = grid.dim();
+                vec![d0, d1, d2, d3, d4, d5]
+            }
+            GridData::Grid8D(grid) => grid.dim().as_array_view().to_vec(),
+        }
     }
 }
 

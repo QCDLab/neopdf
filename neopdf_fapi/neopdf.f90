@@ -61,6 +61,33 @@ module neopdf
         type(neopdf_physics_parameters) :: phys_params
     end type
 
+    type, bind(c) :: neopdf_metadata_v2
+        type (c_ptr) :: set_desc = c_null_ptr
+        integer(c_int32_t) :: set_index
+        integer(c_int32_t) :: num_members
+        real(c_double) :: x_min
+        real(c_double) :: x_max
+        real(c_double) :: q_min
+        real(c_double) :: q_max
+        type (c_ptr) :: flavors = c_null_ptr
+        integer(c_size_t) :: num_flavors
+        type (c_ptr) :: format = c_null_ptr
+        type (c_ptr) :: alphas_q_values = c_null_ptr
+        integer(c_size_t) :: num_alphas_q
+        type (c_ptr) :: alphas_vals = c_null_ptr
+        integer(c_size_t) :: num_alphas_vals
+        logical(c_bool) :: polarised
+        integer(c_int) :: set_type
+        integer(c_int) :: interpolator_type
+        type (c_ptr) :: error_type = c_null_ptr
+        integer(c_int) :: hadron_pid
+        type(neopdf_physics_parameters) :: phys_params
+        real(c_double) :: xi_min
+        real(c_double) :: xi_max
+        real(c_double) :: delta_min
+        real(c_double) :: delta_max
+    end type
+
     type, bind(c) :: neopdf_pdf_members
         type (c_ptr) :: pdfs = c_null_ptr
         integer (c_size_t) :: size
@@ -69,6 +96,8 @@ module neopdf
     enum, bind(c) ! :: neopdf_subgrid_params
         enumerator :: neopdf_subgrid_params_nucleons
         enumerator :: neopdf_subgrid_params_alphas
+        enumerator :: neopdf_subgrid_params_xi
+        enumerator :: neopdf_subgrid_params_delta
         enumerator :: neopdf_subgrid_params_kt
         enumerator :: neopdf_subgrid_params_momentum
         enumerator :: neopdf_subgrid_params_scale
@@ -278,6 +307,28 @@ module neopdf
             integer (c_int) :: c_neopdf_grid_add_subgrid
         end function
 
+        function c_neopdf_grid_add_subgridv2(grid, nucleons, num_nucleons, alphas, num_alphas, xis, num_xis, deltas, num_deltas, kts, num_kts, xs, num_xs, q2s, num_q2s, grid_data, grid_data_len) bind(c, name="neopdf_grid_add_subgridv2")
+            use iso_c_binding
+            type (c_ptr), value :: grid
+            real (c_double) :: nucleons(*)
+            integer (c_size_t), value :: num_nucleons
+            real (c_double) :: alphas(*)
+            integer (c_size_t), value :: num_alphas
+            real (c_double) :: xis(*)
+            integer (c_size_t), value :: num_xis
+            real (c_double) :: deltas(*)
+            integer (c_size_t), value :: num_deltas
+            real (c_double) :: kts(*)
+            integer (c_size_t), value :: num_kts
+            real (c_double) :: xs(*)
+            integer (c_size_t), value :: num_xs
+            real (c_double) :: q2s(*)
+            integer (c_size_t), value :: num_q2s
+            real (c_double) :: grid_data(*)
+            integer (c_size_t), value :: grid_data_len
+            integer (c_int) :: c_neopdf_grid_add_subgridv2
+        end function
+
         function c_neopdf_grid_set_flavors(grid, flavors, num_flavors) bind(c, name="neopdf_grid_set_flavors")
             use iso_c_binding
             type (c_ptr), value :: grid
@@ -309,6 +360,15 @@ module neopdf
             type (neopdf_metadata) :: metadata
             character (c_char) :: output_path(*)
             integer (c_int) :: c_neopdf_grid_compress
+        end function
+
+        function c_neopdf_grid_compress_v2(collection, metadata, output_path) bind(c, name="neopdf_grid_compress_v2")
+            use iso_c_binding
+            import :: neopdf_metadata_v2
+            type (c_ptr), value :: collection
+            type (neopdf_metadata_v2) :: metadata
+            character (c_char) :: output_path(*)
+            integer (c_int) :: c_neopdf_grid_compress_v2
         end function
 
         subroutine c_setlhaparm(line, len) bind(c, name="setlhaparm_")
@@ -597,6 +657,22 @@ contains
         res = c_neopdf_grid_add_subgrid(grid%ptr, nucleons, int(size(nucleons), c_size_t), alphas, int(size(alphas), c_size_t), kts, int(size(kts), c_size_t), xs, int(size(xs), c_size_t), q2s, int(size(q2s), c_size_t), grid_data, int(size(grid_data), c_size_t))
     end function
 
+    function neopdf_grid_add_subgridv2(grid, nucleons, alphas, xis, deltas, kts, xs, q2s, grid_data) result(res)
+        implicit none
+        type (neopdf_grid), intent(in) :: grid
+        real (dp), intent(in) :: nucleons(:), alphas(:), xis(:), deltas(:), kts(:), xs(:), q2s(:), grid_data(:)
+        integer :: res
+        res = c_neopdf_grid_add_subgridv2(grid%ptr, &
+            nucleons, int(size(nucleons), c_size_t), &
+            alphas, int(size(alphas), c_size_t), &
+            xis, int(size(xis), c_size_t), &
+            deltas, int(size(deltas), c_size_t), &
+            kts, int(size(kts), c_size_t), &
+            xs, int(size(xs), c_size_t), &
+            q2s, int(size(q2s), c_size_t), &
+            grid_data, int(size(grid_data), c_size_t))
+    end function
+
     function neopdf_grid_set_flavors(grid, flavors) result(res)
         implicit none
         type (neopdf_grid), intent(in) :: grid
@@ -631,6 +707,15 @@ contains
         character (*), intent(in) :: output_path
         integer :: res
         res = c_neopdf_grid_compress(collection%ptr, metadata, output_path // c_null_char)
+    end function
+
+    function neopdf_grid_compress_v2(collection, metadata, output_path) result(res)
+        implicit none
+        type (neopdf_grid_array_collection), intent(in) :: collection
+        type (neopdf_metadata_v2), intent(in) :: metadata
+        character (*), intent(in) :: output_path
+        integer :: res
+        res = c_neopdf_grid_compress_v2(collection%ptr, metadata, output_path // c_null_char)
     end function
 
     subroutine setlhaparm(line)

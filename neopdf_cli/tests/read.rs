@@ -13,6 +13,7 @@ Commands:
   subgrid-info  Print the subgrid info (nucleons, alphas, x, Q2) for a given subgrid index
   subgrid       Print the contents of a subgrid
   git-version   Print the git version of the code that generated the PDF
+  code-version  Print the code version of the code that generated the PDF
   help          Print this message or the help of the given subcommand(s)
 
 Options:
@@ -48,7 +49,10 @@ MBottom: 4.92
 MTop: 172.5
 AlphaS Type: ipol
 Number of PDF flavors: 5
-
+XiMin: 0
+XiMax: 0
+DeltaMin: 0
+DeltaMax: 0
 ";
 
 const SUBGRID_INFO_LHAPDF: &str = "Nucleon Numbers A: [0.0], shape=[1], strides=[1], layout=CFcf (0xf), const ndim=1
@@ -96,6 +100,13 @@ fn read_gitversion_neopdf() {
         .assert()
         .success()
         .stdout("v0.2.0-alpha1-22-gfb6af13-dirty\n");
+
+    Command::cargo_bin("neopdf")
+        .unwrap()
+        .args(["read", "code-version", "NNPDF40_nnlo_as_01180.neopdf.lz4"])
+        .assert()
+        .success()
+        .stdout("0.2.0-alpha1\n");
 }
 
 #[test]

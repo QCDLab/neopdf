@@ -8,7 +8,7 @@ use pyo3::prelude::*;
 pub enum PyPdfSetFormat {
     /// LHAPDF format (standard PDF set format used by LHAPDF).
     Lhapdf,
-    /// NeoPDF format (native format for this library).
+    /// `NeoPDF` format (native format for this library).
     Neopdf,
 }
 
@@ -29,7 +29,7 @@ pub struct PyManageData {
 
 #[pymethods]
 impl PyManageData {
-    /// Create a new ManageData instance.
+    /// Create a new `ManageData` instance.
     #[new]
     #[must_use]
     pub fn new(set_name: &str, format: PyPdfSetFormat) -> Self {

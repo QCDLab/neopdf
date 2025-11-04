@@ -30,14 +30,13 @@
 </div>
 
 <p align="justify">
-  <b>NeoPDF</b> is a fast, reliable, and scalable interpolation library for both <b>collinear</b>
-  and <b>transverse momentum dependent</b> Parton Distribution Functions with <b>modern features</b>
-  designed for both present and future hadron collider experiments:
+  <b>NeoPDF</b> is a fast, reliable, and scalable interpolation library for <b>Non-Perturbative Distribution Functions</b>
+  with <b>modern features</b> designed for both present and future hadron collider experiments:
 
   <ul>
     <li>
     <p align="justify">
-      Beyond interpolations over the kinematic variables (<b>x</b>, <b>kT</b>, <b>Q2</b>), NeoPDF
+      Beyond interpolations over the kinematic variables (<b>x</b>, <b>ξ</b>, <b>Δ</b>, <b>kT</b>, <b>Q²</b>), NeoPDF
       also supports interpolations along the nucleon numbers <b>A</b> (relevant for <b>nuclear</b> PDFs
       and TMDs) and the strong coupling <b>αs(MZ)</b>.
     </p>
@@ -59,6 +58,30 @@
     </li>
   </ul>
 </p>
+
+## Supported distributions
+
+<p align="justify">
+  NeoPDF supports generic classes of distributions that are functions of different combinations of the kinematic
+  variables. Examples of distribution functions are given in the diagram below with their simplified relationships.
+</p>
+
+```mermaid
+graph TD
+
+A["**Generalized Tranverse Momentum Distribution** <br> GTMD(x, ξ, Δ, kT​​, Q²)"]
+
+A -->|∫ dkT| B["**Generalized Parton Distributions** <br> GPD(x, ξ, Δ, Q²)"]
+A -->|ξ → 0, Δ → 0| C["**Transverse Momentum Distributions** <br> TMD(x, kT, Q²)"]
+
+B -->|ξ → 0, Δ → 0| D["**Collinear Parton Distribution Functions** <br> PDF(x, Q²)"]
+C -->|∫ dkT| D
+
+style A fill:#ffd580,stroke:#b8860b,stroke-width:2px
+style B fill:#add8e6,stroke:#1e90ff,stroke-width:2px
+style C fill:#98fb98,stroke:#228b22,stroke-width:2px
+style D fill:#f08080,stroke:#8b0000,stroke-width:2px
+```
 
 ## Quick Links
 

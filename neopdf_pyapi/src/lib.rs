@@ -19,7 +19,7 @@ pub mod pdf;
 /// Python bindings for the `writer` module.
 pub mod writer;
 
-/// PyO3 Python module that contains all exposed classes from Rust.
+/// `PyO3` Python module that contains all exposed classes from Rust.
 #[pymodule]
 fn neopdf(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("version", env!("CARGO_PKG_VERSION"))?;

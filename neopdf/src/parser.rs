@@ -16,6 +16,8 @@ use super::writer::{GridArrayReader, LazyGridArrayIterator};
 pub struct SubgridData {
     pub nucleons: Vec<f64>,
     pub alphas: Vec<f64>,
+    pub xis: Vec<f64>,
+    pub deltas: Vec<f64>,
     pub kts: Vec<f64>,
     pub xs: Vec<f64>,
     pub q2s: Vec<f64>,
@@ -207,11 +209,15 @@ impl LhapdfSet {
             // following values from LHAPDF, their defaults are set to zeros.
             let nucleons: Vec<f64> = vec![0.0];
             let alphas: Vec<f64> = vec![0.0];
+            let xis: Vec<f64> = vec![0.0];
+            let deltas: Vec<f64> = vec![0.0];
             let kts: Vec<f64> = vec![0.0];
 
             subgrid_data.push(SubgridData {
                 nucleons,
                 alphas,
+                xis,
+                deltas,
                 kts,
                 xs,
                 q2s,
@@ -240,7 +246,8 @@ impl NeopdfSet {
     pub fn new(pdf_name: &str) -> Self {
         let manager = ManageData::new(pdf_name, PdfSetFormat::Neopdf);
         let neopdf_setpath = manager.set_path();
-        let grid_readers = GridArrayReader::from_file(neopdf_setpath).unwrap();
+        let grid_readers = GridArrayReader::from_file(neopdf_setpath)
+            .unwrap_or_else(|e| panic!("Failed to load NeoPDF file: {}", e));
         let metadata_info = grid_readers.metadata().as_ref().clone();
 
         Self {

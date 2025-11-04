@@ -40,6 +40,10 @@ class TestMetaData:
             x_max=1.0,
             q_min=1.65,
             q_max=1.0e4,
+            xsi_min=0.0,
+            xsi_max=0.0,
+            delta_min=0.0,
+            delta_max=0.0,
             flavors=[21, 1, 2, 3, 4, -1, -2, -3, -4],
             format="test_format",
             alphas_q_values=[1.0, 2.0],
@@ -59,6 +63,10 @@ class TestMetaData:
         assert meta.x_max() == 1.0
         assert meta.q_min() == 1.65
         assert meta.q_max() == 1.0e4
+        assert meta.xi_min() == 0.0
+        assert meta.xi_max() == 0.0
+        assert meta.delta_min() == 0.0
+        assert meta.delta_max() == 0.0
         assert meta.pids() == [21, 1, 2, 3, 4, -1, -2, -3, -4]
         assert meta.format() == "test_format"
         assert meta.alphas_q() == [1.0, 2.0]

@@ -37,8 +37,8 @@
     <li>
     <p align="justify">
       Beyond interpolations over the kinematic variables (<b>x</b>, <b>ξ</b>, <b>Δ</b>, <b>kT</b>, <b>Q²</b>), NeoPDF
-      also supports interpolations along the nucleon numbers <b>A</b> (relevant for <b>nuclear</b> PDFs
-      and TMDs) and the strong coupling <b>αs(MZ)</b>.
+      also supports interpolations along the nucleon numbers <b>A</b> (relevant for <b>nuclear</b> distribution functions)
+      and the strong coupling <b>αs(MZ)</b>.
     </p>
     </li>
     <li>
@@ -69,7 +69,7 @@
 ```mermaid
 graph TD
 
-A["**Generalized Tranverse Momentum Distribution** <br> GTMD(x, ξ, Δ, kT​​, Q²)"]
+A["**Generalized Tranverse Momentum Distributions** <br> GTMD(x, ξ, Δ, kT​​, Q²)"]
 
 A -->|∫ dkT| B["**Generalized Parton Distributions** <br> GPD(x, ξ, Δ, Q²)"]
 A -->|ξ → 0, Δ → 0| C["**Transverse Momentum Distributions** <br> TMD(x, kT, Q²)"]

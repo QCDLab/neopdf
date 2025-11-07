@@ -43,10 +43,10 @@ cargo build
 
 `NeoPDF` is available on the Python Packaged Index (PyPI) as `neopdf-hep` and therefore can be
 installed easily with any of the Python's package managers. For example, using
-[pipx](https://pipx.pypa.io/stable/):
+[pip](https://pypi.org/project/pip/):
 
 ```bash
-pipx install neopdf-hep
+pip install neopdf-hep
 ```
 
 !!! info "Development Option"
@@ -67,7 +67,7 @@ pipx install neopdf-hep
 The simplest way to install the C API and the C++ OOP header is to download the pre-built libraries:
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/Radonirinaunimi/neopdf/refs/heads/master/install-capi.sh | sh
+curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/QCDLab/neopdf/refs/heads/master/install-capi.sh | sh
 ```
 
 To pass the installation directory for where to put the files, change the arguments of the shell as
@@ -81,7 +81,7 @@ By default, the script will download the latest stable release. If you would lik
 pass the version along with `--version`:
 
 ```bash
-.. | sh -s -- --version 0.2.0-alpha1
+.. | sh -s -- --version 0.2.0
 ```
 
 !!! info "Development Option"
@@ -133,10 +133,10 @@ use neopdf
 
 The Command Line Interface (CLI) to the `NeoPDF` APIs is also available on the Python Packaged
 Index (PyPI) as `neopdf-cli` and therefore can be installed easily with any of the Python's
-package managers. For example, using [pipx](https://pipx.pypa.io/stable/):
+package managers. For example, using [pip](https://pypi.org/project/pip/):
 
 ```bash
-pipx install neopdf-cli
+pip install neopdf-cli
 ```
 
 !!! info " Development Option"

@@ -12,19 +12,21 @@ hide:
   <img src="./assets/neopdf.svg" width="600" />
 </div>
 
-![Codecov](https://img.shields.io/codecov/c/github/Radonirinaunimi/neopdf?style=flat-square&logo=codecov&logoColor=red&color=blue)
-![MSRV](https://img.shields.io/crates/msrv/neopdf?style=flat-square&logo=rust&color=red)
-![Crates.io](https://img.shields.io/crates/v/neopdf?style=flat-square&logo=rust&color=blue)
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/neopdf-hep?style=flat-square&logo=python)
-![PyPI - Version](https://img.shields.io/pypi/v/neopdf-hep?style=flat-square&logo=python&logoColor=yellow&color=%1d881d)
-![GitHub License](https://img.shields.io/github/license/Radonirinaunimi/neopdf?style=flat-square&logo=gplv3&logoColor=red)
-![GitHub repo size](https://img.shields.io/github/repo-size/Radonirinaunimi/neopdf?style=flat-square&logo=github)
+<div style="display: flex; justify-content: center;">
+<p>
+    <img src="https://img.shields.io/codecov/c/github/Radonirinaunimi/neopdf?style=flat-square&logo=codecov&logoColor=red&color=blue" alt="Codecov">
+    <img src="https://img.shields.io/crates/msrv/neopdf?style=flat-square&logo=rust&color=red" alt="MSRV">
+    <img src="https://img.shields.io/crates/v/neopdf?style=flat-square&logo=rust&color=blue" alt="Crates.io">
+    <img src="https://img.shields.io/pypi/pyversions/neopdf-hep?style=flat-square&logo=python" alt="PyPI - Python Version">
+    <img src="https://img.shields.io/pypi/v/neopdf-hep?style=flat-square&logo=python&logoColor=yellow&color=%231d881d" alt="PyPI - Version">
+    <img src="https://img.shields.io/github/license/Radonirinaunimi/neopdf?style=flat-square&logo=gplv3&logoColor=red" alt="GitHub License">
+</p>
+</div>
 
-`NeoPDF` is a fast, reliable, and scalable interpolation library for both **Collinear** Parton
-Distribution Functions (PDFs) and **Transverse Momentum Dependent** Distributions (TMDs) with
-**modern features**, designed for both present and future hadron collider experiments. It aims
-to be a modern, high-performance alternative to both [LHAPDF](https://www.lhapdf.org/) and
-[TMDlib](https://tmdlib.hepforge.org/), focusing on:
+`NeoPDF` is a fast, reliable, and scalable interpolation library for **Non-Perturbative Distribution Functions**
+with **modern features**, designed for both present and future hadron collider experiments. It aims to be a modern,
+high-performance alternative to both [LHAPDF](https://www.lhapdf.org/) and [TMDlib](https://tmdlib.hepforge.org/),
+focusing on:
 
 <div class="feature-grid">
   <div class="feature-card">
@@ -41,7 +43,7 @@ to be a modern, high-performance alternative to both [LHAPDF](https://www.lhapdf
   </div>
   <div class="feature-card">
       <strong>📊 (Physics) Features & Extensibility</strong>
-      <p>Very extensible: makes it easy to introduce new (Physics) features without introducing <b>technical debts</b>.</p>
+      <p>Very extensible, which makes it easy to introduce new (Physics) features without introducing <b>technical debts</b>.</p>
   </div>
 </div>
 
@@ -59,7 +61,7 @@ widely used, have limitations in terms of extensibility and features. `NeoPDF` a
 
 - **Core Library (Rust)**: Implements all the interpolation logics, grid management, and PDF
     metadata handling.
-- **FFI Bindings**: Exposes the core functionalities to Python, Fortran, C, and C++, enabling
+- **FFI Bindings**: Exposes the core functionalities to Python, Fortran, C, C++, and Mathematica, enabling
     easier interoperability with other codes that can link to these programming languages.
 - **CLI Tools**: Command-line utilities that allow users to inspect the contents of a gird,
     convert LHAPDF/TMDlib format into `NeoPDF`, and perform interpolations.
@@ -81,5 +83,4 @@ widely used, have limitations in terms of extensibility and features. `NeoPDF` a
 - [Cargo-c Documentation](https://crates.io/crates/cargo-c)
 - [Maturin Documentation](https://www.maturin.rs/)
 
-For more information about `NeoPDF` development, see the [Design and Features](./design-and-features.md)
-documentation.
+For more detailed information about `NeoPDF` development, see the [GitHub repository](https://github.com/QCDLab/neopdf).

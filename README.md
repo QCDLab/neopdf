@@ -23,9 +23,9 @@
         height="22"
     /></a>
     <a href="https://github.com/qcdlab/neopdf?tab=GPL-3.0-1-ov-file"><img
-        alt="GitHub License"
-        src="https://img.shields.io/github/license/qcdlab/neopdf?style=for-the-badge&logo=gplv3&logoColor=red"
-        height="22"
+      alt="GitHub License"
+      src="https://img.shields.io/badge/license-GPL--3.0-blue?style=for-the-badge&logo=gplv3&logoColor=red"
+      height="22"
     /></a>
 </div>
 

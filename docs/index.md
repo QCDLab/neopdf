@@ -53,9 +53,9 @@ The need for a fast and reliable PDF interpolation is critical in high-energy ph
 for precision calculations at hadron colliders. Existing solutions like LHAPDF or TMDlib, while
 widely used, have limitations in terms of extensibility and features. `NeoPDF` addresses these by:
 
-- Providing a modern, modular codebase.
-- Enabling easy integration into new and existing workflows.
-- Supporting advanced features such as multi-dimensional interpolations.
+- Providing a modern and modular codebase with efficient file format
+- Enabling easy integration into new and existing workflows
+- Supporting advanced features such as multi-dimensional interpolations for up to 6D data
 
 ## High-Level Architecture
 

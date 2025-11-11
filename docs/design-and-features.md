@@ -1,8 +1,8 @@
 # Features
 
-`NeoPDF` is designed to be a modern, extensible, and high-performance library for PDF/TMD
-interpolation. This page details the physics and technical features, [design rationale](./design.md),
-and future plans.
+`NeoPDF` is designed to be a modern, extensible, and high-performance library for
+**generic non-perturbative functions**. This page details the physics and technical
+features, [design rationale](./design.md), and future plans.
 
 ## Summary of the Current Supported Features
 
@@ -15,7 +15,7 @@ and future plans.
     <th style="border: 1px solid #888;">Notes</th>
   </tr>
   <tr>
-    <td rowspan="4" style="text-align: center; vertical-align: middle; border: 1px solid #888;">APIs & FFIs</td>
+    <td rowspan="5" style="text-align: center; vertical-align: middle; border: 1px solid #888;">APIs & FFIs</td>
     <td style="border: 1px solid #888;">Rust API</td>
     <td style="border: 1px solid #888;">✅</td>
     <td style="border: 1px solid #888;">Fully supported</td>
@@ -36,12 +36,12 @@ and future plans.
     <td style="border: 1px solid #888;">Fully supported</td>
   </tr>
   <tr>
-    <td rowspan="7" style="text-align: center; vertical-align: middle; border: 1px solid #888;">Features</td>
-    <td style="border: 1px solid #888;">Multi-flavor grids</td>
-    <td style="border: 1px solid #888;">❌</td>
-    <td style="border: 1px solid #888;">Planned</td>
+    <td style="border: 1px solid #888;">Mathematica Interface</td>
+    <td style="border: 1px solid #888;">✅</td>
+    <td style="border: 1px solid #888;">Fully supported</td>
   </tr>
   <tr>
+    <td rowspan="9" style="text-align: center; vertical-align: middle; border: 1px solid #888;">Features</td>
     <td style="border: 1px solid #888;">Nuclear PDFs interpolation</td>
     <td style="border: 1px solid #888;">✅</td>
     <td style="border: 1px solid #888;">Fully supported</td>
@@ -57,6 +57,16 @@ and future plans.
     <td style="border: 1px solid #888;">Fully supported</td>
   </tr>
   <tr>
+    <td style="border: 1px solid #888;">Skeweness ξ interpolation</td>
+    <td style="border: 1px solid #888;">✅</td>
+    <td style="border: 1px solid #888;">Fully supported</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888;">Momentum Δ interpolation</td>
+    <td style="border: 1px solid #888;">✅</td>
+    <td style="border: 1px solid #888;">Fully supported</td>
+  </tr>
+  <tr>
     <td style="border: 1px solid #888;">Different Hadronic states</td>
     <td style="border: 1px solid #888;">✅</td>
     <td style="border: 1px solid #888;">Fully supported</td>
@@ -65,6 +75,11 @@ and future plans.
     <td style="border: 1px solid #888;">Custom interpolation</td>
     <td style="border: 1px solid #888;">✅</td>
     <td style="border: 1px solid #888;">Supported (user-defined strategies)</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888;">Multi-flavor grids</td>
+    <td style="border: 1px solid #888;">❌</td>
+    <td style="border: 1px solid #888;">Planned</td>
   </tr>
   <tr>
     <td style="border: 1px solid #888;">Analytical DGLAP interpolation</td>
@@ -102,89 +117,33 @@ and future plans.
     SetType: SpaceLike/TimeLike
     ```
 
-`NeoPDF` provides comprehensive support for different types of hadronic structure functions and most
-importantly distinguish between them, which is essential for precision QCD calculations.
+### Supported distributions
 
-- **<span style="color: #ff79c6;">Collinear vs. Transverse Momentum Dependent Distributions</span>**:
+`NeoPDF` supports generic classes of distributions that are functions of different combinations
+of the kinematic variables. Examples of known distribution functions are given in the diagram
+below with their simplified relationships.
 
-    * **Collinear Parton Distribution Functions (PDFs)** describe the probability of finding a parton
-      (quark or gluon) carrying a fraction $x$ of the longitudinal momentum of the parent hadron at a
-      given scale $Q^2$. These are functions of $(x, Q^2)$ and are the standard objects used in collinear
-      factorization for high-energy processes.
-    * **Transverse Momentum Dependent Distributions (TMDs)**, or TMD PDFs, generalize the concept of PDFs by
-      including the dependence on the parton's intrinsic transverse momentum $k_T$. TMDs are functions of
-      $(x, k_T, Q^2)$ and are essential for describing processes sensitive to the transverse structure of
-      hadrons, such as low-$p_T$ Drell-Yan, semi-inclusive deep inelastic scattering (SIDIS), and certain
-      jet observables.
-    * `NeoPDF` natively supports both collinear PDFs and TMDs, allowing users to interpolate and evaluate
-      distributions with or without $k_T$ dependence. The library automatically distinguishes between these
-      types based on the grid metadata, ensuring correct usage in phenomenological applications.
+<div align="center" markdown="1">
+```mermaid
+graph TD
 
-- **<span style="color: #ff79c6;">Parton vs Nuclear PDFs (Or TMDs, respectively)</span>**:
+A["**Generalized Tranverse Momentum Distribution** <br> GTMD(x, ξ, Δ, kT​​, Q²)"]
 
-    * **Parton PDFs** describe the momentum distribution of quarks and gluons within protons and
-      neutrons, fundamental for understanding the internal structure of hadrons. These are crucial
-      for Standard Model predictions at hadron colliders like the LHC.
-    * **Nuclear PDFs** extend this framework to describe parton distributions within nuclei, accounting
-      for nuclear binding effects, shadowing, and anti-shadowing. These are essential for heavy-ion
-      collisions and understanding nuclear structure effects in high-energy physics experiments.
+A -->|∫ dkT| B["**Generalized Parton Distributions** <br> GPD(x, ξ, Δ, Q²)"]
+A -->|ξ → 0, Δ → 0| C["**Transverse Momentum Distributions** <br> TMD(x, kT, Q²)"]
 
-- **<span style="color: #ff79c6;">Polarized vs Unpolarized PDFs (Or TMDs, respectively)</span>**:
+B -->|ξ → 0, Δ → 0| D["**Collinear Parton Distribution Functions** <br> PDF(x, Q²)"]
+C -->|∫ dkT| D
 
-    * **Unpolarized PDFs** represent the standard momentum distributions and are used in most collider
-      physics calculations.
-    * **Polarized PDFs** describe the spin-dependent parton distributions, crucial for understanding the
-      proton's spin structure and for experiments with polarized beams. These are essential for the RHIC
-      spin program and future electron-ion colliders (EIC).
+style A fill:#8B4513,stroke:#D2691E,stroke-width:2px
+style B fill:#1E3A5F,stroke:#4169E1,stroke-width:2px
+style C fill:#2F4F2F,stroke:#3CB371,stroke-width:2px
+style D fill:#8B2F2F,stroke:#CD5C5C,stroke-width:2px
+```
+</div>
 
-    The difference between polarized and unpolarized PDFs provides direct insight into the proton's spin
-    decomposition and tests of QCD in the spin sector.
-
-- **<span style="color: #ff79c6;">Timelike vs Spacelike PDFs (Or TMDs, respectively)</span>**:
-
-    - **Spacelike PDFs** (the standard case) describe parton distributions in deep-inelastic scattering
-      and hadron-hadron collisions.
-    - **Timelike PDFs** (Fragmentation Functions) describe the hadronization of partons into hadrons,
-      essential for understanding jet structure and hadron production in $e^+e^-$ collisions and hadron-hadron
-      collisions.
-
-    This distinction is crucial for precision phenomenology, as the evolution equations and factorization
-    theorems differ between the two cases.
-
-### Multi-Parameter Interpolations
-
-`NeoPDF` supports interpolation across multiple physical parameters:
-
-- **<span style="color: #ff79c6;">$\alpha_s(M_Z)$ Dependence</span>**:
-  The strong coupling constant $\alpha_s(M_Z)$ is a fundamental parameter of QCD that affects PDF
-  evolution and cross-section predictions. Different PDF sets use different values (typically
-  ranging from 0.116 to 0.120), and interpolating between them allows for:
-
-    * Uncertainty quantification in $\alpha_s$ determination
-    * Consistent treatment of $\alpha_s$ variations in global fits
-    * Testing the sensitivity of observables to the strong coupling constant
-
-- **<span style="color: #ff79c6;">Nuclear Dependence $(A, Z)$</span>**:
-  Nuclear PDFs depend on the atomic mass number $A$ and atomic number $Z$ of the target nucleus.
-  Interpolating in $(A, Z)$ space enables:
-
-    * Predictions for nuclei not included in existing sets
-    * Systematic studies of nuclear effects across the periodic table
-    * Applications to heavy-ion physics and neutrino-nucleus scattering
-
-- **<span style="color: #ff79c6;">Transverse Momentum Dependence $k_T$</span>**:
-  `NeoPDF` provides full support for interpolation in the transverse momentum $k_T$ variable, enabling
-  access to TMD PDFs and related distributions. Users can:
-
-    * Interpolate TMD grids as functions of $(x, k_T, Q^2)$, supporting both regular and logarithmic
-      $k_T$ binning.
-    * Seamlessly switch between collinear and TMD modes depending on the grid type, with automatic
-      handling of $k_T$ integration or projection as needed.
-    * Study $k_T$-dependent observables and perform phenomenological analyses that require access to
-      the full transverse momentum structure of the parton distributions.
-
-  This feature is crucial for modern QCD analyses, including TMD factorization, resummation, and the
-  study of nonperturbative effects in hadron structure.
+In order to support these distributions, `NeoPDF` provides Hermite Cubic Spline and Chebyshev
+interpolation strategies for up to 6D data.
 
 ### Multi-Flavor Grids (Planned)
 
@@ -219,8 +178,8 @@ into diverse computational workflows:
 
 - **Python Bindings**:
   Comprehensive Python interface using PyO3, enabling integration with the rich ecosystem of
-  scientific Python libraries (NumPy, SciPy, Matplotlib, etc.). This is crucial for data analysis,
-  visualization, and integration with existing physics analysis frameworks.
+  scientific Python libraries (NumPy, etc.). This is crucial for data analysis, visualization,
+  and integration with existing physics analysis frameworks.
 
 - **C/C++ Bindings**:
   Direct C and C++ interfaces for integration with legacy codes and high-performance computing
@@ -247,8 +206,8 @@ without requiring extensive code rewrites or validation efforts.
 `NeoPDF`'s modular architecture enables easy extension and customization:
 
 - **Pluggable Interpolation Strategies**:
-  The library supports multiple interpolation algorithms (bilinear, bicubic, tricubic, N-dimensional)
-  and can be extended with custom interpolation schemes.
+  The library supports multiple interpolation algorithms (linear, cubic, Chebyshev)
+  for up to 6D data and can be extended with custom interpolation schemes.
 
 - **Custom Grid Types**:
   The framework can accommodate new grid formats and data structures, enabling support for emerging
@@ -293,33 +252,3 @@ without requiring extensive code rewrites or validation efforts.
 - **FFI Safety**:
   Careful design of the foreign function interface ensures that safety guarantees extend to Python,
   C, and C++ code, preventing crashes and undefined behavior.
-
-## Architecture Overview
-
-```mermaid
-graph TD;
-    A[User (Rust/Python/C/C++)] --> B[API Layer];
-    B --> C[Core Engine (Rust)];
-    C --> D[Grid Data & Metadata];
-    C --> E[Interpolation Strategies];
-    D --> F[PDF Set Files];
-```
-
-- **API Layer**: Exposes a consistent interface in different programming languages.
-- **Core Engine**: Handles all logics, grid management, and interpolation.
-- **Grid Data**: Efficiently loads and manages PDF grid data and metadata.
-- **Interpolation Strategies**: Pluggable, with default (log)-bicubic, bilinear, and (log)-tricubic.
-  Relies on [ninterp](https://github.com/NREL/ninterp) for the N-dimensional interpolation.
-
-## Benchmark Against LHAPDF
-
-`NeoPDF` implements (log)-bicubic interpolation by default, with optional $N$-dimensional strategies.
-Lower-dimensional (bilinear, (log)-tricubic) are also available for performance tuning.
-
-!!! success "Benchmark against LHAPDF"
-
-    The difference between NeoPDF and LHAPDF, using the default interpolation, is **below machine
-    precision** for floating-point numbers.
-
-    ![as_x](https://github.com/user-attachments/assets/90faf0ad-bbaf-4917-81e1-fb4edd351766)
-    ![as_q](https://github.com/user-attachments/assets/3cbeecfe-9e12-4900-99ad-dd92d8bcf299)

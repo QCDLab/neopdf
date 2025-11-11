@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added `LogFourCubic` and `LogFiveCubic` interpolation strategies.
+- Added Chebyshev interpolation strategies for 4D and 5D data.
+- Added `LogFourCubic` and `LogFiveCubic` interpolation strategies for 4D and 5D data.
 - Added new methods to the Fortran and C/C++ APIs to write and compress grids
   with `xi` and `delta` dependence.
 

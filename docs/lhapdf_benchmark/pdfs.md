@@ -1,5 +1,13 @@
 # LHAPDF Sets Benchmark
 
+!!! success "Benchmark against LHAPDF"
+
+    The difference between NeoPDF and LHAPDF, using the default interpolation, is **below machine
+    precision** for floating-point numbers.
+
+    ![as_x](https://github.com/user-attachments/assets/90faf0ad-bbaf-4917-81e1-fb4edd351766)
+    ![as_q](https://github.com/user-attachments/assets/3cbeecfe-9e12-4900-99ad-dd92d8bcf299)
+
 The following records the benchmark of `NeoPDF` against `LHAPDF` for all the available
 `LHAPDF` sets using the same Cubic Hermite Splines interpolation. The benchmark are
 done in the entire range of $(x, Q^2)$ for all PDF flavours and members. Sucess ✅ means

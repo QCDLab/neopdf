@@ -4,7 +4,7 @@
 <div align="center">
     <a href="https://app.codecov.io/gh/Radonirinaunimi/neopdf/tree/master"><img
         alt="Codecov"
-        src="https://img.shields.io/codecov/c/github/Radonirinaunimi/neopdf?style=for-the-badge&logo=codecov&logoColor=red&color=blue"
+        src="https://img.shields.io/codecov/c/github/QCDLab/neopdf?style=for-the-badge&logo=codecov&logoColor=red&color=blue"
         height="22"
     /></a>
     <a href="https://gribnau.dev/cargo-msrv/"><img

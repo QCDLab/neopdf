@@ -1387,7 +1387,7 @@ dependencies = [
 
 [[package]]
 name = "neopdf"
-version = "0.2.1-alpha1"
+version = "0.3.0-alpha1"
 dependencies = [
  "bincode",
  "criterion",
@@ -1411,22 +1411,22 @@ dependencies = [
 
 [[package]]
 name = "neopdf_capi"
-version = "0.2.1-alpha1"
+version = "0.3.0-alpha1"
 dependencies = [
  "cbindgen",
  "ndarray",
- "neopdf 0.2.1-alpha1",
+ "neopdf 0.3.0-alpha1",
 ]
 
 [[package]]
 name = "neopdf_cli"
-version = "0.2.1-alpha1"
+version = "0.3.0-alpha1"
 dependencies = [
  "assert_cmd",
  "assert_fs",
  "clap 4.5.41",
  "ndarray",
- "neopdf 0.2.1-alpha1",
+ "neopdf 0.3.0-alpha1",
  "neopdf_tmdlib",
  "predicates",
  "serde",
@@ -1437,10 +1437,10 @@ dependencies = [
 
 [[package]]
 name = "neopdf_pyapi"
-version = "0.2.1-alpha1"
+version = "0.3.0-alpha1"
 dependencies = [
  "ndarray",
- "neopdf 0.2.1-alpha1",
+ "neopdf 0.3.0-alpha1",
  "numpy",
  "pyo3",
  "thiserror 1.0.69",
@@ -1448,7 +1448,7 @@ dependencies = [
 
 [[package]]
 name = "neopdf_tmdlib"
-version = "0.2.1-alpha1"
+version = "0.3.0-alpha1"
 dependencies = [
  "cc",
  "cxx",
@@ -1458,10 +1458,10 @@ dependencies = [
 
 [[package]]
 name = "neopdf_wolfram"
-version = "0.2.1-alpha1"
+version = "0.3.0-alpha1"
 dependencies = [
  "lazy_static",
- "neopdf 0.2.1-alpha1",
+ "neopdf 0.3.0-alpha1",
  "parking_lot",
  "wolfram-library-link",
 ]

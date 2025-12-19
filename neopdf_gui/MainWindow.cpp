@@ -1,5 +1,6 @@
 #include "MainWindow.hpp"
 #include "NeoPDF.hpp"
+
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -38,6 +39,7 @@ void MainWindow::setupUI() {
     setListWidget = new QListWidget();
     addSetButton = new QPushButton("Add PDF Set");
     connect(addSetButton, &QPushButton::clicked, this, &MainWindow::onAddSetButtonClicked);
+    connect(setListWidget, &QListWidget::currentItemChanged, this, &MainWindow::onCurrentSetChanged);
 
     setSelectionLayout->addWidget(setListWidget);
     setSelectionLayout->addWidget(addSetButton);
@@ -46,8 +48,8 @@ void MainWindow::setupUI() {
     // Plotting Parameters
     plotParamsGroup = new QGroupBox("Plot Parameters");
     plotParamsLayout = new QFormLayout();
+
     xAxisVarCombo = new QComboBox();
-    xAxisVarCombo->addItems({"x", "Q2"});
     connect(xAxisVarCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onXAxisVarChanged);
 
     pidCombo = new QComboBox();
@@ -66,29 +68,42 @@ void MainWindow::setupUI() {
     pidCombo->addItem("tbar (-6)", -6);
     pidCombo->setCurrentIndex(0); // Default to gluon
 
-    q2ValueEdit = new QLineEdit("100.0");
-    xValueEdit = new QLineEdit("0.1");
+    // Initialize all possible parameters
+    m_paramInfos.append({NEOPDF_SUBGRID_PARAMS_NUCLEONS, "Nucleon (A)", nullptr, nullptr, false, 1.0, "1.0"});
+    m_paramInfos.append({NEOPDF_SUBGRID_PARAMS_ALPHAS, "alpha_s", nullptr, nullptr, false, 0.118, "0.118"});
+    m_paramInfos.append({NEOPDF_SUBGRID_PARAMS_XI, "xi", nullptr, nullptr, false, 0.0, "0.0"});
+    m_paramInfos.append({NEOPDF_SUBGRID_PARAMS_DELTA, "delta", nullptr, nullptr, false, 0.0, "0.0"});
+    m_paramInfos.append({NEOPDF_SUBGRID_PARAMS_KT, "kt", nullptr, nullptr, false, 0.0, "0.0"});
+    m_paramInfos.append({NEOPDF_SUBGRID_PARAMS_MOMENTUM, "x", nullptr, nullptr, false, 0.1, "0.1"});
+    m_paramInfos.append({NEOPDF_SUBGRID_PARAMS_SCALE, "Q2", nullptr, nullptr, false, 100.0, "100.0"});
+
+    plotParamsLayout->addRow("X-axis variable:", xAxisVarCombo);
+    plotParamsLayout->addRow("PID:", pidCombo);
+
+    for (auto& info : m_paramInfos) {
+        info.widget = new QLineEdit(info.default_text);
+        info.label = new QLabel("Fixed " + info.name + " value:");
+        plotParamsLayout->addRow(info.label, info.widget);
+        info.widget->setVisible(false);
+        info.label->setVisible(false);
+    }
 
     rangeMinEdit = new QLineEdit("1e-5");
     rangeMaxEdit = new QLineEdit("1.0");
     pointsEdit = new QLineEdit("100");
-
     xAxisLogCheck = new QCheckBox("Logarithmic X-axis");
     yAxisLogCheck = new QCheckBox("Logarithmic Y-axis");
 
-    plotButton = new QPushButton("Plot");
-    connect(plotButton, &QPushButton::clicked, this, &MainWindow::onPlotButtonClicked);
-
-    plotParamsLayout->addRow("X-axis variable:", xAxisVarCombo);
-    plotParamsLayout->addRow("PID:", pidCombo);
-    plotParamsLayout->addRow("Fixed Q2 value:", q2ValueEdit);
-    plotParamsLayout->addRow("Fixed x value:", xValueEdit);
     plotParamsLayout->addRow("Plot Range Min:", rangeMinEdit);
     plotParamsLayout->addRow("Plot Range Max:", rangeMaxEdit);
     plotParamsLayout->addRow("Number of Points:", pointsEdit);
     plotParamsLayout->addRow(xAxisLogCheck);
     plotParamsLayout->addRow(yAxisLogCheck);
+
     plotParamsGroup->setLayout(plotParamsLayout);
+
+    plotButton = new QPushButton("Plot");
+    connect(plotButton, &QPushButton::clicked, this, &MainWindow::onPlotButtonClicked);
 
     controlsLayout->addWidget(setSelectionGroup);
     controlsLayout->addWidget(plotParamsGroup);
@@ -99,10 +114,8 @@ void MainWindow::setupUI() {
     chartView = new QChartView();
     chartView->setRenderHint(QPainter::Antialiasing);
 
-    mainLayout->addLayout(controlsLayout, 1); // 1/4 of the width
-    mainLayout->addWidget(chartView, 3);      // 3/4 of the width
-
-    onXAxisVarChanged(xAxisVarCombo->currentIndex());
+    mainLayout->addLayout(controlsLayout, 1);
+    mainLayout->addWidget(chartView, 3);
 }
 
 void MainWindow::onAddSetButtonClicked() {
@@ -114,20 +127,59 @@ void MainWindow::onAddSetButtonClicked() {
         QListWidgetItem* item = new QListWidgetItem(setName);
         item->setData(Qt::UserRole, setName);
         setListWidget->addItem(item);
+        setListWidget->setCurrentItem(item);
     }
 }
 
+void MainWindow::onCurrentSetChanged(QListWidgetItem *current, QListWidgetItem *previous) {
+    if (!current) return;
+    updateParametersUI(current->data(Qt::UserRole).toString());
+}
+
+void MainWindow::updateParametersUI(const QString& setName) {
+    neopdf::NeoPDF* pdf = nullptr;
+    try {
+        pdf = new neopdf::NeoPDF(setName.toStdString(), 0);
+    } catch (const std::exception& e) {
+        QMessageBox::critical(this, "Error loading PDF", e.what());
+        // Reset UI to a default state
+        for (auto& info : m_paramInfos) {
+            info.active = false;
+            info.widget->setVisible(false);
+            info.label->setVisible(false);
+        }
+        xAxisVarCombo->clear();
+        return;
+    }
+
+    xAxisVarCombo->blockSignals(true);
+    xAxisVarCombo->clear();
+
+    for (auto& info : m_paramInfos) {
+        auto range = pdf->param_range(info.id);
+        info.active = (range[0] < range[1]);
+        info.widget->setVisible(info.active);
+        info.label->setVisible(info.active);
+        if (info.active) {
+            xAxisVarCombo->addItem(info.name, QVariant::fromValue(info.id));
+        }
+    }
+
+    delete pdf;
+    xAxisVarCombo->blockSignals(false);
+    onXAxisVarChanged(xAxisVarCombo->currentIndex());
+}
+
+
 void MainWindow::onXAxisVarChanged(int index) {
-    if (index == 0) { // "x" is x-axis
-        xValueEdit->setEnabled(false);
-        q2ValueEdit->setEnabled(true);
-        rangeMinEdit->setText("1e-5");
-        rangeMaxEdit->setText("1.0");
-    } else { // "Q2" is x-axis
-        xValueEdit->setEnabled(true);
-        q2ValueEdit->setEnabled(false);
-        rangeMinEdit->setText("1.0");
-        rangeMaxEdit->setText("10000.0");
+    if (index < 0) return;
+
+    NeopdfSubgridParams selected_id = static_cast<NeopdfSubgridParams>(xAxisVarCombo->itemData(index).toInt());
+
+    for (auto& info : m_paramInfos) {
+        if (info.active) {
+            info.widget->setEnabled(info.id != selected_id);
+        }
     }
 }
 
@@ -136,20 +188,29 @@ void MainWindow::onPlotButtonClicked() {
         QMessageBox::warning(this, "No PDF Set", "Please select a PDF set to plot.");
         return;
     }
+    if (xAxisVarCombo->currentIndex() < 0) {
+        QMessageBox::warning(this, "No variable selected", "Please select a variable to plot.");
+        return;
+    }
 
     // 1. Get parameters from UI
-    QListWidgetItem* selectedItem = setListWidget->selectedItems().first();
-    QString setName = selectedItem->data(Qt::UserRole).toString();
+    QString setName = setListWidget->currentItem()->data(Qt::UserRole).toString();
+    NeopdfSubgridParams xAxisVarId = static_cast<NeopdfSubgridParams>(xAxisVarCombo->currentData().toInt());
 
     bool ok;
-    QString xAxisVar = xAxisVarCombo->currentText();
     int pid = pidCombo->currentData().toInt();
 
-    double fixed_q2 = q2ValueEdit->text().toDouble(&ok);
-    if (!ok) { QMessageBox::warning(this, "Invalid Input", "Invalid fixed Q2 value."); return; }
-
-    double fixed_x = xValueEdit->text().toDouble(&ok);
-    if (!ok) { QMessageBox::warning(this, "Invalid Input", "Invalid fixed x value."); return; }
+    QMap<NeopdfSubgridParams, double> fixed_values;
+    for (const auto& info : m_paramInfos) {
+        if (info.active) {
+            double val = info.widget->text().toDouble(&ok);
+            if (!ok) {
+                QMessageBox::warning(this, "Invalid Input", "Invalid value for " + info.name);
+                return;
+            }
+            fixed_values[info.id] = val;
+        }
+    }
 
     double range_min = rangeMinEdit->text().toDouble(&ok);
     if (!ok) { QMessageBox::warning(this, "Invalid Input", "Invalid range min value."); return; }
@@ -167,7 +228,7 @@ void MainWindow::onPlotButtonClicked() {
     }
     bool isYLog = yAxisLogCheck->isChecked();
 
-    // 2. Load all members of the selected PDF set using `neopdf::NeoPDFs`.
+    // 2. Load all members
     neopdf::NeoPDFs* pdfs = nullptr;
     try {
         pdfs = new neopdf::NeoPDFs(setName.toStdString());
@@ -177,32 +238,34 @@ void MainWindow::onPlotButtonClicked() {
         return;
     }
 
-    // Create series for plot
     auto *mean_series = new QLineSeries();
     mean_series->setName("Mean");
     auto *upper_series = new QLineSeries();
     auto *lower_series = new QLineSeries();
 
-    // 3. Generate data points for the plot.
-    double step = (range_max - range_min) / (n_points - 1);
+    // 3. Generate data points
+    double step = isXLog ? std::pow(range_max / range_min, 1.0 / (n_points - 1)) : (range_max - range_min) / (n_points - 1);
 
     for (int i = 0; i < n_points; ++i) {
-        double x_val = range_min + i * step;
+        double x_val = isXLog ? range_min * std::pow(step, i) : range_min + i * step;
 
         std::vector<double> params;
-        if (xAxisVar == "x") {
-            params = {x_val, fixed_q2};
-        } else { // Q2
-            params = {fixed_x, x_val};
+        for (const auto& info : m_paramInfos) {
+            if (info.active) {
+                if (info.id == xAxisVarId) {
+                    params.push_back(x_val);
+                } else {
+                    params.push_back(fixed_values[info.id]);
+                }
+            }
         }
 
         std::vector<double> results_for_point;
         results_for_point.reserve(pdfs->size());
         for (size_t j = 0; j < pdfs->size(); ++j) {
-            results_for_point.push_back(pdfs->at(j).xfxQ2(pid, params[0], params[1]));
+            results_for_point.push_back(pdfs->at(j).xfxQ2_ND(pid, params));
         }
 
-        // 4. Calculate mean and std deviation.
         double sum = std::accumulate(results_for_point.begin(), results_for_point.end(), 0.0);
         double mean = sum / results_for_point.size();
 
@@ -219,7 +282,6 @@ void MainWindow::onPlotButtonClicked() {
 
     delete pdfs;
 
-    // 5. Create QLineSeries for the mean and QAreaSeries for the error band.
     auto *area_series = new QAreaSeries(upper_series, lower_series);
     area_series->setName("1-sigma Error Band");
     QPen pen(0x059669);
@@ -228,15 +290,11 @@ void MainWindow::onPlotButtonClicked() {
     area_series->setColor(QColor(0x6EE7B7));
     area_series->setBorderColor(QColor(0x6EE7B7));
 
-    // 6. Create a QChart, add the series, and set it on the chartView.
     auto *chart = new QChart();
     chart->addSeries(area_series);
     chart->addSeries(mean_series);
-
     chart->setTitle("PDF: " + setName + " (pid=" + QString::number(pid) + ")");
 
-    // Axis creation
-    // X Axis
     QAbstractAxis *axisX;
     if (isXLog) {
         auto *logAxis = new QLogValueAxis();
@@ -246,16 +304,14 @@ void MainWindow::onPlotButtonClicked() {
         axisX = logAxis;
     } else {
         auto *valAxis = new QValueAxis();
-        valAxis->setLabelFormat(xAxisVar == "x" ? "%.1e" : "%.1f");
-        if(xAxisVar == "x") valAxis->setTickCount(10);
+        valAxis->setLabelFormat("%.1e");
         axisX = valAxis;
     }
-    axisX->setTitleText(xAxisVar);
+    axisX->setTitleText(xAxisVarCombo->currentText());
     chart->addAxis(axisX, Qt::AlignBottom);
     mean_series->attachAxis(axisX);
     area_series->attachAxis(axisX);
 
-    // Y Axis
     QAbstractAxis *axisY;
     if (isYLog) {
         auto *logAxis = new QLogValueAxis();
@@ -267,11 +323,8 @@ void MainWindow::onPlotButtonClicked() {
         axisY = new QValueAxis();
     }
 
-    if (xAxisVar == "x") {
-        axisY->setTitleText("x * f(x, Q2=" + QString::number(fixed_q2, 'g', 4) + ")");
-    } else { // Q2
-        axisY->setTitleText("x * f(x=" + QString::number(fixed_x, 'g', 3) + ", Q2)");
-    }
+    QString yTitle = "x * f(...)";
+    axisY->setTitleText(yTitle);
     chart->addAxis(axisY, Qt::AlignLeft);
     mean_series->attachAxis(axisY);
     area_series->attachAxis(axisY);
@@ -279,6 +332,5 @@ void MainWindow::onPlotButtonClicked() {
     chart->legend()->setVisible(true);
     chart->legend()->setAlignment(Qt::AlignBottom);
 
-    // This will take ownership of the chart and delete the old one
     chartView->setChart(chart);
 }

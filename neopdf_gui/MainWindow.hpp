@@ -34,11 +34,12 @@ private slots:
     void onPlotButtonClicked();
     void onAddSetButtonClicked();
     void onXAxisVarChanged(int index);
-    void onCurrentSetChanged(QListWidgetItem *current, QListWidgetItem *previous);
+    void onSelectionSetChanged();
+    void onClearSetsButtonClicked();
 
 private:
     void setupUI();
-    void updateParametersUI(const QString& setName);
+    void updateParametersUI(const QList<QListWidgetItem*>& items);
 
     // Main layout
     QWidget *centralWidget;
@@ -50,6 +51,7 @@ private:
     QVBoxLayout *setSelectionLayout;
     QListWidget *setListWidget;
     QPushButton *addSetButton;
+    QPushButton *clearSetsButton;
 
     QGroupBox *plotParamsGroup;
     QFormLayout *plotParamsLayout;

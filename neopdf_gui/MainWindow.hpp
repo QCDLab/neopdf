@@ -1,9 +1,9 @@
 #pragma once
 
 #include <QMainWindow>
-#include <QtWidgets>
-#include <QtCharts/QChartView>
 #include <QVector>
+#include <QtCharts/QChartView>
+#include <QtWidgets>
 
 #include "neopdf_capi.h" // For NeopdfSubgridParams enum
 
@@ -16,8 +16,8 @@ class QLineEdit;
 struct ParamInfo {
     NeopdfSubgridParams id;
     QString name;
-    QLineEdit* widget = nullptr;
-    QLabel* label = nullptr;
+    QLineEdit *widget = nullptr;
+    QLabel *label = nullptr;
     bool active = false;
     double default_val = 0.0;
     QString default_text;
@@ -26,20 +26,20 @@ struct ParamInfo {
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
-public:
+  public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-private slots:
+  private slots:
     void onPlotButtonClicked();
     void onAddSetButtonClicked();
     void onXAxisVarChanged(int index);
     void onSelectionSetChanged();
     void onClearSetsButtonClicked();
 
-private:
+  private:
     void setupUI();
-    void updateParametersUI(const QList<QListWidgetItem*>& items);
+    void updateParametersUI(const QList<QListWidgetItem *> &items);
 
     // Main layout
     QWidget *centralWidget;
@@ -60,9 +60,9 @@ private:
 
     QVector<ParamInfo> m_paramInfos;
 
-    QLineEdit* rangeMinEdit;
-    QLineEdit* rangeMaxEdit;
-    QLineEdit* pointsEdit;
+    QLineEdit *rangeMinEdit;
+    QLineEdit *rangeMaxEdit;
+    QLineEdit *pointsEdit;
     QCheckBox *xAxisLogCheck;
     QCheckBox *yAxisLogCheck;
     QPushButton *plotButton;

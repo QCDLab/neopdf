@@ -20,7 +20,7 @@
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setupUI();
-    setWindowTitle("NeoPDF Plotter");
+    setWindowTitle("NeoPDF");
     resize(1200, 800);
 }
 
@@ -40,7 +40,7 @@ void MainWindow::setupUI() {
     setSelectionLayout = new QVBoxLayout();
     setListWidget = new QListWidget();
     setListWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    addSetButton = new QPushButton("Add PDF Set");
+    addSetButton = new QPushButton("Add Set");
     connect(addSetButton, &QPushButton::clicked, this,
             &MainWindow::onAddSetButtonClicked);
     connect(setListWidget->selectionModel(),
@@ -379,7 +379,7 @@ void MainWindow::onPlotButtonClicked() {
         s->attachAxis(x_axis);
     }
 
-    y_axis->setTitleText("x * f(...)");
+    y_axis->setTitleText("xf");
     chart->legend()->setVisible(true);
     chart->legend()->setAlignment(Qt::AlignBottom);
 

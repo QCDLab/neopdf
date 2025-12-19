@@ -5,9 +5,8 @@
 #include <QtCharts/QChartView>
 #include <QtWidgets>
 
-#include "neopdf_capi.h" // For NeopdfSubgridParams enum
+#include "neopdf_capi.h"
 
-// Forward declarations
 class QFormLayout;
 class QLabel;
 class QListWidgetItem;
@@ -41,12 +40,10 @@ class MainWindow : public QMainWindow {
     void setupUI();
     void updateParametersUI(const QList<QListWidgetItem *> &items);
 
-    // Main layout
     QWidget *centralWidget;
     QHBoxLayout *mainLayout;
     QVBoxLayout *controlsLayout;
 
-    // Controls
     QGroupBox *setSelectionGroup;
     QVBoxLayout *setSelectionLayout;
     QListWidget *setListWidget;
@@ -67,6 +64,5 @@ class MainWindow : public QMainWindow {
     QCheckBox *yAxisLogCheck;
     QPushButton *plotButton;
 
-    // Plotting
     QChartView *chartView;
 };

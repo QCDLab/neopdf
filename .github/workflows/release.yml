@@ -151,7 +151,7 @@ jobs:
           path: neopdf_capi-${{ matrix.target }}.tar.gz
 
   publish-release:
-    needs: [capi-macos, cli-macos, capi-linux, cli-linux]
+    needs: [capi-macos, cli-macos, capi-linux, cli-linux, gui-macos, gui-linux]
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/')"
     steps:
@@ -165,6 +165,77 @@ jobs:
           gh release edit v${version} -n ""
           find artifacts -name 'neopdf_*' ! -name '*.whl' -type f -exec gh release upload v${version} {} +
           gh release edit v${version} --draft=false
+
+  gui-macos:
+    needs: capi-macos
+    strategy:
+      matrix:
+        include:
+          - os: macos-13
+            target: x86_64-apple-darwin
+          - os: macos-14
+            target: aarch64-apple-darwin
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt
+        run: brew install qt6
+      - name: Set Qt path
+        run: echo "CMAKE_PREFIX_PATH=$(brew --prefix qt6)" >> $GITHUB_ENV
+      - name: Download capi artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: neopdf_capi-${{ matrix.target }}
+          path: neopdf_capi_artifact
+      - name: Build and package
+        run: |
+          mkdir capi_install
+          tar -xzf neopdf_capi_artifact/neopdf_capi-${{ matrix.target }}.tar.gz -C capi_install
+          export CARGO_C_INSTALL_PREFIX=$(pwd)/capi_install
+          cmake -S neopdf_gui -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(pwd)/install -DCMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH
+          cmake --build build --config Release
+          cmake --install build
+          cd install
+          cpack
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: neopdf_gui-${{ matrix.target }}
+          path: install/*.dmg
+
+  gui-linux:
+    needs: capi-linux
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [x86_64-unknown-linux-gnu]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt and build essentials
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential qt6-base-dev qt6-charts-dev
+      - name: Download capi artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: neopdf_capi-${{ matrix.target }}
+          path: neopdf_capi_artifact
+      - name: Build and package
+        run: |
+          mkdir capi_install
+          tar -xzf neopdf_capi_artifact/neopdf_capi-${{ matrix.target }}.tar.gz -C capi_install
+          export CARGO_C_INSTALL_PREFIX=$(pwd)/capi_install
+          cmake -S neopdf_gui -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(pwd)/install
+          cmake --build build --config Release
+          cmake --install build
+          cd install
+          cpack
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: neopdf_gui-${{ matrix.target }}
+          path: install/*.tar.gz
+
 
   publish-crates:
     runs-on: ubuntu-latest

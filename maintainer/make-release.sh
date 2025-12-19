@@ -61,6 +61,10 @@ sed -i \
     Cargo.toml
 git add Cargo.toml
 
+# update GUI version
+sed -i "s/^project(neopdf_gui VERSION .*)/project(neopdf_gui VERSION ${version})/" neopdf_gui/CMakeLists.txt
+git add neopdf_gui/CMakeLists.txt
+
 echo ">>> Updating Cargo.lock ..."
 
 # update explicit version for `neopdf_tmdlib` in `neopdf_cli`

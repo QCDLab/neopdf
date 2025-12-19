@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(neopdf_gui LANGUAGES CXX)
+project(neopdf_gui VERSION 0.1.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -47,6 +47,12 @@ add_executable(neopdf_gui
     MainWindow.hpp
 )
 
+if(APPLE)
+    set_target_properties(neopdf_gui PROPERTIES
+        MACOSX_BUNDLE TRUE
+    )
+endif()
+
 target_link_libraries(neopdf_gui
     PRIVATE
     Qt6::Core
@@ -69,5 +75,32 @@ target_link_libraries(neopdf_gui
 target_compile_definitions(neopdf_gui PRIVATE QT_NO_FILESYSTEM)
 
 install(TARGETS neopdf_gui
+    BUNDLE DESTINATION .
     RUNTIME DESTINATION bin
 )
+
+if(WIN32)
+    set(QT_DEPLOY_TOOL windeployqt)
+elseif(APPLE)
+    set(QT_DEPLOY_TOOL macdeployqt)
+endif()
+
+if(QT_DEPLOY_TOOL)
+    find_program(QT_DEPLOY_TOOL_PATH ${QT_DEPLOY_TOOL} HINTS ${Qt6_BIN_DIR})
+    if(QT_DEPLOY_TOOL_PATH)
+        if(WIN32)
+            set(APP_PATH "\"${CMAKE_INSTALL_PREFIX}/bin/neopdf_gui.exe\"")
+        elseif(APPLE)
+            set(APP_PATH "\"${CMAKE_INSTALL_PREFIX}/neopdf_gui.app\"")
+        endif()
+        install(CODE "execute_process(COMMAND ${QT_DEPLOY_TOOL_PATH} ${APP_PATH})")
+    endif()
+endif()
+
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_GENERATOR "TGZ")
+if(APPLE)
+    set(CPACK_GENERATOR "DragNDrop")
+endif()
+
+include(CPack)

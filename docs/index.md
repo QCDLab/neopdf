@@ -14,7 +14,7 @@ hide:
 
 <div style="display: flex; justify-content: center;">
 <p>
-    <img src="https://img.shields.io/codecov/c/github/Radonirinaunimi/neopdf?style=flat-square&logo=codecov&logoColor=red&color=blue" alt="Codecov">
+    <img src="https://img.shields.io/codecov/c/github/QCDLab/neopdf?style=for-the-badge&logo=codecov&logoColor=red&color=blue" alt="Codecov">
     <img src="https://img.shields.io/crates/msrv/neopdf?style=flat-square&logo=rust&color=red" alt="MSRV">
     <img src="https://img.shields.io/crates/v/neopdf?style=flat-square&logo=rust&color=blue" alt="Crates.io">
     <img src="https://img.shields.io/pypi/pyversions/neopdf-hep?style=flat-square&logo=python" alt="PyPI - Python Version">

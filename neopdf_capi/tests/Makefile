@@ -1,8 +1,8 @@
 CC = gcc
 CXX = c++ -std=c++11
 CXXFLAGS = -O3 -Wall -Wextra -Werror
-NEOPDF_DEPS != pkg-config --cflags --libs neopdf_capi
-LHAPDF_DEPS != pkg-config --cflags --libs lhapdf
+NEOPDF_DEPS = $(shell pkg-config --cflags --libs neopdf_capi)
+LHAPDF_DEPS = $(shell pkg-config --cflags --libs lhapdf)
 MATH_LIBS = -lm
 
 PROGRAMS = check-capi check-oop check-writer check-writer-8d check-writer-oop check-xapi check-xwriter check-lhapdf-compatibility

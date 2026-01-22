@@ -69,7 +69,6 @@ void test_lhapdf_compatibility_c() {
     // Use the native NeoPDF API for comparison
     NeoPDFWrapper* neo_pdf = neopdf_pdf_load(pdfname, 0);
     double expected_g = neopdf_pdf_xfxq2(neo_pdf, -1, x, q*q);
-    neopdf_pdf_free(neo_pdf);
     double as_expected = neopdf_pdf_alphas_q2(neo_pdf, q*q);
 
     double reldiff = fabs(xfxs[6] - expected_g) / expected_g;
@@ -89,6 +88,7 @@ void test_lhapdf_compatibility_c() {
     assert(as_reldiff < TOLERANCE);
 
     printf("LHAPDF C Compatibility test passed.\n");
+    neopdf_pdf_free(neo_pdf);
 }
 
 int main() {

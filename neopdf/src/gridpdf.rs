@@ -15,7 +15,9 @@ use super::alphas::AlphaS;
 use super::interpolator::{DynInterpolator, InterpolatorFactory};
 use super::metadata::{InterpolatorType, MetaData};
 use super::parser::SubgridData;
+use super::strategy::LogBicubicInterpolation;
 use super::subgrid::{ParamRange, RangeParameters, SubGrid};
+use super::utils;
 
 /// Errors that can occur during PDF grid operations.
 #[derive(Debug, Error)]
@@ -251,6 +253,133 @@ fn fp_clip_small(v: f64) -> f64 {
     v.max(1e-10)
 }
 
+/// Interleaved bicubic coefficients for fast all-flavor evaluation.
+///
+/// Layout: coefficients are stored as `[cell][flavor][4]` where
+/// `cell = ix * nq2knots + iq2`, giving optimal cache locality when
+/// evaluating all flavors at the same `(x, Q2)` point.
+struct InterleavedBicubic {
+    /// Flat coefficient array: `[(ix * nq2 + iq2) * n_flavors * 4 + flavor * 4 + c]`
+    coeffs: Vec<f64>,
+    /// Log-transformed x grid (shared across all flavors).
+    log_xs: Vec<f64>,
+    /// Log-transformed Q2 grid (shared across all flavors).
+    log_q2s: Vec<f64>,
+    /// Number of Q2 knots.
+    nq2: usize,
+    /// Number of flavors stored.
+    n_flavors: usize,
+}
+
+impl InterleavedBicubic {
+    /// Build interleaved coefficients from a subgrid's per-flavor data.
+    fn build(subgrid: &SubGrid, n_pids: usize) -> Self {
+        let log_xs: Vec<f64> = subgrid.xs.iter().map(|&x| x.ln()).collect();
+        let log_q2s: Vec<f64> = subgrid.q2s.iter().map(|&q2| q2.ln()).collect();
+        let nxknots = log_xs.len();
+        let nq2knots = log_q2s.len();
+
+        // Compute per-flavor coefficients using the existing algorithm,
+        // then interleave into [cell][flavor][4].
+        let n_cells = (nxknots - 1) * nq2knots;
+        let mut interleaved = vec![0.0f64; n_cells * n_pids * 4];
+
+        for pid_idx in 0..n_pids {
+            let grid_slice = subgrid.grid_slice(pid_idx).to_owned();
+            let data = ninterp::data::InterpData2D {
+                grid: [
+                    ndarray::Array1::from_vec(log_xs.clone()),
+                    ndarray::Array1::from_vec(log_q2s.clone()),
+                ],
+                values: grid_slice,
+            };
+            let flavor_coeffs = LogBicubicInterpolation::compute_polynomial_coefficients(&data);
+
+            // Copy into interleaved layout
+            for cell in 0..n_cells {
+                let src = cell * 4;
+                let dst = (cell * n_pids + pid_idx) * 4;
+                interleaved[dst..dst + 4].copy_from_slice(&flavor_coeffs[src..src + 4]);
+            }
+        }
+
+        Self {
+            coeffs: interleaved,
+            log_xs,
+            log_q2s,
+            nq2: nq2knots,
+            n_flavors: n_pids,
+        }
+    }
+
+    /// Evaluate the Hermite x-polynomial for a given cell and flavor.
+    #[inline(always)]
+    fn hermite_x(&self, cell: usize, flavor: usize, u: f64) -> f64 {
+        let base = (cell * self.n_flavors + flavor) * 4;
+        let c = &self.coeffs[base..base + 4];
+        let u2 = u * u;
+        let u3 = u2 * u;
+        c[0] * u3 + c[1] * u2 + c[2] * u + c[3]
+    }
+
+    /// Evaluate all flavors at `(ix, iq2, u, v)`.
+    ///
+    /// `pid_slots` maps each output position to `Some(flavor_index)` or `None`.
+    fn eval_allpids(
+        &self,
+        ix: usize,
+        iq2: usize,
+        u: f64,
+        v: f64,
+        pid_slots: &[Option<usize>],
+        force_positive_fn: fn(f64) -> f64,
+        out: &mut [f64],
+    ) {
+        let nq2 = self.nq2;
+        let dq_1 = self.log_q2s[iq2 + 1] - self.log_q2s[iq2];
+
+        for (o, slot) in out.iter_mut().zip(pid_slots.iter()) {
+            let fi = match *slot {
+                Some(idx) => idx,
+                None => {
+                    *o = 0.0;
+                    continue;
+                }
+            };
+
+            let cell_lo = ix * nq2 + iq2;
+            let cell_hi = ix * nq2 + iq2 + 1;
+
+            let vl = self.hermite_x(cell_lo, fi, u);
+            let vh = self.hermite_x(cell_hi, fi, u);
+
+            let (vdl, vdh) = if iq2 == 0 {
+                let vdl_val = vh - vl;
+                let vhh = self.hermite_x(ix * nq2 + iq2 + 2, fi, u);
+                let dq_2_inv = 1.0 / (self.log_q2s[iq2 + 2] - self.log_q2s[iq2 + 1]);
+                let vdh_val = (vdl_val + (vhh - vh) * dq_1 * dq_2_inv) * 0.5;
+                (vdl_val, vdh_val)
+            } else if iq2 == nq2 - 2 {
+                let vdh_val = vh - vl;
+                let vll = self.hermite_x(ix * nq2 + iq2 - 1, fi, u);
+                let dq_0_inv = 1.0 / (self.log_q2s[iq2] - self.log_q2s[iq2 - 1]);
+                let vdl_val = (vdh_val + (vl - vll) * dq_1 * dq_0_inv) * 0.5;
+                (vdl_val, vdh_val)
+            } else {
+                let vll = self.hermite_x(ix * nq2 + iq2 - 1, fi, u);
+                let dq_0_inv = 1.0 / (self.log_q2s[iq2] - self.log_q2s[iq2 - 1]);
+                let vhh = self.hermite_x(ix * nq2 + iq2 + 2, fi, u);
+                let dq_2_inv = 1.0 / (self.log_q2s[iq2 + 2] - self.log_q2s[iq2 + 1]);
+                let vdl_val = ((vh - vl) + (vl - vll) * dq_1 * dq_0_inv) * 0.5;
+                let vdh_val = ((vh - vl) + (vhh - vh) * dq_1 * dq_2_inv) * 0.5;
+                (vdl_val, vdh_val)
+            };
+
+            *o = force_positive_fn(utils::hermite_cubic_interpolate(v, vl, vdl, vh, vdh));
+        }
+    }
+}
+
 /// The main PDF grid interface, providing high-level methods for interpolation.
 pub struct GridPDF {
     /// The metadata associated with the PDF set.
@@ -267,6 +396,9 @@ pub struct GridPDF {
     use_log: bool,
     /// Cached: function pointer for force-positive clipping (avoids per-call match).
     force_positive_fn: fn(f64) -> f64,
+    /// Optional fast path for all-flavor evaluation (2D LogBicubic only).
+    /// One entry per subgrid.
+    interleaved: Option<Vec<InterleavedBicubic>>,
 }
 
 impl GridPDF {
@@ -289,6 +421,29 @@ impl GridPDF {
                 | InterpolatorType::LogChebyshev
         );
 
+        // Build interleaved coefficients for 2D LogBicubic grids
+        let interleaved = if info.interpolator_type == InterpolatorType::LogBicubic {
+            let all_2d = knot_array.subgrids.iter().all(|sg| {
+                matches!(
+                    sg.interpolation_config(),
+                    super::interpolator::InterpolationConfig::TwoD
+                )
+            });
+            if all_2d {
+                Some(
+                    knot_array
+                        .subgrids
+                        .iter()
+                        .map(|sg| InterleavedBicubic::build(sg, knot_array.pids.len()))
+                        .collect(),
+                )
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
         Self {
             info,
             knot_array,
@@ -297,6 +452,7 @@ impl GridPDF {
             force_positive: None,
             use_log,
             force_positive_fn: fp_identity,
+            interleaved,
         }
     }
 
@@ -407,6 +563,76 @@ impl GridPDF {
         match self.interpolators[subgrid_idx][pid_idx].interpolate_point(&buf[..points.len()]) {
             Ok(result) => (self.force_positive_fn)(result),
             Err(e) => panic!("InterpolationError: {e}"),
+        }
+    }
+
+    /// Fast path for evaluating all requested flavors at a single kinematic point.
+    ///
+    /// For 2D LogBicubic grids with interleaved coefficients, the binary search
+    /// is performed once and all flavors are evaluated with optimal cache locality.
+    /// Falls back to per-flavor interpolation for other grid types.
+    pub(crate) fn xfxq2_allpids(&self, pids: &[i32], points: &[f64], out: &mut [f64]) {
+        let subgrid_idx = match self.knot_array.find_subgrid(points) {
+            Some(idx) => idx,
+            None => {
+                out.iter_mut().for_each(|v| *v = 0.0);
+                return;
+            }
+        };
+
+        // Fast path: interleaved 2D LogBicubic coefficients
+        if let Some(ref il) = self.interleaved {
+            let il = &il[subgrid_idx];
+            let lx = points[0].ln();
+            let lq2 = points[1].ln();
+
+            let ix = match utils::find_interval_index(&il.log_xs, lx) {
+                Ok(i) => i,
+                Err(_) => {
+                    out.iter_mut().for_each(|v| *v = 0.0);
+                    return;
+                }
+            };
+            let iq2 = match utils::find_interval_index(&il.log_q2s, lq2) {
+                Ok(j) => j,
+                Err(_) => {
+                    out.iter_mut().for_each(|v| *v = 0.0);
+                    return;
+                }
+            };
+
+            let dx = il.log_xs[ix + 1] - il.log_xs[ix];
+            let dy = il.log_q2s[iq2 + 1] - il.log_q2s[iq2];
+            let u = (lx - il.log_xs[ix]) / dx;
+            let v = (lq2 - il.log_q2s[iq2]) / dy;
+
+            // Precompute PID → flavor slot mapping
+            let mut pid_slots: [Option<usize>; 32] = [None; 32];
+            for (i, &pid) in pids.iter().enumerate().take(32) {
+                pid_slots[i] = self.knot_array.pid_index(pid);
+            }
+
+            il.eval_allpids(ix, iq2, u, v, &pid_slots[..pids.len()], self.force_positive_fn, out);
+            return;
+        }
+
+        // Generic fallback
+        let mut buf = [0.0f64; 8];
+        for (i, &p) in points.iter().enumerate() {
+            buf[i] = if self.use_log { p.ln() } else { p };
+        }
+        let log_points = &buf[..points.len()];
+
+        for (o, &pid) in out.iter_mut().zip(pids.iter()) {
+            *o = match self.knot_array.pid_index(pid) {
+                Some(pid_idx) => {
+                    match self.interpolators[subgrid_idx][pid_idx].interpolate_point(log_points) {
+                        Ok(result) => (self.force_positive_fn)(result),
+                        Err(e) => panic!("InterpolationError: {e}"),
+                    }
+                }
+                None => 0.0,
+            };
         }
     }
 

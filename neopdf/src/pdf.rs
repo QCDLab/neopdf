@@ -270,6 +270,13 @@ impl PDF {
         self.grid_pdf.xfxq2_fast(pid, points)
     }
 
+    /// Evaluates all requested flavors at a single kinematic point.
+    ///
+    /// Performs the subgrid lookup and log transform once, then loops over PIDs.
+    pub fn xfxq2_allpids(&self, pids: &[i32], points: &[f64], out: &mut [f64]) {
+        self.grid_pdf.xfxq2_allpids(pids, points, out);
+    }
+
     /// Interpolates the PDF value (xf) for multiple nucleons, alphas, flavors, xs, and Q2s.
     ///
     /// Abstraction to the `GridPDF::xfxq2s` method.

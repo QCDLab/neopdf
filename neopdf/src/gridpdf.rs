@@ -40,9 +40,32 @@ pub struct GridArray {
     pub pids: Array1<i32>,
     /// A collection of `SubGrid` instances that make up the full grid.
     pub subgrids: Vec<SubGrid>,
+    /// Precomputed lookup from normalized PID to index (avoids per-call linear scan).
+    #[serde(skip)]
+    pid_lookup: HashMap<i32, usize>,
 }
 
 impl GridArray {
+    /// Builds the PID lookup table from a pids array.
+    fn build_pid_lookup(pids: &Array1<i32>) -> HashMap<i32, usize> {
+        let mut pid_lookup = HashMap::with_capacity(pids.len());
+        for (idx, &pid) in pids.iter().enumerate() {
+            let normalized = if pid == 0 { 21 } else { pid };
+            pid_lookup.entry(normalized).or_insert(idx);
+        }
+        pid_lookup
+    }
+
+    /// Creates a `GridArray` from prebuilt pids and subgrids.
+    pub fn from_parts(pids: Array1<i32>, subgrids: Vec<SubGrid>) -> Self {
+        let pid_lookup = Self::build_pid_lookup(&pids);
+        Self {
+            pids,
+            subgrids,
+            pid_lookup,
+        }
+    }
+
     /// Creates a new `GridArray` from a vector of `SubgridData`.
     ///
     /// # Arguments
@@ -80,9 +103,13 @@ impl GridArray {
             })
             .collect();
 
+        let pids = Array1::from_vec(pids);
+        let pid_lookup = Self::build_pid_lookup(&pids);
+
         Self {
-            pids: Array1::from_vec(pids),
+            pids,
             subgrids,
+            pid_lookup,
         }
     }
 
@@ -131,6 +158,10 @@ impl GridArray {
     ///
     /// An `Option<usize>` containing the index of the subgrid if found, otherwise `None`.
     pub fn find_subgrid(&self, points: &[f64]) -> Option<usize> {
+        // Fast path: single subgrid (common case), clamping handles boundaries
+        if self.subgrids.len() == 1 {
+            return Some(0);
+        }
         self.subgrids
             .iter()
             .position(|sg| sg.contains_point(points))
@@ -149,11 +180,15 @@ impl GridArray {
 
     /// Gets the index corresponding to a given flavor ID.
     fn pid_index(&self, flavor_id: i32) -> Option<usize> {
-        let normalize_pid = |pid| if pid == 0 { 21 } else { pid };
-        let normalized_pids = normalize_pid(flavor_id);
+        let normalized = if flavor_id == 0 { 21 } else { flavor_id };
+        // Fast path: use precomputed lookup (populated by GridArray::new)
+        if !self.pid_lookup.is_empty() {
+            return self.pid_lookup.get(&normalized).copied();
+        }
+        // Fallback: linear scan (for deserialized GridArrays where pid_lookup is empty)
         self.pids
             .iter()
-            .position(|&pid| normalize_pid(pid) == normalized_pids)
+            .position(|&pid| (if pid == 0 { 21 } else { pid }) == normalized)
     }
 
     /// Gets the overall parameter ranges across all subgrids.
@@ -205,6 +240,17 @@ pub enum ForcePositive {
     NoClipping,
 }
 
+/// Helper functions for force-positive clipping via function pointer.
+fn fp_identity(v: f64) -> f64 {
+    v
+}
+fn fp_clip_negative(v: f64) -> f64 {
+    v.max(0.0)
+}
+fn fp_clip_small(v: f64) -> f64 {
+    v.max(1e-10)
+}
+
 /// The main PDF grid interface, providing high-level methods for interpolation.
 pub struct GridPDF {
     /// The metadata associated with the PDF set.
@@ -217,6 +263,10 @@ pub struct GridPDF {
     alphas: AlphaS,
     /// Clip the values to positive definite numbers if negatives.
     pub force_positive: Option<ForcePositive>,
+    /// Cached: whether the interpolator uses log-space coordinates.
+    use_log: bool,
+    /// Cached: function pointer for force-positive clipping (avoids per-call match).
+    force_positive_fn: fn(f64) -> f64,
 }
 
 impl GridPDF {
@@ -229,6 +279,15 @@ impl GridPDF {
     pub fn new(info: MetaData, knot_array: GridArray) -> Self {
         let interpolators = Self::build_interpolators(&info, &knot_array);
         let alphas = AlphaS::from_metadata(&info).expect("Failed to create AlphaS calculator");
+        let use_log = matches!(
+            info.interpolator_type,
+            InterpolatorType::LogBilinear
+                | InterpolatorType::LogBicubic
+                | InterpolatorType::LogTricubic
+                | InterpolatorType::LogFourCubic
+                | InterpolatorType::LogFiveCubic
+                | InterpolatorType::LogChebyshev
+        );
 
         Self {
             info,
@@ -236,6 +295,8 @@ impl GridPDF {
             interpolators,
             alphas,
             force_positive: None,
+            use_log,
+            force_positive_fn: fp_identity,
         }
     }
 
@@ -245,6 +306,11 @@ impl GridPDF {
     ///
     /// * `flag` - The `ForcePositive` enum variant specifying the clipping method.
     pub fn set_force_positive(&mut self, flag: ForcePositive) {
+        self.force_positive_fn = match &flag {
+            ForcePositive::ClipNegative => fp_clip_negative,
+            ForcePositive::ClipSmall => fp_clip_small,
+            ForcePositive::NoClipping => fp_identity,
+        };
         self.force_positive = Some(flag);
     }
 
@@ -309,25 +375,39 @@ impl GridPDF {
             None => return Ok(0.0),
         };
 
-        let use_log = matches!(
-            self.info.interpolator_type,
-            InterpolatorType::LogBilinear
-                | InterpolatorType::LogBicubic
-                | InterpolatorType::LogTricubic
-                | InterpolatorType::LogFourCubic
-                | InterpolatorType::LogFiveCubic
-                | InterpolatorType::LogChebyshev
-        );
+        let mut buf = [0.0f64; 8];
+        for (i, &p) in points.iter().enumerate() {
+            buf[i] = if self.use_log { p.ln() } else { p };
+        }
 
         self.interpolators[subgrid_idx][pid_idx]
-            .interpolate_point(
-                &points
-                    .iter()
-                    .map(|&p| if use_log { p.ln() } else { p })
-                    .collect::<Vec<_>>(),
-            )
+            .interpolate_point(&buf[..points.len()])
             .map_err(|e| Error::InterpolationError(e.to_string()))
-            .map(|result| self.apply_force_positive(result))
+            .map(|result| (self.force_positive_fn)(result))
+    }
+
+    /// Internal fast path for interpolation — returns `f64` directly, no `Result` wrapping.
+    /// Avoids `map_err` string allocation. Used by `PDF::xfxq2`.
+    pub(crate) fn xfxq2_fast(&self, flavor_id: i32, points: &[f64]) -> f64 {
+        let subgrid_idx = match self.knot_array.find_subgrid(points) {
+            Some(idx) => idx,
+            None => return 0.0,
+        };
+
+        let pid_idx = match self.knot_array.pid_index(flavor_id) {
+            Some(idx) => idx,
+            None => return 0.0,
+        };
+
+        let mut buf = [0.0f64; 8];
+        for (i, &p) in points.iter().enumerate() {
+            buf[i] = if self.use_log { p.ln() } else { p };
+        }
+
+        match self.interpolators[subgrid_idx][pid_idx].interpolate_point(&buf[..points.len()]) {
+            Ok(result) => (self.force_positive_fn)(result),
+            Err(e) => panic!("InterpolationError: {e}"),
+        }
     }
 
     /// Interpolates PDF values for multiple points in parallel.
@@ -349,7 +429,7 @@ impl GridPDF {
             .map(|idx| {
                 let num_cols = slice_points.len();
                 let (fl_idx, s_idx) = (idx / num_cols, idx % num_cols);
-                self.xfxq2(flavors[fl_idx], slice_points[s_idx]).unwrap()
+                self.xfxq2_fast(flavors[fl_idx], slice_points[s_idx])
             })
             .collect();
 

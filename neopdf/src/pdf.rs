@@ -267,7 +267,7 @@ impl PDF {
     ///
     /// The interpolated PDF value `xf(nuclone, alphas, flavor, x, Q^2)`.
     pub fn xfxq2(&self, pid: i32, points: &[f64]) -> f64 {
-        self.grid_pdf.xfxq2(pid, points).unwrap()
+        self.grid_pdf.xfxq2_fast(pid, points)
     }
 
     /// Interpolates the PDF value (xf) for multiple nucleons, alphas, flavors, xs, and Q2s.

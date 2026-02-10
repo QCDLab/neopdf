@@ -3,6 +3,7 @@
 use std::process::Command;
 
 fn main() {
+    let mut all_lib_paths = Vec::new();
     let cxx_flags: Vec<String> = String::from_utf8(
         Command::new("TMDlib-config")
             .arg("--cppflags")
@@ -34,6 +35,7 @@ fn main() {
         .filter_map(|token| token.strip_prefix("-L"))
     {
         println!("cargo:rustc-link-search={lib_path}");
+        all_lib_paths.push(lib_path.to_owned());
     }
 
     for lib in libs
@@ -59,5 +61,33 @@ fn main() {
     // Manually link to different libraries as TMDlib need them.
     println!("cargo:rustc-link-lib=gsl");
     println!("cargo:rustc-link-lib=gslcblas");
-    println!("cargo:rustc-link-lib=LHAPDF");
+    println!("cargo:rustc-link-lib=gfortran");
+
+    // Discover LHAPDF via lhapdf-config so we pick up the correct library path.
+    let lhapdf_libs = String::from_utf8(
+        Command::new("lhapdf-config")
+            .arg("--libs")
+            .output()
+            .expect("Could not find `lhapdf-config`, please install LHAPDF and make sure `lhapdf-config` is in your PATH")
+            .stdout,
+    )
+    .unwrap();
+
+    for lib_path in lhapdf_libs
+        .split_whitespace()
+        .filter_map(|token| token.strip_prefix("-L"))
+    {
+        println!("cargo:rustc-link-search={lib_path}");
+        all_lib_paths.push(lib_path.to_owned());
+    }
+
+    for lib in lhapdf_libs
+        .split_whitespace()
+        .filter_map(|token| token.strip_prefix("-l"))
+    {
+        println!("cargo:rustc-link-lib={lib}");
+    }
+
+    // Propagate library paths to dependent crates via DEP_NEOPDF_TMDLIB_LIB_PATHS.
+    println!("cargo:lib_paths={}", all_lib_paths.join(":"));
 }

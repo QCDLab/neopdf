@@ -331,8 +331,17 @@ impl SubGrid {
     ///
     /// `true` if the point is within the subgrid, `false` otherwise.
     pub fn contains_point(&self, points: &[f64]) -> bool {
-        let (expected_len, ranges) = match self.interpolation_config() {
-            InterpolationConfig::TwoD => (2, vec![]),
+        let config = self.interpolation_config();
+
+        // Fast path for 2D (most common case): avoids Vec allocation and match overhead
+        if let InterpolationConfig::TwoD = config {
+            return points.len() == 2
+                && self.x_range.contains(points[0])
+                && self.q2_range.contains(points[1]);
+        }
+
+        let (expected_len, ranges) = match config {
+            InterpolationConfig::TwoD => unreachable!(),
             InterpolationConfig::ThreeDNucleons => (3, vec![&self.nucleons_range]),
             InterpolationConfig::ThreeDAlphas => (3, vec![&self.alphas_range]),
             InterpolationConfig::ThreeDXi => (3, vec![&self.xi_range]),

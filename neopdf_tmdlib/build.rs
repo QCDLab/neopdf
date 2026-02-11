@@ -3,7 +3,6 @@
 use std::process::Command;
 
 fn main() {
-    let mut all_lib_paths = Vec::new();
     let cxx_flags: Vec<String> = String::from_utf8(
         Command::new("TMDlib-config")
             .arg("--cppflags")
@@ -35,7 +34,6 @@ fn main() {
         .filter_map(|token| token.strip_prefix("-L"))
     {
         println!("cargo:rustc-link-search={lib_path}");
-        all_lib_paths.push(lib_path.to_owned());
     }
 
     for lib in libs

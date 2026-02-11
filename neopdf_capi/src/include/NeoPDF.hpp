@@ -212,6 +212,36 @@ class NeoPDF {
             return results;
         }
 
+        /** @brief Evaluate all requested flavors at a single kinematic point. */
+        std::vector<double> xfxQ2_allpids(const std::vector<int32_t>& pids,
+                                          const std::vector<double>& points) const {
+            std::vector<double> results(pids.size());
+            neopdf_pdf_xfxq2_allpids(this->raw, pids.data(), pids.size(),
+                                     points.data(), points.size(), results.data());
+            return results;
+        }
+
+        /**
+         * @brief Interpolate PDF values for multiple PIDs at multiple kinematic points.
+         * @return Flat row-major vector of shape [pids.size(), points.size()].
+         */
+        std::vector<double>
+        xfxQ2s(const std::vector<int32_t>& pids,
+               const std::vector<std::vector<double>>& points) const {
+            std::vector<const double*> c_points(points.size());
+            std::vector<size_t> lengths(points.size());
+            for (size_t i = 0; i < points.size(); ++i) {
+                c_points[i] = points[i].data();
+                lengths[i] = points[i].size();
+            }
+
+            std::vector<double> results(pids.size() * points.size());
+            neopdf_pdf_xfxq2s(this->raw, pids.data(), pids.size(),
+                               c_points.data(), lengths.data(),
+                               points.size(), results.data());
+            return results;
+        }
+
         /** @brief Compute the value of `alphas` at the Q2 value. */
         double alphasQ2(double q2) const {
             return neopdf_pdf_alphas_q2(this->raw, q2);

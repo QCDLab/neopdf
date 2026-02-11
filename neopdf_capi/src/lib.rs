@@ -357,6 +357,84 @@ pub unsafe extern "C" fn neopdf_pdf_xfxq2_cheby_batch(
     results_slice.copy_from_slice(&res_vec);
 }
 
+/// Evaluates all requested flavors at a single kinematic point.
+///
+/// Performs the subgrid lookup and log transform once, then loops over PIDs.
+/// The `results` buffer must be pre-allocated to hold `num_pids` elements.
+///
+/// # Panics
+///
+/// This function will panic if the `pdf` pointer is null.
+///
+/// # Safety
+///
+/// - The `pdf` pointer must be a valid pointer to a `NeoPDF` object.
+/// - `pids` must be valid for reading `num_pids` elements.
+/// - `points` must be valid for reading `num_points` elements.
+/// - `results` must be valid for writing `num_pids` elements.
+#[no_mangle]
+pub unsafe extern "C" fn neopdf_pdf_xfxq2_allpids(
+    pdf: *mut NeoPDFWrapper,
+    pids: *const c_int,
+    num_pids: usize,
+    points: *const c_double,
+    num_points: usize,
+    results: *mut c_double,
+) {
+    assert!(!pdf.is_null());
+    let pdf_obj = unsafe { &(*pdf).0 };
+
+    let pids_slice = unsafe { slice::from_raw_parts(pids, num_pids) };
+    let points_slice = unsafe { slice::from_raw_parts(points, num_points) };
+    let results_slice = unsafe { slice::from_raw_parts_mut(results, num_pids) };
+
+    pdf_obj.xfxq2_allpids(pids_slice, points_slice, results_slice);
+}
+
+/// Interpolates PDF values for multiple PIDs at multiple kinematic points.
+///
+/// The results are written into a flat row-major buffer of shape `[num_pids, num_points]`.
+///
+/// # Panics
+///
+/// This function will panic if the `pdf` pointer is null.
+///
+/// # Safety
+///
+/// - The `pdf` pointer must be a valid pointer to a `NeoPDF` object.
+/// - `pids` must be valid for reading `num_pids` elements.
+/// - `points` must be a valid pointer to an array of `num_points` pointers to `c_double` arrays.
+/// - `lengths` must be a valid pointer to an array of `num_points` `usize` values.
+/// - `results` must be valid for writing `num_pids * num_points` elements.
+#[no_mangle]
+pub unsafe extern "C" fn neopdf_pdf_xfxq2s(
+    pdf: *mut NeoPDFWrapper,
+    pids: *const c_int,
+    num_pids: usize,
+    points: *const *const c_double,
+    lengths: *const usize,
+    num_points: usize,
+    results: *mut c_double,
+) {
+    assert!(!pdf.is_null());
+    let pdf_obj = unsafe { &(*pdf).0 };
+
+    let pids_slice = unsafe { slice::from_raw_parts(pids, num_pids) };
+    let points_slices = unsafe { slice::from_raw_parts(points, num_points) };
+    let lengths_slice = unsafe { slice::from_raw_parts(lengths, num_points) };
+
+    let rust_points: Vec<&[f64]> = points_slices
+        .iter()
+        .zip(lengths_slice)
+        .map(|(&p, &l)| unsafe { slice::from_raw_parts(p, l) })
+        .collect();
+
+    let result_array = pdf_obj.xfxq2s(pids_slice.to_vec(), &rust_points);
+
+    let results_slice = unsafe { slice::from_raw_parts_mut(results, num_pids * num_points) };
+    results_slice.copy_from_slice(result_array.as_slice().unwrap());
+}
+
 /// Clip the interpolated values if they turned out negatives.
 ///
 /// # Panics

@@ -699,7 +699,7 @@ impl NeoPDFGrid {
     }
 
     /// Adds a subgrid to the grid (v2 for 8D)
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, clippy::similar_names)]
     unsafe fn add_subgrid_v2(
         &mut self,
         nucleons: *const c_double,
@@ -809,6 +809,7 @@ pub unsafe extern "C" fn neopdf_grid_add_subgrid(
 /// # Safety
 /// - `grid` must be a valid pointer to a `NeoPDFGrid` created by `neopdf_grid_new`.
 /// - The data pointers must be valid for the specified lengths.
+#[allow(clippy::similar_names)]
 #[no_mangle]
 pub unsafe extern "C" fn neopdf_grid_add_subgridv2(
     grid: *mut NeoPDFGrid,

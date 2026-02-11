@@ -35,32 +35,92 @@ pub enum Error {
     InterpolationError(String),
 }
 
+/// Direct-indexed PID lookup table. PIDs in range `[PID_MIN, PID_MAX]` are
+/// resolved in O(1) via a flat array; out-of-range PIDs fall back to `None`.
+const PID_MIN: i32 = -6;
+const PID_MAX: i32 = 22;
+const PID_RANGE: usize = (PID_MAX - PID_MIN + 1) as usize; // 29
+const PID_NONE: u8 = u8::MAX; // sentinel for "not present"
+
+#[derive(Debug, Clone)]
+struct PidLookup {
+    table: [u8; PID_RANGE],
+}
+
+impl Default for PidLookup {
+    fn default() -> Self {
+        Self {
+            table: [PID_NONE; PID_RANGE],
+        }
+    }
+}
+
+impl PidLookup {
+    fn build(pids: &Array1<i32>) -> Self {
+        let mut lut = Self::default();
+        for (idx, &pid) in pids.iter().enumerate() {
+            let normalized = if pid == 0 { 21 } else { pid };
+            if (PID_MIN..=PID_MAX).contains(&normalized) {
+                let slot = (normalized - PID_MIN) as usize;
+                if lut.table[slot] == PID_NONE {
+                    lut.table[slot] = idx as u8;
+                }
+            }
+        }
+        lut
+    }
+
+    #[inline(always)]
+    fn get(&self, pid: i32) -> Option<usize> {
+        let normalized = if pid == 0 { 21 } else { pid };
+        if !(PID_MIN..=PID_MAX).contains(&normalized) {
+            return None;
+        }
+        let v = self.table[(normalized - PID_MIN) as usize];
+        if v == PID_NONE {
+            None
+        } else {
+            Some(v as usize)
+        }
+    }
+}
+
 /// Stores the complete PDF grid data, including all subgrids and flavor information.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct GridArray {
     /// An array of particle flavor IDs (PIDs).
     pub pids: Array1<i32>,
     /// A collection of `SubGrid` instances that make up the full grid.
     pub subgrids: Vec<SubGrid>,
-    /// Precomputed lookup from normalized PID to index (avoids per-call linear scan).
+    /// Direct-indexed PID lookup (O(1), no hashing).
     #[serde(skip)]
-    pid_lookup: HashMap<i32, usize>,
+    pid_lookup: PidLookup,
+}
+
+impl<'de> Deserialize<'de> for GridArray {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct Helper {
+            pids: Array1<i32>,
+            subgrids: Vec<SubGrid>,
+        }
+        let h = Helper::deserialize(deserializer)?;
+        let pid_lookup = PidLookup::build(&h.pids);
+        Ok(Self {
+            pids: h.pids,
+            subgrids: h.subgrids,
+            pid_lookup,
+        })
+    }
 }
 
 impl GridArray {
-    /// Builds the PID lookup table from a pids array.
-    fn build_pid_lookup(pids: &Array1<i32>) -> HashMap<i32, usize> {
-        let mut pid_lookup = HashMap::with_capacity(pids.len());
-        for (idx, &pid) in pids.iter().enumerate() {
-            let normalized = if pid == 0 { 21 } else { pid };
-            pid_lookup.entry(normalized).or_insert(idx);
-        }
-        pid_lookup
-    }
-
     /// Creates a `GridArray` from prebuilt pids and subgrids.
     pub fn from_parts(pids: Array1<i32>, subgrids: Vec<SubGrid>) -> Self {
-        let pid_lookup = Self::build_pid_lookup(&pids);
+        let pid_lookup = PidLookup::build(&pids);
         Self {
             pids,
             subgrids,
@@ -106,7 +166,7 @@ impl GridArray {
             .collect();
 
         let pids = Array1::from_vec(pids);
-        let pid_lookup = Self::build_pid_lookup(&pids);
+        let pid_lookup = PidLookup::build(&pids);
 
         Self {
             pids,
@@ -181,16 +241,9 @@ impl GridArray {
     }
 
     /// Gets the index corresponding to a given flavor ID.
+    #[inline(always)]
     fn pid_index(&self, flavor_id: i32) -> Option<usize> {
-        let normalized = if flavor_id == 0 { 21 } else { flavor_id };
-        // Fast path: use precomputed lookup (populated by GridArray::new)
-        if !self.pid_lookup.is_empty() {
-            return self.pid_lookup.get(&normalized).copied();
-        }
-        // Fallback: linear scan (for deserialized GridArrays where pid_lookup is empty)
-        self.pids
-            .iter()
-            .position(|&pid| (if pid == 0 { 21 } else { pid }) == normalized)
+        self.pid_lookup.get(flavor_id)
     }
 
     /// Gets the overall parameter ranges across all subgrids.
@@ -322,9 +375,66 @@ impl InterleavedBicubic {
         c[0] * u3 + c[1] * u2 + c[2] * u + c[3]
     }
 
+    /// Evaluate a single flavor at a given `(x, q2)` point.
+    ///
+    /// Performs log transform, binary search, and coefficient evaluation
+    /// in a single direct path — no vtable dispatch, no Result wrapping.
+    #[inline]
+    fn eval_single(&self, flavor: usize, x: f64, q2: f64) -> f64 {
+        let lx = x.ln();
+        let lq2 = q2.ln();
+
+        let ix = match utils::find_interval_index(&self.log_xs, lx) {
+            Ok(i) => i,
+            Err(_) => return 0.0,
+        };
+        let iq2 = match utils::find_interval_index(&self.log_q2s, lq2) {
+            Ok(j) => j,
+            Err(_) => return 0.0,
+        };
+
+        let dx = self.log_xs[ix + 1] - self.log_xs[ix];
+        let dy = self.log_q2s[iq2 + 1] - self.log_q2s[iq2];
+        let u = (lx - self.log_xs[ix]) / dx;
+        let v = (lq2 - self.log_q2s[iq2]) / dy;
+
+        let nq2 = self.nq2;
+        let cell_lo = ix * nq2 + iq2;
+
+        let vl = self.hermite_x(cell_lo, flavor, u);
+        let vh = self.hermite_x(cell_lo + 1, flavor, u);
+
+        let dq_1 = dy; // = log_q2s[iq2+1] - log_q2s[iq2], already computed
+
+        let (vdl, vdh) = if iq2 == 0 {
+            let vdl_val = vh - vl;
+            let vhh = self.hermite_x(cell_lo + 2, flavor, u);
+            let dq_2_inv = 1.0 / (self.log_q2s[iq2 + 2] - self.log_q2s[iq2 + 1]);
+            let vdh_val = (vdl_val + (vhh - vh) * dq_1 * dq_2_inv) * 0.5;
+            (vdl_val, vdh_val)
+        } else if iq2 == nq2 - 2 {
+            let vdh_val = vh - vl;
+            let vll = self.hermite_x(cell_lo - 1, flavor, u);
+            let dq_0_inv = 1.0 / (self.log_q2s[iq2] - self.log_q2s[iq2 - 1]);
+            let vdl_val = (vdh_val + (vl - vll) * dq_1 * dq_0_inv) * 0.5;
+            (vdl_val, vdh_val)
+        } else {
+            let vll = self.hermite_x(cell_lo - 1, flavor, u);
+            let dq_0_inv = 1.0 / (self.log_q2s[iq2] - self.log_q2s[iq2 - 1]);
+            let vhh = self.hermite_x(cell_lo + 2, flavor, u);
+            let dq_2_inv = 1.0 / (self.log_q2s[iq2 + 2] - self.log_q2s[iq2 + 1]);
+            let vdl_val = ((vh - vl) + (vl - vll) * dq_1 * dq_0_inv) * 0.5;
+            let vdh_val = ((vh - vl) + (vhh - vh) * dq_1 * dq_2_inv) * 0.5;
+            (vdl_val, vdh_val)
+        };
+
+        utils::hermite_cubic_interpolate(v, vl, vdl, vh, vdh)
+    }
+
     /// Evaluate all flavors at `(ix, iq2, u, v)`.
     ///
     /// `pid_slots` maps each output position to `Some(flavor_index)` or `None`.
+    #[allow(clippy::too_many_arguments)]
     fn eval_allpids(
         &self,
         ix: usize,
@@ -555,6 +665,14 @@ impl GridPDF {
             None => return 0.0,
         };
 
+        // Fast path: 2D LogBicubic via interleaved coefficients — bypasses
+        // vtable dispatch, ninterp validation, and Result wrapping.
+        if let Some(ref il) = self.interleaved {
+            return (self.force_positive_fn)(
+                il[subgrid_idx].eval_single(pid_idx, points[0], points[1]),
+            );
+        }
+
         let mut buf = [0.0f64; 8];
         for (i, &p) in points.iter().enumerate() {
             buf[i] = if self.use_log { p.ln() } else { p };
@@ -612,7 +730,15 @@ impl GridPDF {
                 pid_slots[i] = self.knot_array.pid_index(pid);
             }
 
-            il.eval_allpids(ix, iq2, u, v, &pid_slots[..pids.len()], self.force_positive_fn, out);
+            il.eval_allpids(
+                ix,
+                iq2,
+                u,
+                v,
+                &pid_slots[..pids.len()],
+                self.force_positive_fn,
+                out,
+            );
             return;
         }
 

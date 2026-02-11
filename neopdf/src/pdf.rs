@@ -267,7 +267,14 @@ impl PDF {
     ///
     /// The interpolated PDF value `xf(nuclone, alphas, flavor, x, Q^2)`.
     pub fn xfxq2(&self, pid: i32, points: &[f64]) -> f64 {
-        self.grid_pdf.xfxq2(pid, points).unwrap()
+        self.grid_pdf.xfxq2_fast(pid, points)
+    }
+
+    /// Evaluates all requested flavors at a single kinematic point.
+    ///
+    /// Performs the subgrid lookup and log transform once, then loops over PIDs.
+    pub fn xfxq2_allpids(&self, pids: &[i32], points: &[f64], out: &mut [f64]) {
+        self.grid_pdf.xfxq2_allpids(pids, points, out);
     }
 
     /// Interpolates the PDF value (xf) for multiple nucleons, alphas, flavors, xs, and Q2s.

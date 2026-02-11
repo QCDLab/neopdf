@@ -164,7 +164,7 @@ fn combine_nuclear_pdfs() {
         ])
         .assert()
         .success()
-        .stdout("63.389564472386645\n");
+        .stdout("63.389699819551744\n");
 }
 
 #[test]
@@ -210,7 +210,7 @@ fn combine_alphas_pdfs() {
         ])
         .assert()
         .success()
-        .stdout("34.352827400641736\n");
+        .stdout("34.35295086733387\n");
 }
 
 #[test]

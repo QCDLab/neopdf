@@ -17,7 +17,7 @@ pub enum SetType {
 /// Represents the type of interpolator used for the PDF.
 /// WARNING: When adding elements, always append at the end!!!
 #[repr(C)]
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 pub enum InterpolatorType {
     Bilinear,
     LogBilinear,

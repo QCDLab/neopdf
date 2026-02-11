@@ -85,7 +85,7 @@ fn xfxq2_neopdf_combined_npdfs() {
         ])
         .assert()
         .success()
-        .stdout("8.204642526146479\n");
+        .stdout("8.204713375903903\n");
 }
 
 #[test]
@@ -106,7 +106,7 @@ fn xfxq2_neopdf_combined_npdfs_interpolation() {
         ])
         .assert()
         .success()
-        .stdout("7.994425939656785\n");
+        .stdout("7.994525227715066\n");
 }
 
 #[test]

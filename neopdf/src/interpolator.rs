@@ -11,6 +11,8 @@
 //! Interpolation strategies are defined in `strategy.rs`.
 //! The [`SubGrid`] struct is defined in `subgrid.rs`.
 
+use std::any::Any;
+
 use ndarray::{s, IxDyn, OwnedRepr};
 use ninterp::data::{InterpData2D, InterpData3D};
 use ninterp::error::InterpolateError;
@@ -118,6 +120,9 @@ impl InterpolationConfig {
 /// A trait for dynamic interpolation across different dimensions.
 pub trait DynInterpolator: Send + Sync {
     fn interpolate_point(&self, point: &[f64]) -> Result<f64, InterpolateError>;
+
+    /// Downcast to concrete type for optimized multi-flavor evaluation.
+    fn as_any(&self) -> &dyn Any;
 }
 
 // Implement `DynInterpolator` for 2D interpolators.
@@ -130,6 +135,10 @@ where
             .try_into()
             .map_err(|_| InterpolateError::Other("Expected 2D point".to_string()))?;
         self.interpolate(&[x, y])
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -144,6 +153,10 @@ where
             .map_err(|_| InterpolateError::Other("Expected 3D point".to_string()))?;
         self.interpolate(&[x, y, z])
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 // Implement `DynInterpolator` for N-dimensional interpolators.
@@ -153,6 +166,10 @@ where
 {
     fn interpolate_point(&self, point: &[f64]) -> Result<f64, InterpolateError> {
         self.interpolate(point)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 

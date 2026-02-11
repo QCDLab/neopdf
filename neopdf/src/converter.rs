@@ -174,10 +174,7 @@ pub fn combine_lhapdf_npdfs<P: AsRef<std::path::Path>>(
             };
             combined_subgrids.push(new_subgrid);
         }
-        let combined_grid = GridArray {
-            pids: pids.clone(),
-            subgrids: combined_subgrids,
-        };
+        let combined_grid = GridArray::from_parts(pids.clone(), combined_subgrids);
         combined_grids.push(combined_grid);
     }
 
@@ -311,10 +308,7 @@ pub fn combine_lhapdf_alphas<P: AsRef<std::path::Path>>(
             };
             combined_subgrids.push(new_subgrid);
         }
-        let combined_grid = GridArray {
-            pids: pids.clone(),
-            subgrids: combined_subgrids,
-        };
+        let combined_grid = GridArray::from_parts(pids.clone(), combined_subgrids);
         combined_grids.push(combined_grid);
     }
 

@@ -263,7 +263,7 @@ impl LogBicubicInterpolation {
     }
 
     /// Computes the polynomial coefficients for bicubic interpolation, mirroring LHAPDF's C++ implementation.
-    fn compute_polynomial_coefficients<D>(data: &InterpData2D<D>) -> Vec<f64>
+    pub(crate) fn compute_polynomial_coefficients<D>(data: &InterpData2D<D>) -> Vec<f64>
     where
         D: Data<Elem = f64> + RawDataClone + Clone,
     {
@@ -301,7 +301,7 @@ impl LogBicubicInterpolation {
     }
 
     /// Performs bicubic interpolation using pre-computed coefficients.
-    fn interpolate_with_coeffs<D>(
+    pub(crate) fn interpolate_with_coeffs<D>(
         &self,
         data: &InterpData2D<D>,
         ix: usize,

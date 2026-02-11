@@ -699,7 +699,7 @@ impl NeoPDFGrid {
     }
 
     /// Adds a subgrid to the grid (v2 for 8D)
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, clippy::similar_names)]
     unsafe fn add_subgrid_v2(
         &mut self,
         nucleons: *const c_double,
@@ -809,6 +809,7 @@ pub unsafe extern "C" fn neopdf_grid_add_subgrid(
 /// # Safety
 /// - `grid` must be a valid pointer to a `NeoPDFGrid` created by `neopdf_grid_new`.
 /// - The data pointers must be valid for the specified lengths.
+#[allow(clippy::similar_names)]
 #[no_mangle]
 pub unsafe extern "C" fn neopdf_grid_add_subgridv2(
     grid: *mut NeoPDFGrid,
@@ -1507,16 +1508,8 @@ pub unsafe extern "C" fn evolvepdf(x: c_double, q: c_double, f: *mut c_double) {
             let pdf = &pdfs[member];
             let q2 = q * q;
 
-            let (available_pids, _) = pdf.pids().clone().into_raw_vec_and_offset();
             let out_slice = slice::from_raw_parts_mut(f, 14);
-
-            for (out, &pid) in out_slice.iter_mut().zip(DEFAULT_PIDS.iter()) {
-                *out = if available_pids.contains(&pid) {
-                    pdf.xfxq2(pid, &[x, q2])
-                } else {
-                    0.0
-                };
-            }
+            pdf.xfxq2_allpids(&DEFAULT_PIDS, &[x, q2], out_slice);
         }
     }
 }
@@ -1542,16 +1535,8 @@ pub unsafe extern "C" fn evolvepdf_(x: *const c_double, q: *const c_double, f: *
             let pdf = &pdfs[member];
             let q2 = (*q) * (*q);
 
-            let (available_pids, _) = pdf.pids().clone().into_raw_vec_and_offset();
             let out_slice = slice::from_raw_parts_mut(f, 14);
-
-            for (out, &pid) in out_slice.iter_mut().zip(DEFAULT_PIDS.iter()) {
-                *out = if available_pids.contains(&pid) {
-                    pdf.xfxq2(pid, &[*x, q2])
-                } else {
-                    0.0
-                };
-            }
+            pdf.xfxq2_allpids(&DEFAULT_PIDS, &[*x, q2], out_slice);
         }
     }
 }

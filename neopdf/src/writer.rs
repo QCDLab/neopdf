@@ -382,10 +382,7 @@ impl GridArrayReader {
             })
             .collect();
 
-        GridArray {
-            pids: legacy_grid.pids,
-            subgrids,
-        }
+        GridArray::from_parts(legacy_grid.pids, subgrids)
     }
 
     /// Returns the number of grid arrays in the collection.
@@ -669,9 +666,6 @@ mod tests {
     }
 
     fn test_grid() -> GridArray {
-        GridArray {
-            pids: Array1::from(vec![1, 2, 3]),
-            subgrids: vec![],
-        }
+        GridArray::from_parts(Array1::from(vec![1, 2, 3]), vec![])
     }
 }

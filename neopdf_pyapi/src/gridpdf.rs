@@ -168,10 +168,7 @@ impl PyGridArray {
             .map(|py_ref| py_ref.subgrid.clone())
             .collect();
 
-        let gridarray = GridArray {
-            pids: Array1::from(pids),
-            subgrids,
-        };
+        let gridarray = GridArray::from_parts(Array1::from(pids), subgrids);
         Self { gridarray }
     }
 

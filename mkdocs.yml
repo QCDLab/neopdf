@@ -33,6 +33,7 @@ nav:
   - TMDlib Interface: tmdlib.md
   - LHAPDF Sets Benchmark: 'lhapdf_benchmark/pdfs.md'
   - Examples:
+      - '<i class="devicon-rust-plain colored"></i> Rust API': 'examples/rust.md'
       - '<i class="devicon-python-plain colored"></i> Python API': 'examples/neopdf-pyapi.ipynb'
       - '<i class="devicon-cplusplus-plain colored"></i> C++ OOP API': 'examples/c-oop.md'
       - '<i class="devicon-c-plain colored"></i> C/C++ API': 'examples/c.md'

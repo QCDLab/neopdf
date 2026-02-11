@@ -38,8 +38,8 @@ pub enum Error {
 /// resolved in O(1) via a flat array; out-of-range PIDs fall back to `None`.
 const PID_MIN: i32 = -6;
 const PID_MAX: i32 = 22;
-const PID_RANGE: usize = (PID_MAX - PID_MIN + 1) as usize; // 29
-const PID_NONE: u8 = u8::MAX; // sentinel for "not present"
+const PID_RANGE: usize = (PID_MAX - PID_MIN + 1) as usize;
+const PID_NONE: u8 = u8::MAX;
 
 #[derive(Debug, Clone)]
 struct PidLookup {
@@ -91,7 +91,7 @@ pub struct GridArray {
     pub pids: Array1<i32>,
     /// A collection of `SubGrid` instances that make up the full grid.
     pub subgrids: Vec<SubGrid>,
-    /// Direct-indexed PID lookup (O(1), no hashing).
+    /// Direct-indexed PID lookup with complexity O(1).
     #[serde(skip)]
     pid_lookup: PidLookup,
 }
@@ -219,10 +219,10 @@ impl GridArray {
     ///
     /// An `Option<usize>` containing the index of the subgrid if found, otherwise `None`.
     pub fn find_subgrid(&self, points: &[f64]) -> Option<usize> {
-        // Fast path: single subgrid (common case), clamping handles boundaries
         if self.subgrids.len() == 1 {
             return Some(0);
         }
+
         self.subgrids
             .iter()
             .position(|sg| sg.contains_point(points))
@@ -295,14 +295,16 @@ pub enum ForcePositive {
 }
 
 /// Helper functions for force-positive clipping via function pointer.
-fn fp_identity(v: f64) -> f64 {
-    v
+fn fp_identity(value: f64) -> f64 {
+    value
 }
-fn fp_clip_negative(v: f64) -> f64 {
-    v.max(0.0)
+
+fn fp_clip_negative(value: f64) -> f64 {
+    value.max(0.0)
 }
-fn fp_clip_small(v: f64) -> f64 {
-    v.max(1e-10)
+
+fn fp_clip_small(value: f64) -> f64 {
+    value.max(1e-10)
 }
 
 /// Build an `InterleavedHermite` for a subgrid, if its config is supported.
@@ -480,8 +482,8 @@ fn build_interleaved(
             let log_xis: Vec<f64> = subgrid.xis.iter().map(|&v| v.ln()).collect();
             let log_del: Vec<f64> = subgrid.deltas.iter().map(|&v| v.ln()).collect();
             let log_kts: Vec<f64> = subgrid.kts.iter().map(|&v| v.ln()).collect();
-            // Points arrive as [kT, xi, delta, x, Q2]
-            // extra_grids order: [Q2, delta, xi, kT] (innermost first)
+
+            // Re-order [kT, xi, delta, x, Q2] into [Q2, delta, xi, kT] (innermost first)
             let extra_grids = vec![log_q2s, log_del, log_xis, log_kts];
             let grid = subgrid.grid.view();
             Some(InterleavedHermite::build(
@@ -497,7 +499,7 @@ fn build_interleaved(
                 },
             ))
         }
-        // SixD, SevenD, and non-cubic configs are not supported
+        // `SixD`, `SevenD`, and non-cubic configs are not supported.
         _ => None,
     }
 }
@@ -519,7 +521,6 @@ pub struct GridPDF {
     /// Cached: function pointer for force-positive clipping (avoids per-call match).
     force_positive_fn: fn(f64) -> f64,
     /// Optional fast path for all-flavor evaluation (cubic Hermite, 2D–5D).
-    /// One entry per subgrid.
     interleaved: Option<Vec<InterleavedHermite>>,
 }
 
@@ -664,7 +665,7 @@ impl GridPDF {
     }
 
     /// Internal fast path for interpolation — returns `f64` directly, no `Result` wrapping.
-    /// Avoids `map_err` string allocation. Used by `PDF::xfxq2`.
+    /// Avoids `map_err` string allocation.
     pub(crate) fn xfxq2_fast(&self, flavor_id: i32, points: &[f64]) -> f64 {
         let subgrid_idx = match self.knot_array.find_subgrid(points) {
             Some(idx) => idx,
@@ -676,8 +677,8 @@ impl GridPDF {
             None => return 0.0,
         };
 
-        // Fast path: interleaved Hermite coefficients — bypasses
-        // vtable dispatch, ninterp validation, and Result wrapping.
+        // Fast path: interleaved Hermite coefficients. This bypasses vtable dispatch, ninterp
+        // validation, and Result wrapping.
         if let Some(ref il) = self.interleaved {
             if let Some(val) = il[subgrid_idx].eval_single_fast(pid_idx, points) {
                 return (self.force_positive_fn)(val);

@@ -94,7 +94,7 @@ impl InterleavedHermite {
         let n_extra = extra_grids.len();
         let nx = log_xs.len();
 
-        // Compute strides and total cells per x-interval
+        // Compute strides and total cells per x-interval.
         let extra_sizes: Vec<usize> = extra_grids.iter().map(|g| g.len()).collect();
         let mut extra_strides = vec![0usize; n_extra];
         let mut cells_per_x = 1usize;
@@ -107,26 +107,22 @@ impl InterleavedHermite {
         let total_cells = n_x_cells * cells_per_x;
         let mut coeffs = vec![0.0f64; total_cells * n_flavors * 4];
 
-        // Temporary buffer for x-values at a fixed (flavor, extra_indices) combination
         let mut x_vals = vec![0.0f64; nx];
         let mut extra_idx_buf = vec![0usize; n_extra];
 
         for flavor in 0..n_flavors {
-            // Iterate over all combinations of extra dimension indices
             for extra_linear in 0..cells_per_x {
-                // Decode linear index to per-dimension indices
                 let mut remaining = extra_linear;
                 for dim in 0..n_extra {
                     extra_idx_buf[dim] = remaining % extra_sizes[dim];
                     remaining /= extra_sizes[dim];
                 }
 
-                // Gather x-values for this (flavor, extra) combination
                 for (ix, val) in x_vals.iter_mut().enumerate() {
                     *val = value_at(flavor, ix, &extra_idx_buf);
                 }
 
-                // Compute polynomial coefficients for each x-interval
+                // Compute polynomial coefficients for each x-interval.
                 for ix in 0..n_x_cells {
                     let dx = log_xs[ix + 1] - log_xs[ix];
                     let vl = x_vals[ix];
@@ -167,7 +163,6 @@ impl InterleavedHermite {
     /// into extra_grids order `[Q2, outer1, outer2, ...]`.
     pub fn locate(&self, points: &[f64]) -> Option<Location> {
         let n = points.len();
-        // Validate dimensionality: expect 1 (x) + n_extra dimensions
         if n != self.n_extra + 1 {
             return None;
         }
@@ -181,7 +176,6 @@ impl InterleavedHermite {
         let mut extra_indices = [0usize; MAX_EXTRA_DIMS];
         let mut extra_ts = [0.0f64; MAX_EXTRA_DIMS];
 
-        // extra_grids[0] = Q2
         {
             let grid = &self.extra_grids[0];
             let idx = utils::find_interval_index(grid, lq2).ok()?;
@@ -190,9 +184,8 @@ impl InterleavedHermite {
             extra_ts[0] = (lq2 - grid[idx]) / d;
         }
 
-        // extra_grids[1..] = outer dims, mapped from points[0..n-2] in reverse
         for k in 1..self.n_extra {
-            let point_idx = n - 3 - (k - 1); // reversed: outermost point first
+            let point_idx = n - 3 - (k - 1);
             let log_val = points[point_idx].ln();
             let grid = &self.extra_grids[k];
             let idx = utils::find_interval_index(grid, log_val).ok()?;
@@ -219,8 +212,8 @@ impl InterleavedHermite {
         }
     }
 
-    /// Fast single-flavor evaluation for 2D grids.
-    /// Returns `None` if out of bounds or wrong dimensionality.
+    /// Fast single-flavor evaluation for 2D grids. Returns `None` if out of bounds
+    /// or wrong dimensionality.
     #[inline]
     pub fn eval_single_fast(&self, flavor: usize, points: &[f64]) -> Option<f64> {
         if points.len() != self.n_extra + 1 {
@@ -273,11 +266,10 @@ impl InterleavedHermite {
     ) {
         let cell_base = loc.ix * self.cells_per_x;
         if self.n_extra == 1 {
-            // Specialized 2D path: avoid recursion overhead
             let iq2 = loc.extra_indices[0];
             let v = loc.extra_ts[0];
             let u = loc.u_x;
-            let nq2 = self.cells_per_x; // cells_per_x == nq2 for 2D
+            let nq2 = self.cells_per_x;
             let log_q2s = &self.extra_grids[0];
             let dq_1 = log_q2s[iq2 + 1] - log_q2s[iq2];
 
@@ -416,20 +408,18 @@ impl InterleavedHermite {
             return self.hermite_x(cell_base, flavor, u_x);
         }
 
-        let dim = level - 1; // index into extra_grids
+        let dim = level - 1;
         let grid = &self.extra_grids[dim];
         let n_knots = grid.len();
         let idx = loc.extra_indices[dim];
         let t = loc.extra_ts[dim];
         let stride = self.extra_strides[dim];
 
-        // Evaluate the inner dimension at idx and idx+1
         let cell_lo = cell_base + idx * stride;
         let cell_hi = cell_base + (idx + 1) * stride;
         let vl = self.eval_level(level - 1, cell_lo, flavor, u_x, loc);
         let vh = self.eval_level(level - 1, cell_hi, flavor, u_x, loc);
 
-        // Derivative estimation using the same central-difference scheme
         let dq = grid[idx + 1] - grid[idx];
 
         let (vdl, vdh) = if idx == 0 {
@@ -481,7 +471,7 @@ mod tests {
     fn test_compute_x_derivative_interior() {
         let log_xs = vec![0.0, 1.0, 2.0, 3.0];
         let values = vec![0.0, 1.0, 4.0, 9.0];
-        // Interior: average of (1-0)/1 and (4-1)/1 = (1+3)/2 = 2
+        // Interior: average of (1-0)/1 and (4-1)/1 = (1+3)/2 = 2.
         let d = compute_x_derivative(&log_xs, &values, 1);
         assert!((d - 2.0).abs() < 1e-12);
     }
@@ -498,20 +488,20 @@ mod tests {
 
     #[test]
     fn test_2d_matches_knot_values() {
-        // Build a simple 2x2 grid and verify knot values are reproduced exactly
+        // Build a simple 2x2 grid and verify knot values are reproduced exactly.
         let log_xs = vec![0.0, 1.0];
         let log_q2s = vec![0.0, 1.0];
-        let vals = [[1.0, 2.0], [3.0, 4.0]]; // vals[x][q2]
+        let vals = [[1.0, 2.0], [3.0, 4.0]];
 
         let ih = InterleavedHermite::build(log_xs, vec![log_q2s], 1, |_flav, x_idx, extra| {
             vals[x_idx][extra[0]]
         });
 
-        // Evaluate at exact lower-left knot: x=exp(0)=1.0, q2=exp(0)=1.0
+        // Evaluate at exact lower-left knot: x=exp(0)=1.0, q2=exp(0)=1.0.
         let v00 = ih.eval_single(0, &[1.0, 1.0]);
         assert!((v00 - 1.0).abs() < 1e-12, "Got {v00} expected 1.0");
 
-        // Evaluate at exact upper-right knot: x=exp(1)=e, q2=exp(1)=e
+        // Evaluate at exact upper-right knot: x=exp(1)=e, q2=exp(1)=e.
         let v11 = ih.eval_single(0, &[1.0_f64.exp(), 1.0_f64.exp()]);
         assert!((v11 - 4.0).abs() < 1e-12, "Got {v11} expected 4.0");
     }

@@ -48,6 +48,7 @@
 pub mod alphas;
 pub mod converter;
 pub mod gridpdf;
+pub mod interleaved;
 pub mod interpolator;
 pub mod manage;
 pub mod metadata;

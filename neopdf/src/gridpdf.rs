@@ -12,12 +12,11 @@ use std::collections::HashMap;
 use thiserror::Error;
 
 use super::alphas::AlphaS;
-use super::interpolator::{DynInterpolator, InterpolatorFactory};
+use super::interleaved::InterleavedHermite;
+use super::interpolator::{DynInterpolator, InterpolationConfig, InterpolatorFactory};
 use super::metadata::{InterpolatorType, MetaData};
 use super::parser::SubgridData;
-use super::strategy::LogBicubicInterpolation;
 use super::subgrid::{ParamRange, RangeParameters, SubGrid};
-use super::utils;
 
 /// Errors that can occur during PDF grid operations.
 #[derive(Debug, Error)]
@@ -306,187 +305,200 @@ fn fp_clip_small(v: f64) -> f64 {
     v.max(1e-10)
 }
 
-/// Interleaved bicubic coefficients for fast all-flavor evaluation.
-///
-/// Layout: coefficients are stored as `[cell][flavor][4]` where
-/// `cell = ix * nq2knots + iq2`, giving optimal cache locality when
-/// evaluating all flavors at the same `(x, Q2)` point.
-struct InterleavedBicubic {
-    /// Flat coefficient array: `[(ix * nq2 + iq2) * n_flavors * 4 + flavor * 4 + c]`
-    coeffs: Vec<f64>,
-    /// Log-transformed x grid (shared across all flavors).
-    log_xs: Vec<f64>,
-    /// Log-transformed Q2 grid (shared across all flavors).
-    log_q2s: Vec<f64>,
-    /// Number of Q2 knots.
-    nq2: usize,
-    /// Number of flavors stored.
-    n_flavors: usize,
-}
+/// Build an `InterleavedHermite` for a subgrid, if its config is supported.
+fn build_interleaved(
+    subgrid: &SubGrid,
+    config: InterpolationConfig,
+    n_pids: usize,
+) -> Option<InterleavedHermite> {
+    let log_xs: Vec<f64> = subgrid.xs.iter().map(|&x| x.ln()).collect();
+    let log_q2s: Vec<f64> = subgrid.q2s.iter().map(|&q| q.ln()).collect();
 
-impl InterleavedBicubic {
-    /// Build interleaved coefficients from a subgrid's per-flavor data.
-    fn build(subgrid: &SubGrid, n_pids: usize) -> Self {
-        let log_xs: Vec<f64> = subgrid.xs.iter().map(|&x| x.ln()).collect();
-        let log_q2s: Vec<f64> = subgrid.q2s.iter().map(|&q2| q2.ln()).collect();
-        let nxknots = log_xs.len();
-        let nq2knots = log_q2s.len();
-
-        // Compute per-flavor coefficients using the existing algorithm,
-        // then interleave into [cell][flavor][4].
-        let n_cells = (nxknots - 1) * nq2knots;
-        let mut interleaved = vec![0.0f64; n_cells * n_pids * 4];
-
-        for pid_idx in 0..n_pids {
-            let grid_slice = subgrid.grid_slice(pid_idx).to_owned();
-            let data = ninterp::data::InterpData2D {
-                grid: [
-                    ndarray::Array1::from_vec(log_xs.clone()),
-                    ndarray::Array1::from_vec(log_q2s.clone()),
-                ],
-                values: grid_slice,
-            };
-            let flavor_coeffs = LogBicubicInterpolation::compute_polynomial_coefficients(&data);
-
-            // Copy into interleaved layout
-            for cell in 0..n_cells {
-                let src = cell * 4;
-                let dst = (cell * n_pids + pid_idx) * 4;
-                interleaved[dst..dst + 4].copy_from_slice(&flavor_coeffs[src..src + 4]);
-            }
+    match config {
+        InterpolationConfig::TwoD => {
+            let extra_grids = vec![log_q2s];
+            let grid = subgrid.grid.view();
+            let is_8d = subgrid.is_8d();
+            Some(InterleavedHermite::build(
+                log_xs,
+                extra_grids,
+                n_pids,
+                |pid, x_idx, extra| {
+                    let q2_idx = extra[0];
+                    if is_8d {
+                        grid[[0, 0, 0, 0, 0, pid, x_idx, q2_idx]]
+                    } else {
+                        grid[[0, 0, pid, 0, x_idx, q2_idx]]
+                    }
+                },
+            ))
         }
-
-        Self {
-            coeffs: interleaved,
-            log_xs,
-            log_q2s,
-            nq2: nq2knots,
-            n_flavors: n_pids,
+        InterpolationConfig::ThreeDNucleons => {
+            let log_nucs: Vec<f64> = subgrid.nucleons.iter().map(|&v| v.ln()).collect();
+            let extra_grids = vec![log_q2s, log_nucs];
+            let grid = subgrid.grid.view();
+            Some(InterleavedHermite::build(
+                log_xs,
+                extra_grids,
+                n_pids,
+                |pid, x_idx, extra| {
+                    let q2_idx = extra[0];
+                    let nuc_idx = extra[1];
+                    grid[[nuc_idx, 0, pid, 0, x_idx, q2_idx]]
+                },
+            ))
         }
-    }
-
-    /// Evaluate the Hermite x-polynomial for a given cell and flavor.
-    #[inline(always)]
-    fn hermite_x(&self, cell: usize, flavor: usize, u: f64) -> f64 {
-        let base = (cell * self.n_flavors + flavor) * 4;
-        let c = &self.coeffs[base..base + 4];
-        let u2 = u * u;
-        let u3 = u2 * u;
-        c[0] * u3 + c[1] * u2 + c[2] * u + c[3]
-    }
-
-    /// Evaluate a single flavor at a given `(x, q2)` point.
-    ///
-    /// Performs log transform, binary search, and coefficient evaluation
-    /// in a single direct path — no vtable dispatch, no Result wrapping.
-    #[inline]
-    fn eval_single(&self, flavor: usize, x: f64, q2: f64) -> f64 {
-        let lx = x.ln();
-        let lq2 = q2.ln();
-
-        let ix = match utils::find_interval_index(&self.log_xs, lx) {
-            Ok(i) => i,
-            Err(_) => return 0.0,
-        };
-        let iq2 = match utils::find_interval_index(&self.log_q2s, lq2) {
-            Ok(j) => j,
-            Err(_) => return 0.0,
-        };
-
-        let dx = self.log_xs[ix + 1] - self.log_xs[ix];
-        let dy = self.log_q2s[iq2 + 1] - self.log_q2s[iq2];
-        let u = (lx - self.log_xs[ix]) / dx;
-        let v = (lq2 - self.log_q2s[iq2]) / dy;
-
-        let nq2 = self.nq2;
-        let cell_lo = ix * nq2 + iq2;
-
-        let vl = self.hermite_x(cell_lo, flavor, u);
-        let vh = self.hermite_x(cell_lo + 1, flavor, u);
-
-        let dq_1 = dy; // = log_q2s[iq2+1] - log_q2s[iq2], already computed
-
-        let (vdl, vdh) = if iq2 == 0 {
-            let vdl_val = vh - vl;
-            let vhh = self.hermite_x(cell_lo + 2, flavor, u);
-            let dq_2_inv = 1.0 / (self.log_q2s[iq2 + 2] - self.log_q2s[iq2 + 1]);
-            let vdh_val = (vdl_val + (vhh - vh) * dq_1 * dq_2_inv) * 0.5;
-            (vdl_val, vdh_val)
-        } else if iq2 == nq2 - 2 {
-            let vdh_val = vh - vl;
-            let vll = self.hermite_x(cell_lo - 1, flavor, u);
-            let dq_0_inv = 1.0 / (self.log_q2s[iq2] - self.log_q2s[iq2 - 1]);
-            let vdl_val = (vdh_val + (vl - vll) * dq_1 * dq_0_inv) * 0.5;
-            (vdl_val, vdh_val)
-        } else {
-            let vll = self.hermite_x(cell_lo - 1, flavor, u);
-            let dq_0_inv = 1.0 / (self.log_q2s[iq2] - self.log_q2s[iq2 - 1]);
-            let vhh = self.hermite_x(cell_lo + 2, flavor, u);
-            let dq_2_inv = 1.0 / (self.log_q2s[iq2 + 2] - self.log_q2s[iq2 + 1]);
-            let vdl_val = ((vh - vl) + (vl - vll) * dq_1 * dq_0_inv) * 0.5;
-            let vdh_val = ((vh - vl) + (vhh - vh) * dq_1 * dq_2_inv) * 0.5;
-            (vdl_val, vdh_val)
-        };
-
-        utils::hermite_cubic_interpolate(v, vl, vdl, vh, vdh)
-    }
-
-    /// Evaluate all flavors at `(ix, iq2, u, v)`.
-    ///
-    /// `pid_slots` maps each output position to `Some(flavor_index)` or `None`.
-    #[allow(clippy::too_many_arguments)]
-    fn eval_allpids(
-        &self,
-        ix: usize,
-        iq2: usize,
-        u: f64,
-        v: f64,
-        pid_slots: &[Option<usize>],
-        force_positive_fn: fn(f64) -> f64,
-        out: &mut [f64],
-    ) {
-        let nq2 = self.nq2;
-        let dq_1 = self.log_q2s[iq2 + 1] - self.log_q2s[iq2];
-
-        for (o, slot) in out.iter_mut().zip(pid_slots.iter()) {
-            let fi = match *slot {
-                Some(idx) => idx,
-                None => {
-                    *o = 0.0;
-                    continue;
-                }
-            };
-
-            let cell_lo = ix * nq2 + iq2;
-            let cell_hi = ix * nq2 + iq2 + 1;
-
-            let vl = self.hermite_x(cell_lo, fi, u);
-            let vh = self.hermite_x(cell_hi, fi, u);
-
-            let (vdl, vdh) = if iq2 == 0 {
-                let vdl_val = vh - vl;
-                let vhh = self.hermite_x(ix * nq2 + iq2 + 2, fi, u);
-                let dq_2_inv = 1.0 / (self.log_q2s[iq2 + 2] - self.log_q2s[iq2 + 1]);
-                let vdh_val = (vdl_val + (vhh - vh) * dq_1 * dq_2_inv) * 0.5;
-                (vdl_val, vdh_val)
-            } else if iq2 == nq2 - 2 {
-                let vdh_val = vh - vl;
-                let vll = self.hermite_x(ix * nq2 + iq2 - 1, fi, u);
-                let dq_0_inv = 1.0 / (self.log_q2s[iq2] - self.log_q2s[iq2 - 1]);
-                let vdl_val = (vdh_val + (vl - vll) * dq_1 * dq_0_inv) * 0.5;
-                (vdl_val, vdh_val)
-            } else {
-                let vll = self.hermite_x(ix * nq2 + iq2 - 1, fi, u);
-                let dq_0_inv = 1.0 / (self.log_q2s[iq2] - self.log_q2s[iq2 - 1]);
-                let vhh = self.hermite_x(ix * nq2 + iq2 + 2, fi, u);
-                let dq_2_inv = 1.0 / (self.log_q2s[iq2 + 2] - self.log_q2s[iq2 + 1]);
-                let vdl_val = ((vh - vl) + (vl - vll) * dq_1 * dq_0_inv) * 0.5;
-                let vdh_val = ((vh - vl) + (vhh - vh) * dq_1 * dq_2_inv) * 0.5;
-                (vdl_val, vdh_val)
-            };
-
-            *o = force_positive_fn(utils::hermite_cubic_interpolate(v, vl, vdl, vh, vdh));
+        InterpolationConfig::ThreeDAlphas => {
+            let log_alp: Vec<f64> = subgrid.alphas.iter().map(|&v| v.ln()).collect();
+            let extra_grids = vec![log_q2s, log_alp];
+            let grid = subgrid.grid.view();
+            Some(InterleavedHermite::build(
+                log_xs,
+                extra_grids,
+                n_pids,
+                |pid, x_idx, extra| {
+                    let q2_idx = extra[0];
+                    let alp_idx = extra[1];
+                    grid[[0, alp_idx, pid, 0, x_idx, q2_idx]]
+                },
+            ))
         }
+        InterpolationConfig::ThreeDKt => {
+            let log_kts: Vec<f64> = subgrid.kts.iter().map(|&v| v.ln()).collect();
+            let extra_grids = vec![log_q2s, log_kts];
+            let grid = subgrid.grid.view();
+            Some(InterleavedHermite::build(
+                log_xs,
+                extra_grids,
+                n_pids,
+                |pid, x_idx, extra| {
+                    let q2_idx = extra[0];
+                    let kt_idx = extra[1];
+                    grid[[0, 0, pid, kt_idx, x_idx, q2_idx]]
+                },
+            ))
+        }
+        InterpolationConfig::ThreeDXi => {
+            let log_xis: Vec<f64> = subgrid.xis.iter().map(|&v| v.ln()).collect();
+            let extra_grids = vec![log_q2s, log_xis];
+            let grid = subgrid.grid.view();
+            Some(InterleavedHermite::build(
+                log_xs,
+                extra_grids,
+                n_pids,
+                |pid, x_idx, extra| {
+                    let q2_idx = extra[0];
+                    let xi_idx = extra[1];
+                    grid[[0, 0, xi_idx, 0, 0, pid, x_idx, q2_idx]]
+                },
+            ))
+        }
+        InterpolationConfig::ThreeDDelta => {
+            let log_del: Vec<f64> = subgrid.deltas.iter().map(|&v| v.ln()).collect();
+            let extra_grids = vec![log_q2s, log_del];
+            let grid = subgrid.grid.view();
+            Some(InterleavedHermite::build(
+                log_xs,
+                extra_grids,
+                n_pids,
+                |pid, x_idx, extra| {
+                    let q2_idx = extra[0];
+                    let del_idx = extra[1];
+                    grid[[0, 0, 0, del_idx, 0, pid, x_idx, q2_idx]]
+                },
+            ))
+        }
+        InterpolationConfig::FourDNucleonsAlphas => {
+            let log_nucs: Vec<f64> = subgrid.nucleons.iter().map(|&v| v.ln()).collect();
+            let log_alp: Vec<f64> = subgrid.alphas.iter().map(|&v| v.ln()).collect();
+            let extra_grids = vec![log_q2s, log_alp, log_nucs];
+            let grid = subgrid.grid.view();
+            Some(InterleavedHermite::build(
+                log_xs,
+                extra_grids,
+                n_pids,
+                |pid, x_idx, extra| {
+                    let q2_idx = extra[0];
+                    let alp_idx = extra[1];
+                    let nuc_idx = extra[2];
+                    grid[[nuc_idx, alp_idx, pid, 0, x_idx, q2_idx]]
+                },
+            ))
+        }
+        InterpolationConfig::FourDNucleonsKt => {
+            let log_nucs: Vec<f64> = subgrid.nucleons.iter().map(|&v| v.ln()).collect();
+            let log_kts: Vec<f64> = subgrid.kts.iter().map(|&v| v.ln()).collect();
+            let extra_grids = vec![log_q2s, log_kts, log_nucs];
+            let grid = subgrid.grid.view();
+            Some(InterleavedHermite::build(
+                log_xs,
+                extra_grids,
+                n_pids,
+                |pid, x_idx, extra| {
+                    let q2_idx = extra[0];
+                    let kt_idx = extra[1];
+                    let nuc_idx = extra[2];
+                    grid[[nuc_idx, 0, pid, kt_idx, x_idx, q2_idx]]
+                },
+            ))
+        }
+        InterpolationConfig::FourDAlphasKt => {
+            let log_alp: Vec<f64> = subgrid.alphas.iter().map(|&v| v.ln()).collect();
+            let log_kts: Vec<f64> = subgrid.kts.iter().map(|&v| v.ln()).collect();
+            let extra_grids = vec![log_q2s, log_kts, log_alp];
+            let grid = subgrid.grid.view();
+            Some(InterleavedHermite::build(
+                log_xs,
+                extra_grids,
+                n_pids,
+                |pid, x_idx, extra| {
+                    let q2_idx = extra[0];
+                    let kt_idx = extra[1];
+                    let alp_idx = extra[2];
+                    grid[[0, alp_idx, pid, kt_idx, x_idx, q2_idx]]
+                },
+            ))
+        }
+        InterpolationConfig::FourDXiDelta => {
+            let log_xis: Vec<f64> = subgrid.xis.iter().map(|&v| v.ln()).collect();
+            let log_del: Vec<f64> = subgrid.deltas.iter().map(|&v| v.ln()).collect();
+            let extra_grids = vec![log_q2s, log_del, log_xis];
+            let grid = subgrid.grid.view();
+            Some(InterleavedHermite::build(
+                log_xs,
+                extra_grids,
+                n_pids,
+                |pid, x_idx, extra| {
+                    let q2_idx = extra[0];
+                    let del_idx = extra[1];
+                    let xi_idx = extra[2];
+                    grid[[0, 0, xi_idx, del_idx, 0, pid, x_idx, q2_idx]]
+                },
+            ))
+        }
+        InterpolationConfig::FiveD => {
+            let log_xis: Vec<f64> = subgrid.xis.iter().map(|&v| v.ln()).collect();
+            let log_del: Vec<f64> = subgrid.deltas.iter().map(|&v| v.ln()).collect();
+            let log_kts: Vec<f64> = subgrid.kts.iter().map(|&v| v.ln()).collect();
+            // Points arrive as [kT, xi, delta, x, Q2]
+            // extra_grids order: [Q2, delta, xi, kT] (innermost first)
+            let extra_grids = vec![log_q2s, log_del, log_xis, log_kts];
+            let grid = subgrid.grid.view();
+            Some(InterleavedHermite::build(
+                log_xs,
+                extra_grids,
+                n_pids,
+                |pid, x_idx, extra| {
+                    let q2_idx = extra[0];
+                    let del_idx = extra[1];
+                    let xi_idx = extra[2];
+                    let kt_idx = extra[3];
+                    grid[[0, 0, xi_idx, del_idx, kt_idx, pid, x_idx, q2_idx]]
+                },
+            ))
+        }
+        // SixD, SevenD, and non-cubic configs are not supported
+        _ => None,
     }
 }
 
@@ -506,9 +518,9 @@ pub struct GridPDF {
     use_log: bool,
     /// Cached: function pointer for force-positive clipping (avoids per-call match).
     force_positive_fn: fn(f64) -> f64,
-    /// Optional fast path for all-flavor evaluation (2D LogBicubic only).
+    /// Optional fast path for all-flavor evaluation (cubic Hermite, 2D–5D).
     /// One entry per subgrid.
-    interleaved: Option<Vec<InterleavedBicubic>>,
+    interleaved: Option<Vec<InterleavedHermite>>,
 }
 
 impl GridPDF {
@@ -531,22 +543,21 @@ impl GridPDF {
                 | InterpolatorType::LogChebyshev
         );
 
-        // Build interleaved coefficients for 2D LogBicubic grids
-        let interleaved = if info.interpolator_type == InterpolatorType::LogBicubic {
-            let all_2d = knot_array.subgrids.iter().all(|sg| {
-                matches!(
-                    sg.interpolation_config(),
-                    super::interpolator::InterpolationConfig::TwoD
-                )
-            });
-            if all_2d {
-                Some(
-                    knot_array
-                        .subgrids
-                        .iter()
-                        .map(|sg| InterleavedBicubic::build(sg, knot_array.pids.len()))
-                        .collect(),
-                )
+        // Build interleaved coefficients for cubic Hermite grids (2D–5D)
+        let interleaved = if matches!(
+            info.interpolator_type,
+            InterpolatorType::LogBicubic
+                | InterpolatorType::LogTricubic
+                | InterpolatorType::LogFourCubic
+                | InterpolatorType::LogFiveCubic
+        ) {
+            let built: Vec<Option<InterleavedHermite>> = knot_array
+                .subgrids
+                .iter()
+                .map(|sg| build_interleaved(sg, sg.interpolation_config(), knot_array.pids.len()))
+                .collect();
+            if built.iter().all(|o| o.is_some()) {
+                Some(built.into_iter().map(|o| o.unwrap()).collect())
             } else {
                 None
             }
@@ -665,12 +676,12 @@ impl GridPDF {
             None => return 0.0,
         };
 
-        // Fast path: 2D LogBicubic via interleaved coefficients — bypasses
+        // Fast path: interleaved Hermite coefficients — bypasses
         // vtable dispatch, ninterp validation, and Result wrapping.
         if let Some(ref il) = self.interleaved {
-            return (self.force_positive_fn)(
-                il[subgrid_idx].eval_single(pid_idx, points[0], points[1]),
-            );
+            if let Some(val) = il[subgrid_idx].eval_single_fast(pid_idx, points) {
+                return (self.force_positive_fn)(val);
+            }
         }
 
         let mut buf = [0.0f64; 8];
@@ -698,47 +709,23 @@ impl GridPDF {
             }
         };
 
-        // Fast path: interleaved 2D LogBicubic coefficients
+        // Fast path: interleaved Hermite coefficients (2D–5D)
         if let Some(ref il) = self.interleaved {
             let il = &il[subgrid_idx];
-            let lx = points[0].ln();
-            let lq2 = points[1].ln();
-
-            let ix = match utils::find_interval_index(&il.log_xs, lx) {
-                Ok(i) => i,
-                Err(_) => {
-                    out.iter_mut().for_each(|v| *v = 0.0);
-                    return;
-                }
-            };
-            let iq2 = match utils::find_interval_index(&il.log_q2s, lq2) {
-                Ok(j) => j,
-                Err(_) => {
+            let loc = match il.locate(points) {
+                Some(l) => l,
+                None => {
                     out.iter_mut().for_each(|v| *v = 0.0);
                     return;
                 }
             };
 
-            let dx = il.log_xs[ix + 1] - il.log_xs[ix];
-            let dy = il.log_q2s[iq2 + 1] - il.log_q2s[iq2];
-            let u = (lx - il.log_xs[ix]) / dx;
-            let v = (lq2 - il.log_q2s[iq2]) / dy;
-
-            // Precompute PID → flavor slot mapping
             let mut pid_slots: [Option<usize>; 32] = [None; 32];
             for (i, &pid) in pids.iter().enumerate().take(32) {
                 pid_slots[i] = self.knot_array.pid_index(pid);
             }
 
-            il.eval_allpids(
-                ix,
-                iq2,
-                u,
-                v,
-                &pid_slots[..pids.len()],
-                self.force_positive_fn,
-                out,
-            );
+            il.eval_allpids(&loc, &pid_slots[..pids.len()], self.force_positive_fn, out);
             return;
         }
 

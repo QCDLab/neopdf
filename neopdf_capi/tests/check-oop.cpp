@@ -252,6 +252,106 @@ void test_lazy_loading() {
     std::cout << "\nSuccessfully iterated through all members lazily.\n";
 }
 
+void test_xfxq2_allpids() {
+    std::cout << "=== Test xfxQ2_allpids via OOP ===\n";
+
+    LHAPDF::setVerbosity(0);
+
+    std::string pdfname = "NNPDF40_nnlo_as_01180";
+    NeoPDF neo_pdf(pdfname.c_str(), 0);
+    const LHAPDF::PDF* basepdf = LHAPDF::mkPDF(pdfname);
+    const LHAPDF::GridPDF& lha_pdf = *dynamic_cast<const LHAPDF::GridPDF*>(basepdf);
+
+    std::vector<int32_t> pids = {-5, -4, -3, -2, -1, 21, 1, 2, 3, 4, 5};
+    std::vector<double> xs = geomspace(neo_pdf.x_min(), neo_pdf.x_max(), 50);
+    std::vector<double> q2s = geomspace(neo_pdf.q2_min(), neo_pdf.q2_max(), 50);
+
+    std::cout << std::right
+        << std::setw(6) << "pid"
+        << std::setw(15) << "x"
+        << std::setw(15) << "Q2"
+        << std::setw(15) << "LHAPDF"
+        << std::setw(15) << "NeoPDF"
+        << std::setw(15) << "Rel. Diff." << "\n";
+    std::cout << std::string(81, '-') << "\n";
+
+    for (const auto &x : xs) {
+        for (const auto &q2 : q2s) {
+            std::vector<double> results = neo_pdf.xfxQ2_allpids(pids, {x, q2});
+
+            for (size_t i = 0; i < pids.size(); ++i) {
+                double expected = lha_pdf.xfxQ2(pids[i], x, q2);
+                double reldif = std::abs(results[i] - expected) / std::abs(expected);
+
+                assert(std::abs(results[i] - expected) < TOLERANCE);
+
+                std::cout << std::scientific << std::setprecision(8)
+                    << std::right
+                    << std::setw(6)  << pids[i]
+                    << std::setw(15) << x
+                    << std::setw(15) << q2
+                    << std::setw(15) << expected
+                    << std::setw(15) << results[i]
+                    << std::setw(15) << reldif << "\n";
+            }
+        }
+    }
+}
+
+void test_xfxq2s() {
+    std::cout << "=== Test xfxQ2s via OOP ===\n";
+
+    LHAPDF::setVerbosity(0);
+
+    std::string pdfname = "NNPDF40_nnlo_as_01180";
+    NeoPDF neo_pdf(pdfname.c_str(), 0);
+    const LHAPDF::PDF* basepdf = LHAPDF::mkPDF(pdfname);
+    const LHAPDF::GridPDF& lha_pdf = *dynamic_cast<const LHAPDF::GridPDF*>(basepdf);
+
+    std::vector<int32_t> pids = {-5, -3, -1, 21, 1, 3, 5};
+    std::vector<double> xs = geomspace(neo_pdf.x_min(), neo_pdf.x_max(), 30);
+    std::vector<double> q2s = geomspace(neo_pdf.q2_min(), neo_pdf.q2_max(), 30);
+
+    // Build kinematic points: each point is {x, q2}
+    std::vector<std::vector<double>> points;
+    for (const auto &x : xs) {
+        for (const auto &q2 : q2s) {
+            points.push_back({x, q2});
+        }
+    }
+
+    std::vector<double> results = neo_pdf.xfxQ2s(pids, points);
+
+    std::cout << std::right
+        << std::setw(6) << "pid"
+        << std::setw(15) << "x"
+        << std::setw(15) << "Q2"
+        << std::setw(15) << "LHAPDF"
+        << std::setw(15) << "NeoPDF"
+        << std::setw(15) << "Rel. Diff." << "\n";
+    std::cout << std::string(81, '-') << "\n";
+
+    size_t num_points = points.size();
+    for (size_t p = 0; p < pids.size(); ++p) {
+        for (size_t k = 0; k < num_points; ++k) {
+            double expected = lha_pdf.xfxQ2(pids[p], points[k][0], points[k][1]);
+            double result = results[p * num_points + k];
+            double reldif = std::abs(result - expected) / std::abs(expected);
+
+            assert(std::abs(result - expected) < TOLERANCE);
+
+            std::cout << std::scientific << std::setprecision(8)
+                << std::right
+                << std::setw(6)  << pids[p]
+                << std::setw(15) << points[k][0]
+                << std::setw(15) << points[k][1]
+                << std::setw(15) << expected
+                << std::setw(15) << result
+                << std::setw(15) << reldif << "\n";
+        }
+    }
+}
+
 int main() {
     // Test the computation of the PDF interpolations
     test_xfxq2();
@@ -264,6 +364,12 @@ int main() {
 
     // Test the lazy loading of PDF members
     test_lazy_loading();
+
+    // Test xfxQ2_allpids
+    test_xfxq2_allpids();
+
+    // Test xfxQ2s
+    test_xfxq2s();
 
     return EXIT_SUCCESS;
 }

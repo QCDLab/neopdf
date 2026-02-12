@@ -1,0 +1,6 @@
+=== Single-point xfxQ2 benchmark ===
+PDF:        NNPDF40_nnlo_as_01180
+pid=21  x=1.0e-03  Q2=4.0e+00
+Repeats:    10000000
+
+NeoPDF is faster than LHAPDF!

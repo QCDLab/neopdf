@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Major refactor to speed up significantly the interpolation on a single point and to
+  remove overheads when computing multiple PIDs at once for the same kinematic points.
+  The latter is addressed by pre-computing and interleaving the coefficients of the
+  interpolations so that they can be efficiently re-used.
+- Added an abstract `neopdf::interleave.rs` crate to interleave the coefficients for a
+  given data dimension.
+- Added a `neopdf::pdf::xfxq2_allpids` method to compute the interpolated function on
+  a given kinematics for all the PIDs.
+- Added a `neopdf::gridpdfs::xfxq2_fast` to bypass the V-table lookup dispatch, validation,
+  and result unwrapping.
+- Added `neopdf_pdf_xfxq2_allpids` and `neopdf_pdf_xfxq2s` to the C/C++ APIs.
 - Added Chebyshev interpolation strategies for 4D and 5D data.
 - Added `LogFourCubic` and `LogFiveCubic` interpolation strategies for 4D and 5D data.
 - Added new methods to the Fortran and C/C++ APIs to write and compress grids

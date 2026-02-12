@@ -63,7 +63,12 @@ int main() {
     std::cout << "Repeats:    " << N << "\n\n";
     std::cout << std::fixed << std::setprecision(1);
 
-    assert(neopdf_ns < lhapdf_ns);
+    if (!(neopdf_ns < lhapdf_ns)) {
+        std::cerr << "Assertion failed: neopdf_ns < lhapdf_ns\n"
+                  << "neopdf_ns = " << neopdf_ns << "\n"
+                  << "lhapdf_ns = " << lhapdf_ns << std::endl;
+        std::abort();
+    }
     std::cout << "NeoPDF is faster than LHAPDF!" << std::endl;
     // std::cout << "LHAPDF:     " << lhapdf_ns << " ns/call  (xfxQ2 -> vector)\n";
     // std::cout << "NeoPDF:     " << neopdf_ns << " ns/call  (evolvepdf)\n";

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NeoPDF</title>
+  <script src="lib/d3.v5.min.js"></script>
+  <script src="lib/mpld3.v0.5.12.js"></script>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- Left Panel: Controls -->
+    <aside class="controls-panel">
+      <!-- PDF Set Management -->
+      <section class="panel-section">
+        <h3>PDF Sets</h3>
+        <div class="set-input-row">
+          <input type="text" id="set-name-input" placeholder="e.g. NNPDF40_nnlo_as_0118" />
+          <button id="btn-add-set" title="Add set">+</button>
+        </div>
+        <select id="set-list" multiple size="5"></select>
+        <div class="set-buttons">
+          <button id="btn-remove-set">Remove</button>
+          <button id="btn-clear-sets">Clear All</button>
+        </div>
+      </section>
+
+      <!-- Plot Parameters -->
+      <section class="panel-section">
+        <h3>Plot Parameters</h3>
+
+        <label for="x-axis-var">X-axis variable:</label>
+        <select id="x-axis-var"></select>
+
+        <label for="pid-select">PID (flavor):</label>
+        <select id="pid-select"></select>
+
+        <div id="fixed-params-container">
+          <!-- Dynamically generated fixed-value inputs -->
+        </div>
+
+        <div class="range-row">
+          <div>
+            <label for="range-min">Range min:</label>
+            <input type="text" id="range-min" value="1e-5" />
+          </div>
+          <div>
+            <label for="range-max">Range max:</label>
+            <input type="text" id="range-max" value="1.0" />
+          </div>
+        </div>
+
+        <label for="n-points">Number of points:</label>
+        <input type="number" id="n-points" value="100" min="2" />
+
+        <div class="checkbox-row">
+          <label><input type="checkbox" id="x-log" checked /> Log X-axis</label>
+          <label><input type="checkbox" id="y-log" /> Log Y-axis</label>
+        </div>
+      </section>
+
+      <!-- Plot Type -->
+      <section class="panel-section">
+        <h3>Plot Type</h3>
+        <div class="radio-row">
+          <label><input type="radio" name="plot-type" value="standard" checked /> Standard</label>
+          <label><input type="radio" name="plot-type" value="ratio" /> Ratio</label>
+        </div>
+        <div id="ratio-options" class="hidden">
+          <label for="ratio-ref">Reference set:</label>
+          <select id="ratio-ref"></select>
+        </div>
+      </section>
+
+      <!-- Action Buttons -->
+      <section class="panel-section actions">
+        <button id="btn-plot" class="primary">Plot</button>
+        <button id="btn-export">Export</button>
+      </section>
+
+      <div id="status-bar" class="status-bar"></div>
+    </aside>
+
+    <!-- Right Panel: Plot + Metadata -->
+    <main class="plot-panel">
+      <div id="plot-container" class="plot-container">
+        <p class="placeholder">Load a PDF set and click "Plot" to generate a figure.</p>
+      </div>
+
+      <details id="metadata-panel" class="metadata-panel">
+        <summary>Metadata</summary>
+        <div id="metadata-content" class="metadata-content">
+          <p class="placeholder">Select a set to view its metadata.</p>
+        </div>
+      </details>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/plotview.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

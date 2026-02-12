@@ -1,0 +1,27 @@
+[package]
+name = "neopdf_gui"
+authors = ["Tanjona R. Rabemananjara <tanjona.hepc@gmail.com>"]
+description = "A Tauri-based GUI for NeoPDF"
+
+categories.workspace = true
+edition.workspace = true
+keywords.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[dependencies]
+neopdf.workspace = true
+rayon.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+serde_json = "1.0"
+tauri = { version = "2", features = ["devtools"] }
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[lints]
+workspace = true

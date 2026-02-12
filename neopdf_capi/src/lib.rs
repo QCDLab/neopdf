@@ -373,7 +373,7 @@ pub unsafe extern "C" fn neopdf_pdf_xfxq2_cheby_batch(
 /// - `points` must be valid for reading `num_points` elements.
 /// - `results` must be valid for writing `num_pids` elements.
 #[no_mangle]
-pub unsafe extern "C" fn neopdf_pdf_xfxq2_allpids(
+pub unsafe extern "C" fn neopdf_pdf_xfxq2_pids(
     pdf: *mut NeoPDFWrapper,
     pids: *const c_int,
     num_pids: usize,

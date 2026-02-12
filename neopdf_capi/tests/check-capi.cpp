@@ -242,8 +242,7 @@ void test_xfxq2_allpids() {
     for (const auto &x : xs) {
         for (const auto &q2 : q2s) {
             double points[2] = {x, q2};
-            neopdf_pdf_xfxq2_allpids(neo_pdf, pids.data(), pids.size(),
-                                     points, 2, results.data());
+            neopdf_pdf_xfxq2_pids(neo_pdf, pids.data(), pids.size(), points, 2, results.data());
 
             for (size_t i = 0; i < pids.size(); ++i) {
                 double expected = lha_pdf->xfxQ2(pids[i], x, q2);

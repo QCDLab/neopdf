@@ -277,7 +277,7 @@ void test_xfxq2_allpids() {
 
     for (const auto &x : xs) {
         for (const auto &q2 : q2s) {
-            std::vector<double> results = neo_pdf.xfxQ2_allpids(pids, {x, q2});
+            std::vector<double> results = neo_pdf.xfxQ2_pids(pids, {x, q2});
 
             for (size_t i = 0; i < pids.size(); ++i) {
                 double expected = lha_pdf.xfxQ2(pids[i], x, q2);

@@ -213,10 +213,10 @@ class NeoPDF {
         }
 
         /** @brief Evaluate all requested flavors at a single kinematic point. */
-        std::vector<double> xfxQ2_allpids(const std::vector<int32_t>& pids,
+        std::vector<double> xfxQ2_pids(const std::vector<int32_t>& pids,
                                           const std::vector<double>& points) const {
             std::vector<double> results(pids.size());
-            neopdf_pdf_xfxq2_allpids(this->raw, pids.data(), pids.size(),
+            neopdf_pdf_xfxq2_pids(this->raw, pids.data(), pids.size(),
                                      points.data(), points.size(), results.data());
             return results;
         }

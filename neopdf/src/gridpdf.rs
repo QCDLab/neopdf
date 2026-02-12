@@ -321,162 +321,132 @@ fn build_interleaved(
             let extra_grids = vec![log_q2s];
             let grid = subgrid.grid.view();
             let is_8d = subgrid.is_8d();
-            Some(InterleavedHermite::build(
-                log_xs,
-                extra_grids,
-                n_pids,
-                |pid, x_idx, extra| {
+            let interleaved =
+                InterleavedHermite::build(log_xs, extra_grids, n_pids, |pid, x_idx, extra| {
                     let q2_idx = extra[0];
                     if is_8d {
                         grid[[0, 0, 0, 0, 0, pid, x_idx, q2_idx]]
                     } else {
                         grid[[0, 0, pid, 0, x_idx, q2_idx]]
                     }
-                },
-            ))
+                });
+            Some(interleaved)
         }
         InterpolationConfig::ThreeDNucleons => {
             let log_nucs: Vec<f64> = subgrid.nucleons.iter().map(|&v| v.ln()).collect();
             let extra_grids = vec![log_q2s, log_nucs];
             let grid = subgrid.grid.view();
-            Some(InterleavedHermite::build(
-                log_xs,
-                extra_grids,
-                n_pids,
-                |pid, x_idx, extra| {
+            let interleaved =
+                InterleavedHermite::build(log_xs, extra_grids, n_pids, |pid, x_idx, extra| {
                     let q2_idx = extra[0];
                     let nuc_idx = extra[1];
                     grid[[nuc_idx, 0, pid, 0, x_idx, q2_idx]]
-                },
-            ))
+                });
+            Some(interleaved)
         }
         InterpolationConfig::ThreeDAlphas => {
             let log_alp: Vec<f64> = subgrid.alphas.iter().map(|&v| v.ln()).collect();
             let extra_grids = vec![log_q2s, log_alp];
             let grid = subgrid.grid.view();
-            Some(InterleavedHermite::build(
-                log_xs,
-                extra_grids,
-                n_pids,
-                |pid, x_idx, extra| {
+            let interleaved =
+                InterleavedHermite::build(log_xs, extra_grids, n_pids, |pid, x_idx, extra| {
                     let q2_idx = extra[0];
                     let alp_idx = extra[1];
                     grid[[0, alp_idx, pid, 0, x_idx, q2_idx]]
-                },
-            ))
+                });
+            Some(interleaved)
         }
         InterpolationConfig::ThreeDKt => {
             let log_kts: Vec<f64> = subgrid.kts.iter().map(|&v| v.ln()).collect();
             let extra_grids = vec![log_q2s, log_kts];
             let grid = subgrid.grid.view();
-            Some(InterleavedHermite::build(
-                log_xs,
-                extra_grids,
-                n_pids,
-                |pid, x_idx, extra| {
+            let interleaved =
+                InterleavedHermite::build(log_xs, extra_grids, n_pids, |pid, x_idx, extra| {
                     let q2_idx = extra[0];
                     let kt_idx = extra[1];
                     grid[[0, 0, pid, kt_idx, x_idx, q2_idx]]
-                },
-            ))
+                });
+            Some(interleaved)
         }
         InterpolationConfig::ThreeDXi => {
             let log_xis: Vec<f64> = subgrid.xis.iter().map(|&v| v.ln()).collect();
             let extra_grids = vec![log_q2s, log_xis];
             let grid = subgrid.grid.view();
-            Some(InterleavedHermite::build(
-                log_xs,
-                extra_grids,
-                n_pids,
-                |pid, x_idx, extra| {
+            let interleaved =
+                InterleavedHermite::build(log_xs, extra_grids, n_pids, |pid, x_idx, extra| {
                     let q2_idx = extra[0];
                     let xi_idx = extra[1];
                     grid[[0, 0, xi_idx, 0, 0, pid, x_idx, q2_idx]]
-                },
-            ))
+                });
+            Some(interleaved)
         }
         InterpolationConfig::ThreeDDelta => {
             let log_del: Vec<f64> = subgrid.deltas.iter().map(|&v| v.ln()).collect();
             let extra_grids = vec![log_q2s, log_del];
             let grid = subgrid.grid.view();
-            Some(InterleavedHermite::build(
-                log_xs,
-                extra_grids,
-                n_pids,
-                |pid, x_idx, extra| {
+            let interleaved =
+                InterleavedHermite::build(log_xs, extra_grids, n_pids, |pid, x_idx, extra| {
                     let q2_idx = extra[0];
                     let del_idx = extra[1];
                     grid[[0, 0, 0, del_idx, 0, pid, x_idx, q2_idx]]
-                },
-            ))
+                });
+            Some(interleaved)
         }
         InterpolationConfig::FourDNucleonsAlphas => {
             let log_nucs: Vec<f64> = subgrid.nucleons.iter().map(|&v| v.ln()).collect();
             let log_alp: Vec<f64> = subgrid.alphas.iter().map(|&v| v.ln()).collect();
             let extra_grids = vec![log_q2s, log_alp, log_nucs];
             let grid = subgrid.grid.view();
-            Some(InterleavedHermite::build(
-                log_xs,
-                extra_grids,
-                n_pids,
-                |pid, x_idx, extra| {
+            let interleaved =
+                InterleavedHermite::build(log_xs, extra_grids, n_pids, |pid, x_idx, extra| {
                     let q2_idx = extra[0];
                     let alp_idx = extra[1];
                     let nuc_idx = extra[2];
                     grid[[nuc_idx, alp_idx, pid, 0, x_idx, q2_idx]]
-                },
-            ))
+                });
+            Some(interleaved)
         }
         InterpolationConfig::FourDNucleonsKt => {
             let log_nucs: Vec<f64> = subgrid.nucleons.iter().map(|&v| v.ln()).collect();
             let log_kts: Vec<f64> = subgrid.kts.iter().map(|&v| v.ln()).collect();
             let extra_grids = vec![log_q2s, log_kts, log_nucs];
             let grid = subgrid.grid.view();
-            Some(InterleavedHermite::build(
-                log_xs,
-                extra_grids,
-                n_pids,
-                |pid, x_idx, extra| {
+            let interleaved =
+                InterleavedHermite::build(log_xs, extra_grids, n_pids, |pid, x_idx, extra| {
                     let q2_idx = extra[0];
                     let kt_idx = extra[1];
                     let nuc_idx = extra[2];
                     grid[[nuc_idx, 0, pid, kt_idx, x_idx, q2_idx]]
-                },
-            ))
+                });
+            Some(interleaved)
         }
         InterpolationConfig::FourDAlphasKt => {
             let log_alp: Vec<f64> = subgrid.alphas.iter().map(|&v| v.ln()).collect();
             let log_kts: Vec<f64> = subgrid.kts.iter().map(|&v| v.ln()).collect();
             let extra_grids = vec![log_q2s, log_kts, log_alp];
             let grid = subgrid.grid.view();
-            Some(InterleavedHermite::build(
-                log_xs,
-                extra_grids,
-                n_pids,
-                |pid, x_idx, extra| {
+            let interleaved =
+                InterleavedHermite::build(log_xs, extra_grids, n_pids, |pid, x_idx, extra| {
                     let q2_idx = extra[0];
                     let kt_idx = extra[1];
                     let alp_idx = extra[2];
                     grid[[0, alp_idx, pid, kt_idx, x_idx, q2_idx]]
-                },
-            ))
+                });
+            Some(interleaved)
         }
         InterpolationConfig::FourDXiDelta => {
             let log_xis: Vec<f64> = subgrid.xis.iter().map(|&v| v.ln()).collect();
             let log_del: Vec<f64> = subgrid.deltas.iter().map(|&v| v.ln()).collect();
             let extra_grids = vec![log_q2s, log_del, log_xis];
             let grid = subgrid.grid.view();
-            Some(InterleavedHermite::build(
-                log_xs,
-                extra_grids,
-                n_pids,
-                |pid, x_idx, extra| {
+            let interleaved =
+                InterleavedHermite::build(log_xs, extra_grids, n_pids, |pid, x_idx, extra| {
                     let q2_idx = extra[0];
                     let del_idx = extra[1];
                     let xi_idx = extra[2];
                     grid[[0, 0, xi_idx, del_idx, 0, pid, x_idx, q2_idx]]
-                },
-            ))
+                });
+            Some(interleaved)
         }
         InterpolationConfig::FiveD => {
             let log_xis: Vec<f64> = subgrid.xis.iter().map(|&v| v.ln()).collect();
@@ -486,18 +456,15 @@ fn build_interleaved(
             // Re-order [kT, xi, delta, x, Q2] into [Q2, delta, xi, kT] (innermost first)
             let extra_grids = vec![log_q2s, log_del, log_xis, log_kts];
             let grid = subgrid.grid.view();
-            Some(InterleavedHermite::build(
-                log_xs,
-                extra_grids,
-                n_pids,
-                |pid, x_idx, extra| {
+            let interleaved =
+                InterleavedHermite::build(log_xs, extra_grids, n_pids, |pid, x_idx, extra| {
                     let q2_idx = extra[0];
                     let del_idx = extra[1];
                     let xi_idx = extra[2];
                     let kt_idx = extra[3];
                     grid[[0, 0, xi_idx, del_idx, kt_idx, pid, x_idx, q2_idx]]
-                },
-            ))
+                });
+            Some(interleaved)
         }
         // `SixD`, `SevenD`, and non-cubic configs are not supported.
         _ => None,

@@ -14,9 +14,8 @@ In order to start using the native Rust API, first add the crate dependency in y
 
 ```toml
 [dependencies]
-neopdf = "0.5"
-rayon = "1.10"
-ndarray = "0.15"
+neopdf = "0.3.0"
+ndarray = "0.16.1"
 ```
 
 ---

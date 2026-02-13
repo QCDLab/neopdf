@@ -85,7 +85,7 @@ style D fill:#f08080,stroke:#8b0000,stroke-width:2px
 
 ## Quick Links
 
-- [Documentation](https://qcdlab.github.io/neopdf/) | [Rust Crate Documentation](https://docs.rs/neopdf/0.1.1/neopdf/) | [C++ API Reference](https://neopdf.readthedocs.io/en/latest/)
+- [Documentation](https://qcdlab.github.io/neopdf/) | [Rust Crate Documentation](https://docs.rs/neopdf/latest/neopdf/) | [C++ API Reference](https://neopdf.readthedocs.io/en/latest/)
 - [Installation](https://qcdlab.github.io/neopdf/installation/)
 - [Physics and technical features](https://qcdlab.github.io/neopdf/design-and-features/)
 - [NeoPDF Design](https://qcdlab.github.io/neopdf/design/)

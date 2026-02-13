@@ -298,9 +298,7 @@ pub fn compute_alphas(
 }
 
 /// Core plotting command: evaluate PDF members, compute statistics,
-/// and render the plot via PyO3/matplotlib/mpld3.
-///
-/// Returns an HTML string containing the interactive plot.
+/// and render the plot via matplotlib (PNG encoded as base64).
 #[tauri::command]
 pub fn generate_plot(request: PlotRequest, state: State<'_, AppState>) -> Result<String, String> {
     let sets = state.sets.lock().map_err(|e| e.to_string())?;

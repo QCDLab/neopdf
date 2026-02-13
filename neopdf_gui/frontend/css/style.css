@@ -252,8 +252,8 @@ button.primary:disabled {
   font-size: 14px;
 }
 
-/* Make mpld3 SVGs fill the container */
-.plot-container svg {
+/* Make plot images fill the container */
+.plot-container img.plot-image {
   max-width: 100%;
   height: auto;
 }

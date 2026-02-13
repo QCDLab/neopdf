@@ -1,23 +1,21 @@
-// Plot view: render an mpld3 figure spec into the plot container.
+// Plot view: render a matplotlib PNG (base64-encoded) into the plot container.
 
 /**
- * Render an mpld3 figure specification (JSON string) into the plot container.
+ * Render a matplotlib-generated PNG image into the plot container.
  *
- * D3 v5 and mpld3 are already loaded in the page <head>, so we just need
- * to parse the spec and call mpld3.draw_figure().
+ * The backend returns a base64-encoded PNG string. We simply create an <img>
+ * element and set its src to a data URL using that string.
  *
- * @param {string} specJson - The mpld3 figure spec as a JSON string.
+ * @param {string} pngBase64 - The PNG image data as a base64 string.
  */
-function embedPlot(specJson) {
+function embedPlot(pngBase64) {
   const container = document.getElementById("plot-container");
   container.innerHTML = "";
 
-  // Create a unique div for mpld3 to draw into
-  const figId = "fig_" + Date.now();
-  const div = document.createElement("div");
-  div.id = figId;
-  container.appendChild(div);
+  const img = document.createElement("img");
+  img.src = "data:image/png;base64," + pngBase64;
+  img.alt = "NeoPDF plot";
+  img.className = "plot-image";
 
-  const spec = JSON.parse(specJson);
-  mpld3.draw_figure(figId, spec);
+  container.appendChild(img);
 }

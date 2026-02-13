@@ -1,4 +1,4 @@
-//! Python subprocess bridge to matplotlib / mpld3 for rendering PDF plots.
+//! Python subprocess bridge to matplotlib for rendering PDF plots.
 //!
 //! We invoke a Python subprocess rather than embedding via PyO3 because the
 //! workspace's `neopdf_pyapi` already uses `pyo3` with the `extension-module`
@@ -23,10 +23,9 @@ fn make_script(driver: &str) -> String {
     )
 }
 
-/// Render an interactive HTML plot via a Python subprocess running
-/// matplotlib + mpld3.
+/// Render a plot via a Python subprocess running matplotlib.
 ///
-/// Returns an HTML string containing the mpld3 figure.
+/// Returns a base64-encoded PNG image as a string.
 pub fn render_plot_html(
     plot_data: &[PlotData],
     x_label: &str,

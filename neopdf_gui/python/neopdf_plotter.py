@@ -1,28 +1,86 @@
-"""Matplotlib/mpld3 plotting backend for NeoPDF GUI.
+"""Matplotlib plotting backend for NeoPDF GUI.
 
 This module is embedded via include_str!() and executed through a Python
-subprocess.  It receives pre-computed PlotData from Rust and renders
-interactive plots using matplotlib + mpld3.
+subprocess. It receives pre-computed PlotData from Rust and renders plots
+using matplotlib. The resulting figures are returned either as base64-encoded
+PNG images (for the GUI) or written directly to disk.
 """
 
-import json
+import base64
+import io
 
 import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib import cycler
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import mpld3
 
+# Global style configuration to match the requested matplotlib styling
+plt.rcParams.update(
+    {
+        # Axes
+        "axes.grid": True,
+        "axes.titlesize": "medium",
+        "axes.prop_cycle": cycler(
+            color=[
+                "#66c2a5",
+                "#fc8d62",
+                "#8da0cb",
+                "#e78ac3",
+                "#a6d854",
+                "#ffd92f",
+                "#e5c494",
+                "#b3b3b3",
+            ]
+        ),
+        "axes.labelsize": "small",
+        "axes.formatter.limits": (-5, 5),
+        "axes.formatter.use_mathtext": True,
+        "axes.spines.top": True,
+        "axes.spines.right": True,
+        # Errorbar
+        "errorbar.capsize": 2,
+        # Fonts / text
+        "font.size": 12,
+        "text.usetex": True,
+        # Use a simple LaTeX preamble; keep the backslash unescaped for TeX.
+        "text.latex.preamble": r"\usepackage{amsmath}",
+        "mathtext.default": "regular",
+        # Figure
+        "figure.figsize": (5.6, 3.9),
+        # Grid
+        "grid.color": "#cccccc",
+        "grid.linestyle": "-",
+        "grid.linewidth": 0.05,
+        # Legend
+        "legend.fontsize": "small",
+        "legend.numpoints": 1,
+        "legend.scatterpoints": 1,
+        "legend.loc": "best",
+        "legend.fancybox": True,
+        "legend.framealpha": 0.8,
+        # Lines
+        "lines.markersize": 4,
+        # Ticks
+        "xtick.labelsize": "medium",
+        "ytick.labelsize": "medium",
+        "xtick.top": False,
+        "ytick.right": False,
+        # SVG
+        "svg.fonttype": "none",
+    }
+)
 
-# Color cycle matching the original Qt GUI
+# Explicit color list mirroring the axes.prop_cycle.
 COLORS = [
-    "#1f77b4",  # blue
-    "#d62728",  # red
-    "#2ca02c",  # green
-    "#17becf",  # cyan
-    "#9467bd",  # purple
-    "#ff7f0e",  # orange
-    "#7f7f7f",  # gray
+    "#66c2a5",
+    "#fc8d62",
+    "#8da0cb",
+    "#e78ac3",
+    "#a6d854",
+    "#ffd92f",
+    "#e5c494",
+    "#b3b3b3",
 ]
 
 
@@ -43,7 +101,7 @@ def _build_figure(data, x_label, y_label, x_log, y_log, title):
     -------
     fig : matplotlib.figure.Figure
     """
-    fig, ax = plt.subplots(figsize=(9, 6))
+    fig, ax = plt.subplots(figsize=(5.6, 3.9))
 
     for i, d in enumerate(data):
         color = COLORS[i % len(COLORS)]
@@ -60,28 +118,28 @@ def _build_figure(data, x_label, y_label, x_log, y_log, title):
         ax.set_xscale("log")
     if y_log:
         ax.set_yscale("log")
+    if title:
+        ax.set_title(title, fontsize=14)
 
     ax.set_xlabel(x_label, fontsize=12)
     ax.set_ylabel(y_label, fontsize=12)
-    if title:
-        ax.set_title(title, fontsize=14)
+    ax.set_xlim(left=xs[0], right=xs[-1])
     ax.legend(fontsize=10)
-    ax.grid(True, alpha=0.3)
     fig.tight_layout()
 
     return fig
 
 
 def render_plot(data, x_label, y_label, x_log, y_log, title):
-    """Return the mpld3 figure specification as a JSON string.
-
-    The frontend will call ``mpld3.draw_figure()`` directly using this
-    spec, so we only need the dict representation (not a full HTML page).
-    """
+    """Return the plot as a base64-encoded PNG string."""
     fig = _build_figure(data, x_label, y_label, x_log, y_log, title)
-    spec = mpld3.fig_to_dict(fig)
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=150, bbox_inches="tight")
     plt.close(fig)
-    return json.dumps(spec)
+    buf.seek(0)
+
+    return base64.b64encode(buf.getvalue()).decode("ascii")
 
 
 def save_plot(data, x_label, y_label, x_log, y_log, title, output_path):

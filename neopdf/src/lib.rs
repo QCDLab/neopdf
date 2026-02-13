@@ -32,7 +32,7 @@
 //! - [`utils`]: Utility functions for interpolation and grid operations.
 //! - [`writer`]: Utilities for serializing, compressing, and accessing PDF grid data.
 //!
-//! ## Example Usage
+//! ## Example 1: Single Point Interpolation
 //!
 //! ```rust
 //! use neopdf::pdf::PDF;
@@ -41,6 +41,131 @@
 //! let pdf = PDF::load("NNPDF40_nnlo_as_01180", 0);
 //! let xf = pdf.xfxq2(21, &[0.01, 100.0]);
 //! println!("xf = {}", xf);
+//! ```
+//!
+//! ## Example 2: Multiple Flavors
+//!
+//! ```rust
+//! use neopdf::pdf::PDF;
+//!
+//! // Name of the PDF set: can be a standard LHAPDF name
+//! // or a NeoPDF grid such as "NNPDF40_nnlo_as_01180.neopdf.lz4".
+//! let pdf_name = "NNPDF40_nnlo_as_01180";
+//! let member = 0usize; // central replica
+//!
+//! // Load the PDF member.
+//! let pdf = PDF::load(pdf_name, member);
+//!
+//! // Parton ID (PDG): 21 = gluon.
+//! let pid = 21;
+//!
+//! // Example kinematics.
+//! let x_values = vec![5e-2, 1.5e-1, 2.5e-1, 3.5e-1, 4.5e-1];
+//! let q2 = 100.0;
+//!
+//! for x in x_values {
+//!     let xf = pdf.xfxq2(pid, &[x, q2]);
+//!     println!("{:10.3e} {:20.8e}", x, xf);
+//! }
+//! ```
+//!
+//! ## Example 3: Batch Point Interpolation
+//!
+//! ```rust
+//! use ndarray::Array2;
+//! use neopdf::pdf::PDF;
+//!
+//! let pdf_name = "NNPDF40_nnlo_as_01180";
+//! let member = 0usize;
+//! let pdf = PDF::load(pdf_name, member);
+//!
+//! // Select a subset of flavors.
+//! let pids = vec![21, 1, 2, 3, 4, 5];
+//!
+//! // Build a list of knots (x, Q2). Each "knot" is a slice &[x, Q2].
+//! let xs = vec![1e-4, 1e-3, 1e-2, 1e-1];
+//! let q2s = vec![10.0, 100.0];
+//!
+//! let mut points: Vec<[f64; 2]> = Vec::new();
+//! for &x in &xs {
+//!     for &q2 in &q2s {
+//!         points.push([x, q2]);
+//!     }
+//! }
+//!
+//! // Slice-of-slices view required by xfxq2s.
+//! let slice_points: Vec<&[f64]> = points.iter().map(|p| &p[..]).collect();
+//!
+//! // Shape: [flavors, N_knots].
+//! let xf_grid: Array2<f64> = pdf.xfxq2s(pids.clone(), &slice_points);
+//!
+//! println!("{:-^80}", " xfxQ2 grid ");
+//! for (iflav, pid) in pids.iter().enumerate() {
+//!     println!("Flavor pid = {}", pid);
+//!     for (iknot, values) in slice_points.iter().enumerate() {
+//!         let (x, q2) = (values[0], values[1]);
+//!         let val = xf_grid[[iflav, iknot]];
+//!         println!("  x = {:10.3e}, Q2 = {:10.3e} -> xf = {:14.8e}", x, q2, val);
+//!     }
+//! }
+//! ```
+//!
+//! ## Example 4: Inspecting Metadata
+//!
+//! ```rust
+//! use neopdf::pdf::PDF;
+//!
+//! let pdf_name = "NNPDF40_nnlo_as_01180";
+//! let member = 0usize;
+//! let pdf = PDF::load(pdf_name, member);
+//!
+//! // --- Metadata inspection ---
+//! let meta = pdf.metadata();
+//! println!("Set description: {}", meta.set_desc);
+//! println!("Set index: {}", meta.set_index);
+//! println!("Number of members: {}", meta.num_members);
+//! println!("x range: [{}, {}]", meta.x_min, meta.x_max);
+//! println!("Q range: [{}, {}]", meta.q_min, meta.q_max);
+//! println!("Flavors (PIDs): {:?}", meta.flavors);
+//! println!("Format: {}", meta.format);
+//! println!("Set type: {:?}", meta.set_type);
+//! println!("Interpolator type: {:?}", meta.interpolator_type);
+//!
+//! // --- Subgrid information ---
+//! let num_subgrids = pdf.num_subgrids();
+//! println!("\nNumber of subgrids: {}", num_subgrids);
+//!
+//! for subgrid_idx in 0..num_subgrids {
+//!     let sg = pdf.subgrid(subgrid_idx);
+//!     println!("Subgrid {}:", subgrid_idx);
+//!     println!("  A values:   {:?}", sg.nucleons);
+//!     println!("  alphas:     {:?}", sg.alphas);
+//!     println!("  kT values:  {:?}", sg.kts);
+//!     println!("  x knots:    len = {}", sg.xs.len());
+//!     println!("  Q2 knots:   len = {}", sg.q2s.len());
+//! }
+//! ```
+//!
+//! ## Example 5: Controlling Positivity Clipping
+//!
+//! ```rust
+//! use neopdf::gridpdf::ForcePositive;
+//! use neopdf::pdf::PDF;
+//!
+//! let pdf_name = "NNPDF40_nnlo_as_01180";
+//! let mut pdf = PDF::load(pdf_name, 0);
+//!
+//! // Set positivity clipping for a single member.
+//! pdf.set_force_positive(ForcePositive::ClipNegative);
+//! println!("Current clipping mode: {:?}", pdf.is_force_positive());
+//!
+//! // Set clipping for all members at once.
+//! let mut all_pdfs = PDF::load_pdfs(pdf_name);
+//! PDF::set_force_positive_members(&mut all_pdfs, ForcePositive::ClipSmall);
+//! println!(
+//!     "Clipping mode for member 4: {:?}",
+//!     all_pdfs[4].is_force_positive()
+//! );
 //! ```
 //!
 //! See module-level documentation for more details and advanced usage.

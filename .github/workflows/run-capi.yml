@@ -20,7 +20,7 @@ jobs:
           cd neopdf_capi
           # path to install the C++ OOP header
           export CARGO_C_INSTALL_PREFIX=/usr/local
-          cargo cinstall --verbose --prefix=/usr/local/ --libdir=/usr/local/lib
+          cargo cinstall --release --verbose --prefix=/usr/local/ --libdir=/usr/local/lib
           ldconfig
 
       - name: Test C/C++ examples 🚀

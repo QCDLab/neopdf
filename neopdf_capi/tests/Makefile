@@ -5,7 +5,7 @@ NEOPDF_DEPS != pkg-config --cflags --libs neopdf_capi
 LHAPDF_DEPS != pkg-config --cflags --libs lhapdf
 MATH_LIBS = -lm
 
-PROGRAMS = \
+CHECKS = \
 	check-capi \
 	check-oop \
 	check-writer \
@@ -13,14 +13,21 @@ PROGRAMS = \
 	check-writer-oop \
 	check-xapi \
 	check-xwriter \
-	check-lhapdf-compatibility \
+	check-lhapdf-compatibility
+
+BENCHMARKS = \
 	bench-xfxq2-single \
 	bench-xfxq2-allpids
 
+PROGRAMS = $(CHECKS) $(BENCHMARKS)
+
 all: $(PROGRAMS)
 
-test-examples: $(PROGRAMS)
-	set -e && for i in $(PROGRAMS); do ./$${i} > output; diff -u $${i}.output output; done; rm output
+test-examples: $(CHECKS)
+	set -e && for i in $(CHECKS); do ./$${i} > output; diff -u $${i}.output output; done; rm output
+
+test-benchmarks: $(BENCHMARKS)
+	set -e && for i in $(BENCHMARKS); do ./$${i} > output; diff -u $${i}.output output; done; rm output
 
 check-capi: check-capi.cpp
 	$(CXX) $(CXXFLAGS) $< $(LHAPDF_DEPS) $(NEOPDF_DEPS) -o $@

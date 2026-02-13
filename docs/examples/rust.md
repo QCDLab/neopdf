@@ -14,9 +14,8 @@ In order to start using the native Rust API, first add the crate dependency in y
 
 ```toml
 [dependencies]
-neopdf = "0.5"
-rayon = "1.10"
-ndarray = "0.15"
+neopdf = "0.3.0"
+ndarray = "0.16.1"
 ```
 
 ---
@@ -190,7 +189,7 @@ the internal **subgrid structure**, similar to what the CLI `read` commands expo
 use neopdf::pdf::PDF;
 
 fn main() {
-    let pdf_name = "NNPDF40_nnlo_as_01180.neopdf.lz4";
+    let pdf_name = "NNPDF40_nnlo_as_01180";
     let member = 0usize;
     let pdf = PDF::load(pdf_name, member);
 
@@ -219,19 +218,15 @@ fn main() {
         println!("  x knots:    len = {}", sg.xs.len());
         println!("  Q2 knots:   len = {}", sg.q2s.len());
     }
-
-    // --- Parameter ranges ---
-    let ranges = pdf.param_ranges();
-    println!("\nParameter ranges: {:?}", ranges);
 }
 ```
 
 This is the Rust equivalent of running commands such as:
 
 ```bash
-neopdf read metadata NNPDF40_nnlo_as_01180.neopdf.lz4
-neopdf read num_subgrids NNPDF40_nnlo_as_01180.neopdf.lz4
-neopdf read subgrid-info NNPDF40_nnlo_as_01180.neopdf.lz4 --member=0 --subgrid-index=0
+neopdf read metadata NNPDF40_nnlo_as_01180
+neopdf read num_subgrids NNPDF40_nnlo_as_01180
+neopdf read subgrid-info NNPDF40_nnlo_as_01180 --member=0 --subgrid-index=0
 ```
 
 ---
@@ -245,7 +240,7 @@ use neopdf::gridpdf::ForcePositive;
 use neopdf::pdf::PDF;
 
 fn main() {
-    let pdf_name = "NNPDF40_nnlo_as_01180.neopdf.lz4";
+    let pdf_name = "NNPDF40_nnlo_as_01180";
     let mut pdf = PDF::load(pdf_name, 0);
 
     // Set positivity clipping for a single member.
@@ -277,9 +272,6 @@ compressed `NeoPDF` grid with the extension `.neopdf.lz4`.
     that actually fill the grid are highlighted.
 
 ```rust linenums="1"
-use std::env;
-
-use ndarray::Array1;
 use neopdf::gridpdf::GridArray;
 use neopdf::metadata::{InterpolatorType, MetaData, SetType};
 use neopdf::pdf::PDF;
@@ -327,7 +319,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let q2s = sg.q2s.clone();
 
             // Compute grid_data as [nucleon][alpha][pid][kt][x][q2].
-            // Here we assume a standard LHAPDF-like grid: no explicit A or alpha_s dependence.
+            // Here we assume a standard LHAPDF-like grid: no explicit
+            // A or alpha_s dependence.
             let n_nuc = nucleons.len().max(1);
             let n_alp = alphas.len().max(1);
             let n_kt = kts.len().max(1);
@@ -338,29 +331,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut data = vec![0.0_f64; n_nuc * n_alp * n_pid * n_kt * n_x * n_q2];
             let mut idx = 0;
 
-            for _ in 0..n_nuc {
-                for _ in 0..n_alp {
-                    for pid in pids.iter() {
-                        for _kt in 0..n_kt {
-                            for &x in &xs {
-                                for &q2 in &q2s {
-                                    let val = pdf.xfxq2(*pid, &[x, q2]);
-                                    data[idx] = val;
-                                    idx += 1;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            data.iter_mut()
+                .zip(
+                    (0..n_nuc)
+                        .flat_map(|_| (0..n_alp))
+                        .flat_map(|_| pids.iter())
+                        .flat_map(|pid| (0..n_kt).map(move |_| pid))
+                        .flat_map(|pid| xs.iter().map(move |&x| (pid, x)))
+                        .flat_map(|(pid, x)| q2s.iter().map(move |&q2| (pid, x, q2))),
+                )
+                .for_each(|(slot, (pid, x, q2))| {
+                    *slot = pdf.xfxq2(*pid, &[x, q2]);
+                });
 
-            let grid = GridData::Grid6D(
-                ndarray::Array::from_shape_vec(
-                    (n_nuc, n_alp, n_pid, n_kt, n_x, n_q2),
-                    data,
-                )?
-                .into_dyn(),
-            );
+            let grid = GridData::Grid6D(ndarray::Array::from_shape_vec(
+                (n_nuc, n_alp, n_pid, n_kt, n_x, n_q2),
+                data,
+            )?);
 
             // Build parameter ranges for this subgrid.
             let nucleons_range = ParamRange::new(
@@ -375,7 +362,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 kts.first().copied().unwrap_or(0.0),
                 kts.last().copied().unwrap_or(0.0),
             );
-            let x_range = ParamRange::new(xs.first().copied().unwrap(), xs.last().copied().unwrap());
+            let x_range =
+                ParamRange::new(xs.first().copied().unwrap(), xs.last().copied().unwrap());
             let q2_range =
                 ParamRange::new(q2s.first().copied().unwrap(), q2s.last().copied().unwrap());
 

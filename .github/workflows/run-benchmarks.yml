@@ -1,0 +1,27 @@
+name: Run the C/C++ benchmarks against LHAPDF 🏎️
+
+on: [push]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  capi-benchmarks:
+    runs-on: ubuntu-latest
+    container: ghcr.io/qcdlab/neopdf-container:latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install NeoPDF's C-API and C++ OOP Header 📦
+        run: |
+          cd neopdf_capi
+          export CARGO_C_INSTALL_PREFIX=/usr/local
+          cargo cinstall --release --verbose --prefix=/usr/local/ --libdir=/usr/local/lib
+          ldconfig
+
+      - name: Run benchmarks 🚀
+        run: |
+          cd neopdf_capi/tests
+          export NEOPDF_DATA_PATH=/usr/share/LHAPDF
+          make test-benchmarks

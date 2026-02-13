@@ -1,6 +1,6 @@
 //! Python subprocess bridge to matplotlib for rendering PDF plots.
 //!
-//! We invoke a Python subprocess rather than embedding via PyO3 because the
+//! We invoke a Python subprocess rather than embedding via `PyO3` because the
 //! workspace's `neopdf_pyapi` already uses `pyo3` with the `extension-module`
 //! feature, which is mutually exclusive with the `auto-initialize` feature
 //! needed for embedding. Using a subprocess avoids this conflict entirely.
@@ -115,7 +115,7 @@ fn py_str(s: &str) -> String {
 }
 
 /// Format a bool as a Python boolean literal.
-fn py_bool(b: bool) -> &'static str {
+const fn py_bool(b: bool) -> &'static str {
     if b {
         "True"
     } else {

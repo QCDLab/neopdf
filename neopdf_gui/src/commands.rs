@@ -1,4 +1,4 @@
-//! Tauri command handlers for the NeoPDF GUI.
+//! Tauri command handlers for the `NeoPDF` GUI.
 
 use std::collections::HashMap;
 
@@ -73,6 +73,7 @@ fn build_points(
 }
 
 /// Generate linearly- or log-spaced sample points.
+#[allow(clippy::cast_precision_loss)]
 fn linspace(min: f64, max: f64, n: usize, log: bool) -> Vec<f64> {
     if n <= 1 {
         return vec![min];
@@ -91,6 +92,7 @@ fn linspace(min: f64, max: f64, n: usize, log: bool) -> Vec<f64> {
 }
 
 /// Compute mean and +/- 1-sigma band from member evaluations.
+#[allow(clippy::cast_precision_loss)]
 fn mean_and_band(values: &[f64]) -> (f64, f64, f64) {
     let n = values.len() as f64;
     let mean = values.iter().sum::<f64>() / n;
@@ -105,6 +107,7 @@ fn mean_and_band(values: &[f64]) -> (f64, f64, f64) {
 
 /// Load a PDF set and store it in the app state. Returns metadata.
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn load_pdf_set(name: String, state: State<'_, AppState>) -> Result<PdfSetMetadata, String> {
     let members = PDF::load_pdfs(&name);
     if members.is_empty() {
@@ -137,22 +140,27 @@ pub fn load_pdf_set(name: String, state: State<'_, AppState>) -> Result<PdfSetMe
         code_version: meta.code_version.clone(),
     };
 
-    let mut sets = state.sets.lock().map_err(|e| e.to_string())?;
-    sets.insert(name.clone(), LoadedPdfSet { members });
+    state
+        .sets
+        .lock()
+        .map_err(|e| e.to_string())?
+        .insert(name, LoadedPdfSet { members });
 
     Ok(metadata)
 }
 
 /// Remove a PDF set from the loaded state.
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn remove_pdf_set(name: String, state: State<'_, AppState>) -> Result<(), String> {
-    let mut sets = state.sets.lock().map_err(|e| e.to_string())?;
-    sets.remove(&name);
+    state.sets.lock().map_err(|e| e.to_string())?.remove(&name);
+
     Ok(())
 }
 
 /// Return the names of all currently loaded PDF sets.
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn get_loaded_sets(state: State<'_, AppState>) -> Result<Vec<String>, String> {
     let sets = state.sets.lock().map_err(|e| e.to_string())?;
     Ok(sets.keys().cloned().collect())
@@ -164,59 +172,67 @@ pub fn get_loaded_sets(state: State<'_, AppState>) -> Result<Vec<String>, String
 /// of the selected sets (intersection semantics, mirroring the original
 /// C++ `updateParametersUI`).
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+#[allow(clippy::significant_drop_tightening)]
 pub fn detect_active_parameters(
     set_names: Vec<String>,
     state: State<'_, AppState>,
 ) -> Result<ActiveParameters, String> {
-    let sets = state.sets.lock().map_err(|e| e.to_string())?;
+    let params = {
+        let sets = state.sets.lock().map_err(|e| e.to_string())?;
 
-    let mut result: Option<Vec<ParamRangeInfo>> = None;
+        let mut result: Option<Vec<ParamRangeInfo>> = None;
 
-    for name in &set_names {
-        let loaded = sets
-            .get(name)
-            .ok_or_else(|| format!("Set '{name}' not loaded"))?;
-        let pdf = &loaded.members[0];
+        for name in &set_names {
+            let loaded = sets
+                .get(name)
+                .ok_or_else(|| format!("Set '{name}' not loaded"))?;
+            let pdf = &loaded.members[0];
 
-        let infos: Vec<ParamRangeInfo> = PARAM_ORDER
-            .iter()
-            .map(|(pname, default)| param_info_from_pdf(pdf, pname, *default))
-            .collect();
+            let infos: Vec<ParamRangeInfo> = PARAM_ORDER
+                .iter()
+                .map(|(pname, default)| param_info_from_pdf(pdf, pname, *default))
+                .collect();
 
-        result = Some(match result {
-            None => infos,
-            Some(prev) => prev
-                .into_iter()
-                .zip(infos)
-                .map(|(mut a, b)| {
-                    // Intersection: only active if active in both
-                    a.active = a.active && b.active;
-                    if a.active {
-                        a.min = a.min.max(b.min);
-                        a.max = a.max.min(b.max);
-                    }
-                    a
-                })
-                .collect(),
-        });
-    }
+            result = Some(match result {
+                None => infos,
+                Some(prev) => prev
+                    .into_iter()
+                    .zip(infos)
+                    .map(|(mut a, b)| {
+                        // Intersection: only active if active in both
+                        a.active = a.active && b.active;
+                        if a.active {
+                            a.min = a.min.max(b.min);
+                            a.max = a.max.min(b.max);
+                        }
+                        a
+                    })
+                    .collect(),
+            });
+        }
 
-    Ok(ActiveParameters {
-        params: result.unwrap_or_default(),
-    })
+        result.unwrap_or_default()
+    };
+
+    Ok(ActiveParameters { params })
 }
 
 /// Get metadata for a specific loaded PDF set.
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+#[allow(clippy::significant_drop_tightening)]
 pub fn get_set_metadata(
     name: String,
     state: State<'_, AppState>,
 ) -> Result<PdfSetMetadata, String> {
-    let sets = state.sets.lock().map_err(|e| e.to_string())?;
-    let loaded = sets
-        .get(&name)
-        .ok_or_else(|| format!("Set '{name}' not loaded"))?;
-    let meta = loaded.members[0].metadata();
+    let meta = {
+        let sets = state.sets.lock().map_err(|e| e.to_string())?;
+        let loaded = sets
+            .get(&name)
+            .ok_or_else(|| format!("Set '{name}' not loaded"))?;
+        loaded.members[0].metadata().clone()
+    };
 
     Ok(PdfSetMetadata {
         set_name: name,
@@ -240,33 +256,37 @@ pub fn get_set_metadata(
         polarised: meta.polarised,
         interpolator_type: format!("{:?}", meta.interpolator_type),
         git_version: meta.git_version.clone(),
-        code_version: meta.code_version.clone(),
+        code_version: meta.code_version,
     })
 }
 
 /// Return the intersection of available PIDs across the selected sets.
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+#[allow(clippy::significant_drop_tightening)]
 pub fn get_available_pids(
     set_names: Vec<String>,
     state: State<'_, AppState>,
 ) -> Result<Vec<i32>, String> {
-    let sets = state.sets.lock().map_err(|e| e.to_string())?;
+    let mut pids = {
+        let sets = state.sets.lock().map_err(|e| e.to_string())?;
 
-    let mut common_pids: Option<Vec<i32>> = None;
+        let mut common_pids: Option<Vec<i32>> = None;
 
-    for name in &set_names {
-        let loaded = sets
-            .get(name)
-            .ok_or_else(|| format!("Set '{name}' not loaded"))?;
-        let pids: Vec<i32> = loaded.members[0].pids().to_vec();
+        for name in &set_names {
+            let loaded = sets
+                .get(name)
+                .ok_or_else(|| format!("Set '{name}' not loaded"))?;
+            let pids: Vec<i32> = loaded.members[0].pids().to_vec();
 
-        common_pids = Some(match common_pids {
-            None => pids,
-            Some(prev) => prev.into_iter().filter(|p| pids.contains(p)).collect(),
-        });
-    }
+            common_pids = Some(match common_pids {
+                None => pids,
+                Some(prev) => prev.into_iter().filter(|p| pids.contains(p)).collect(),
+            });
+        }
 
-    let mut pids = common_pids.unwrap_or_default();
+        common_pids.unwrap_or_default()
+    };
     // Sort: gluon (21) first, then positive quarks ascending, then negative descending
     pids.sort_by_key(|&p| {
         if p == 21 {
@@ -283,35 +303,48 @@ pub fn get_available_pids(
 /// Evaluate `alpha_s(Q^2)` at the given Q^2 values using the first member
 /// of the specified PDF set.
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+#[allow(clippy::significant_drop_tightening)]
 pub fn compute_alphas(
     set_name: String,
     q2_values: Vec<f64>,
     state: State<'_, AppState>,
 ) -> Result<Vec<f64>, String> {
-    let sets = state.sets.lock().map_err(|e| e.to_string())?;
-    let loaded = sets
-        .get(&set_name)
-        .ok_or_else(|| format!("Set '{set_name}' not loaded"))?;
-    let pdf = &loaded.members[0];
+    let result = {
+        let sets = state.sets.lock().map_err(|e| e.to_string())?;
+        let loaded = sets
+            .get(&set_name)
+            .ok_or_else(|| format!("Set '{set_name}' not loaded"))?;
+        let pdf = &loaded.members[0];
 
-    Ok(q2_values.iter().map(|&q2| pdf.alphas_q2(q2)).collect())
+        q2_values.iter().map(|&q2| pdf.alphas_q2(q2)).collect()
+    };
+
+    Ok(result)
 }
 
 /// Core plotting command: evaluate PDF members, compute statistics,
 /// and render the plot via matplotlib (PNG encoded as base64).
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+#[allow(clippy::significant_drop_tightening)]
 pub fn generate_plot(request: PlotRequest, state: State<'_, AppState>) -> Result<String, String> {
-    let sets = state.sets.lock().map_err(|e| e.to_string())?;
-
     // First detect the active parameters from the first set
-    let first_name = request.set_names.first().ok_or("No sets specified")?;
-    let first_set = sets
-        .get(first_name)
-        .ok_or_else(|| format!("Set '{first_name}' not loaded"))?;
-    let active_params: Vec<ParamRangeInfo> = PARAM_ORDER
-        .iter()
-        .map(|(pname, default)| param_info_from_pdf(&first_set.members[0], pname, *default))
-        .collect();
+    let (_, active_params) = {
+        let sets = state.sets.lock().map_err(|e| e.to_string())?;
+
+        let first_name = request.set_names.first().ok_or("No sets specified")?;
+        let first_set = sets
+            .get(first_name)
+            .ok_or_else(|| format!("Set '{first_name}' not loaded"))?;
+
+        let active_params: Vec<ParamRangeInfo> = PARAM_ORDER
+            .iter()
+            .map(|(pname, default)| param_info_from_pdf(&first_set.members[0], pname, *default))
+            .collect();
+
+        (first_name.clone(), active_params)
+    };
 
     let x_values = linspace(
         request.range_min,
@@ -324,6 +357,7 @@ pub fn generate_plot(request: PlotRequest, state: State<'_, AppState>) -> Result
     let mut all_plot_data: Vec<PlotData> = Vec::new();
 
     for set_name in &request.set_names {
+        let sets = state.sets.lock().map_err(|e| e.to_string())?;
         let loaded = sets
             .get(set_name)
             .ok_or_else(|| format!("Set '{set_name}' not loaded"))?;
@@ -411,21 +445,28 @@ pub fn generate_plot(request: PlotRequest, state: State<'_, AppState>) -> Result
 
 /// Export the plot to a file (PNG, PDF, SVG).
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+#[allow(clippy::significant_drop_tightening)]
 pub fn export_plot_png(
     request: PlotRequest,
     output_path: String,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let sets = state.sets.lock().map_err(|e| e.to_string())?;
+    let active_params = {
+        let sets = state.sets.lock().map_err(|e| e.to_string())?;
 
-    let first_name = request.set_names.first().ok_or("No sets specified")?;
-    let first_set = sets
-        .get(first_name)
-        .ok_or_else(|| format!("Set '{first_name}' not loaded"))?;
-    let active_params: Vec<ParamRangeInfo> = PARAM_ORDER
-        .iter()
-        .map(|(pname, default)| param_info_from_pdf(&first_set.members[0], pname, *default))
-        .collect();
+        let first_name = request.set_names.first().ok_or("No sets specified")?;
+        let first_set = sets
+            .get(first_name)
+            .ok_or_else(|| format!("Set '{first_name}' not loaded"))?;
+
+        let active_params: Vec<ParamRangeInfo> = PARAM_ORDER
+            .iter()
+            .map(|(pname, default)| param_info_from_pdf(&first_set.members[0], pname, *default))
+            .collect();
+
+        active_params
+    };
 
     let x_values = linspace(
         request.range_min,
@@ -437,6 +478,7 @@ pub fn export_plot_png(
     let mut all_plot_data: Vec<PlotData> = Vec::new();
 
     for set_name in &request.set_names {
+        let sets = state.sets.lock().map_err(|e| e.to_string())?;
         let loaded = sets
             .get(set_name)
             .ok_or_else(|| format!("Set '{set_name}' not loaded"))?;

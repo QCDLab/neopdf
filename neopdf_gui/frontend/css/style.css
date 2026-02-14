@@ -1,28 +1,28 @@
 /* NeoPDF GUI — Modern Tauri frontend styles */
 
 :root {
-  --bg: #16161e;
-  --bg-elevated: #1a1a24;
-  --surface: #242433;
-  --surface-hover: #2a2a3c;
-  --surface2: #2e2e40;
-  --border: #3b3b52;
-  --border-focus: #5b7cff;
-  --text: #e8e8f0;
-  --text-dim: #9898b0;
-  --text-muted: #6c6c84;
-  --accent: #5b7cff;
-  --accent-hover: #7a94ff;
-  --accent-muted: rgba(91, 124, 255, 0.15);
-  --danger: #e05c5c;
-  --danger-muted: rgba(224, 92, 92, 0.12);
-  --success: #5cc089;
-  --success-muted: rgba(92, 192, 137, 0.15);
+  --bg: #f5f5f7;
+  --bg-elevated: #ffffff;
+  --surface: #ffffff;
+  --surface-hover: #f8f8fa;
+  --surface2: #fafafb;
+  --border: #e2e2e8;
+  --border-focus: #2563eb;
+  --text: #1a1a24;
+  --text-dim: #5c5c6e;
+  --text-muted: #8c8c9c;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-muted: rgba(37, 99, 235, 0.12);
+  --danger: #dc2626;
+  --danger-muted: rgba(220, 38, 38, 0.1);
+  --success: #16a34a;
+  --success-muted: rgba(22, 163, 74, 0.12);
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.08);
   --transition: 0.2s ease;
 }
 
@@ -69,7 +69,7 @@ body {
 }
 
 .panel-section:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
 }
 
 .panel-section h3 {

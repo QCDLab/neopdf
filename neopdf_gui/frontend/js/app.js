@@ -326,10 +326,14 @@ async function doExport() {
     return;
   }
 
-  // Use Tauri's save dialog
+  // Use Tauri's save dialog (requires tauri-plugin-dialog and dialog:allow-save capability)
   try {
-    const { save } = window.__TAURI__.dialog;
-    const path = await save({
+    const dialog = window.__TAURI__?.dialog;
+    if (!dialog?.save) {
+      status("Export: dialog plugin not available", "error");
+      return;
+    }
+    const path = await dialog.save({
       filters: [
         { name: "PNG Image", extensions: ["png"] },
         { name: "PDF Document", extensions: ["pdf"] },

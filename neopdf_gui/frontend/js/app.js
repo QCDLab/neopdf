@@ -25,6 +25,9 @@ const $metadataContent = document.getElementById("metadata-content");
 const $dataPathInput = document.getElementById("data-path-input");
 const $btnBrowseDataPath = document.getElementById("btn-browse-data-path");
 const $btnSaveDataPath = document.getElementById("btn-save-data-path");
+const $pythonPathInput = document.getElementById("python-path-input");
+const $btnBrowsePythonPath = document.getElementById("btn-browse-python-path");
+const $btnSavePythonPath = document.getElementById("btn-save-python-path");
 
 // ---------------------------------------------------------------------------
 // State
@@ -395,9 +398,51 @@ async function saveDataPath() {
 }
 
 // ---------------------------------------------------------------------------
+// Settings: Python binary path
+// ---------------------------------------------------------------------------
+async function loadPythonPathSetting() {
+  try {
+    const path = await api.getPythonPathSetting();
+    $pythonPathInput.value = path || "";
+  } catch (e) {
+    console.warn("Failed to load python path setting:", e);
+  }
+}
+
+async function browsePythonPath() {
+  const dialog = window.__TAURI__?.dialog;
+  if (!dialog?.open) {
+    status("Browse not available", "error");
+    return;
+  }
+  try {
+    const selected = await dialog.open({
+      directory: false,
+      multiple: false,
+    });
+    if (selected) {
+      $pythonPathInput.value = Array.isArray(selected) ? selected[0] : selected;
+    }
+  } catch (e) {
+    status("Browse error: " + e, "error");
+  }
+}
+
+async function savePythonPath() {
+  const path = $pythonPathInput.value.trim() || null;
+  try {
+    await api.setPythonPathSetting(path);
+    status(path ? "Python path saved." : "Python path cleared (using default).", "success");
+  } catch (e) {
+    status("Failed to save: " + e, "error");
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Event Wiring
 // ---------------------------------------------------------------------------
 loadDataPathSetting();
+loadPythonPathSetting();
 
 $btnAddSet.addEventListener("click", addSet);
 $setNameInput.addEventListener("keydown", (e) => {
@@ -411,3 +456,5 @@ $btnPlot.addEventListener("click", doPlot);
 $btnExport.addEventListener("click", doExport);
 $btnBrowseDataPath.addEventListener("click", browseDataPath);
 $btnSaveDataPath.addEventListener("click", saveDataPath);
+$btnBrowsePythonPath.addEventListener("click", browsePythonPath);
+$btnSavePythonPath.addEventListener("click", savePythonPath);

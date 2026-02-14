@@ -71,9 +71,10 @@
         </div>
       </section>
 
-      <!-- Settings: Grid data path -->
+      <!-- Settings -->
       <section class="panel-section">
         <h3>Settings</h3>
+
         <label for="data-path-input">Grid data folder (NEOPDF_DATA_PATH):</label>
         <div class="data-path-row">
           <input type="text" id="data-path-input" placeholder="Default: ~/.local/share/neopdf" />
@@ -81,6 +82,14 @@
         </div>
         <p class="data-path-hint">Folder from which PDF sets (grids) are loaded. Leave empty for default.</p>
         <button id="btn-save-data-path" type="button" class="secondary">Save path</button>
+
+        <label for="python-path-input">Python binary:</label>
+        <div class="data-path-row">
+          <input type="text" id="python-path-input" placeholder="Default: python3" />
+          <button id="btn-browse-python-path" type="button" title="Browse">...</button>
+        </div>
+        <p class="data-path-hint">Path to the Python binary used for plotting (must have matplotlib). Leave empty for default.</p>
+        <button id="btn-save-python-path" type="button" class="secondary">Save path</button>
       </section>
 
       <!-- Action Buttons -->

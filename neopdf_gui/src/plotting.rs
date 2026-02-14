@@ -81,14 +81,18 @@ pub fn save_plot_to_file(
 
 /// Run a Python script via subprocess, feeding `stdin_data` on stdin.
 /// Returns stdout on success.
+///
+/// The Python binary is read from the `NEOPDF_PYTHON` environment variable,
+/// falling back to `"python3"` when unset.
 fn run_python(script: &str, stdin_data: &str) -> Result<String, String> {
-    let mut child = Command::new("python3")
+    let python_bin = std::env::var("NEOPDF_PYTHON").unwrap_or_else(|_| "python3".to_string());
+    let mut child = Command::new(&python_bin)
         .args(["-c", script])
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()
-        .map_err(|e| format!("Failed to spawn python3: {e}"))?;
+        .map_err(|e| format!("Failed to spawn {python_bin}: {e}"))?;
 
     if let Some(mut stdin) = child.stdin.take() {
         stdin
@@ -98,7 +102,7 @@ fn run_python(script: &str, stdin_data: &str) -> Result<String, String> {
 
     let output = child
         .wait_with_output()
-        .map_err(|e| format!("Failed to wait for python3: {e}"))?;
+        .map_err(|e| format!("Failed to wait for {python_bin}: {e}"))?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);

@@ -49,4 +49,12 @@ const api = {
   async setDataPathSetting(path) {
     return invoke("set_data_path_setting", { path });
   },
+
+  async getPythonPathSetting() {
+    return invoke("get_python_path_setting");
+  },
+
+  async setPythonPathSetting(path) {
+    return invoke("set_python_path_setting", { path });
+  },
 };

@@ -580,14 +580,40 @@ pub fn get_data_path_setting(app: AppHandle) -> Result<String, String> {
 #[tauri::command]
 pub fn set_data_path_setting(app: AppHandle, path: Option<String>) -> Result<(), String> {
     let path_opt = path.map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
-    let config = settings::GuiConfig {
-        data_path: path_opt.clone(),
-    };
+    let mut config = settings::load_config(&app)?;
+    config.data_path = path_opt.clone();
     settings::save_config(&app, &config)?;
     if let Some(p) = path_opt {
         std::env::set_var("NEOPDF_DATA_PATH", p);
     } else {
         std::env::remove_var("NEOPDF_DATA_PATH");
+    }
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Settings: Python binary path
+// ---------------------------------------------------------------------------
+
+/// Return the currently stored Python binary path, or empty string if not set.
+#[tauri::command]
+pub fn get_python_path_setting(app: AppHandle) -> Result<String, String> {
+    let config = settings::load_config(&app)?;
+    Ok(config.python_path.unwrap_or_default())
+}
+
+/// Set the Python binary path. Pass an empty string or null to clear (defaults to "python3").
+/// This is persisted and applied to NEOPDF_PYTHON for subsequent plotting.
+#[tauri::command]
+pub fn set_python_path_setting(app: AppHandle, path: Option<String>) -> Result<(), String> {
+    let path_opt = path.map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+    let mut config = settings::load_config(&app)?;
+    config.python_path = path_opt.clone();
+    settings::save_config(&app, &config)?;
+    if let Some(p) = path_opt {
+        std::env::set_var("NEOPDF_PYTHON", p);
+    } else {
+        std::env::remove_var("NEOPDF_PYTHON");
     }
     Ok(())
 }

@@ -22,6 +22,9 @@ const $btnPlot = document.getElementById("btn-plot");
 const $btnExport = document.getElementById("btn-export");
 const $statusBar = document.getElementById("status-bar");
 const $metadataContent = document.getElementById("metadata-content");
+const $dataPathInput = document.getElementById("data-path-input");
+const $btnBrowseDataPath = document.getElementById("btn-browse-data-path");
+const $btnSaveDataPath = document.getElementById("btn-save-data-path");
 
 // ---------------------------------------------------------------------------
 // State
@@ -351,8 +354,51 @@ async function doExport() {
 }
 
 // ---------------------------------------------------------------------------
+// Settings: Grid data path
+// ---------------------------------------------------------------------------
+async function loadDataPathSetting() {
+  try {
+    const path = await api.getDataPathSetting();
+    $dataPathInput.value = path || "";
+  } catch (e) {
+    console.warn("Failed to load data path setting:", e);
+  }
+}
+
+async function browseDataPath() {
+  const dialog = window.__TAURI__?.dialog;
+  if (!dialog?.open) {
+    status("Browse not available", "error");
+    return;
+  }
+  try {
+    const selected = await dialog.open({
+      directory: true,
+      multiple: false,
+    });
+    if (selected) {
+      $dataPathInput.value = Array.isArray(selected) ? selected[0] : selected;
+    }
+  } catch (e) {
+    status("Browse error: " + e, "error");
+  }
+}
+
+async function saveDataPath() {
+  const path = $dataPathInput.value.trim() || null;
+  try {
+    await api.setDataPathSetting(path);
+    status(path ? "Grid path saved. Reload PDF sets to use the new path." : "Grid path cleared.", "success");
+  } catch (e) {
+    status("Failed to save: " + e, "error");
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Event Wiring
 // ---------------------------------------------------------------------------
+loadDataPathSetting();
+
 $btnAddSet.addEventListener("click", addSet);
 $setNameInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") addSet();
@@ -363,3 +409,5 @@ $setList.addEventListener("change", onSelectionChanged);
 $xAxisVar.addEventListener("change", rebuildFixedParams);
 $btnPlot.addEventListener("click", doPlot);
 $btnExport.addEventListener("click", doExport);
+$btnBrowseDataPath.addEventListener("click", browseDataPath);
+$btnSaveDataPath.addEventListener("click", saveDataPath);

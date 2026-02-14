@@ -4,9 +4,10 @@ use std::collections::HashMap;
 
 use neopdf::pdf::PDF;
 use rayon::prelude::*;
-use tauri::State;
+use tauri::{AppHandle, State};
 
 use crate::plotting;
+use crate::settings;
 use crate::state::{AppState, LoadedPdfSet};
 use crate::types::{ActiveParameters, ParamRangeInfo, PdfSetMetadata, PlotData, PlotRequest};
 
@@ -561,4 +562,32 @@ pub fn export_plot_png(
         &title,
         &output_path,
     )
+}
+
+// ---------------------------------------------------------------------------
+// Settings: grid data path (NEOPDF_DATA_PATH)
+// ---------------------------------------------------------------------------
+
+/// Return the currently stored grid data folder path, or empty string if not set.
+#[tauri::command]
+pub fn get_data_path_setting(app: AppHandle) -> Result<String, String> {
+    let config = settings::load_config(&app)?;
+    Ok(config.data_path.unwrap_or_default())
+}
+
+/// Set the grid data folder path. Pass an empty string or null to clear.
+/// This is persisted and applied to NEOPDF_DATA_PATH for subsequent PDF loads.
+#[tauri::command]
+pub fn set_data_path_setting(app: AppHandle, path: Option<String>) -> Result<(), String> {
+    let path_opt = path.map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+    let config = settings::GuiConfig {
+        data_path: path_opt.clone(),
+    };
+    settings::save_config(&app, &config)?;
+    if let Some(p) = path_opt {
+        std::env::set_var("NEOPDF_DATA_PATH", p);
+    } else {
+        std::env::remove_var("NEOPDF_DATA_PATH");
+    }
+    Ok(())
 }

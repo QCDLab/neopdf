@@ -41,4 +41,12 @@ const api = {
   async exportPlotPng(request, outputPath) {
     return invoke("export_plot_png", { request, outputPath });
   },
+
+  async getDataPathSetting() {
+    return invoke("get_data_path_setting");
+  },
+
+  async setDataPathSetting(path) {
+    return invoke("set_data_path_setting", { path });
+  },
 };

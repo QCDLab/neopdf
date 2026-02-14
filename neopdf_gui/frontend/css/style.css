@@ -150,6 +150,61 @@ body {
   transform: scale(0.97);
 }
 
+.data-path-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.data-path-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.data-path-row button {
+  width: 40px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  background: var(--surface);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.data-path-row button:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.data-path-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 6px 0 10px;
+  line-height: 1.35;
+}
+
+.panel-section button.secondary {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.panel-section button.secondary:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+
 #set-list {
   height: 100px;
   margin-top: 8px;

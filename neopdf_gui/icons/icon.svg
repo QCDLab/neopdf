@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" version="1.1">
+  <!-- Square icon: outer shape is a square (same width as original circle), three colored circles inside -->
+  <defs>
+    <radialGradient id="Gradient_1" gradientUnits="userSpaceOnUse" cx="449.659" cy="806.173" r="160.644" gradientTransform="matrix(-0.295,-0.156,0.145,-0.273,130.144,426.486)">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.5" stop-color="#0000FF"/>
+      <stop offset="1" stop-color="#0000E5"/>
+    </radialGradient>
+    <radialGradient id="Gradient_2" gradientUnits="userSpaceOnUse" cx="449.659" cy="806.173" r="160.644" gradientTransform="matrix(-0.295,-0.156,0.145,-0.273,307.951,428.737)">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.5" stop-color="#E31C1C"/>
+      <stop offset="1" stop-color="#FA0000"/>
+    </radialGradient>
+    <radialGradient id="Gradient_3" gradientUnits="userSpaceOnUse" cx="449.659" cy="806.173" r="160.644" gradientTransform="matrix(-0.295,-0.156,0.145,-0.273,208.633,595.334)">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.5" stop-color="#00EA00"/>
+      <stop offset="1" stop-color="#00AF00"/>
+    </radialGradient>
+  </defs>
+  <g transform="translate(256, 256) scale(1.33) translate(-206, -210)">
+    <!-- Square background (same nominal size as original ellipse: 384×384) -->
+    <rect x="14" y="18" width="384" height="384" fill="#222831"/>
+    <rect x="14" y="18" width="384" height="384" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+    <path d="m 120.587,93.895 c -33.26,1.195 -59.306,29.155 -58.111,62.415 1.195,33.259 29.18,59.279 62.44,58.084 33.259,-1.195 59.28,-29.154 58.085,-62.414 -1.195,-33.26 -29.154,-59.28 -62.414,-58.085 z" fill="url(#Gradient_1)"/>
+    <path d="m 120.587,93.895 c -33.26,1.195 -59.306,29.155 -58.111,62.415 1.195,33.259 29.18,59.279 62.44,58.084 33.259,-1.195 59.28,-29.154 58.085,-62.414 -1.195,-33.26 -29.154,-59.28 -62.414,-58.085 z" fill-opacity="0" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+    <path d="m 298.393,96.146 c -33.259,1.195 -59.305,29.155 -58.11,62.415 1.195,33.26 29.179,59.279 62.439,58.085 33.26,-1.195 59.28,-29.155 58.085,-62.414 -1.194,-33.26 -29.154,-59.281 -62.414,-58.086 z" fill="url(#Gradient_2)"/>
+    <path d="m 298.393,96.146 c -33.259,1.195 -59.305,29.155 -58.11,62.415 1.195,33.26 29.179,59.279 62.439,58.085 33.26,-1.195 59.28,-29.155 58.085,-62.414 -1.194,-33.26 -29.154,-59.281 -62.414,-58.086 z" fill-opacity="0" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+    <path d="m 207.411,259.628 c -33.26,1.195 -59.306,29.155 -58.111,62.415 1.195,33.26 29.18,59.279 62.439,58.084 33.26,-1.194 59.281,-29.154 58.086,-62.414 -1.195,-33.259 -29.125,-59.28 -62.414,-58.085 z" fill="url(#Gradient_3)"/>
+    <path d="m 207.411,259.628 c -33.26,1.195 -59.306,29.155 -58.111,62.415 1.195,33.26 29.18,59.279 62.439,58.084 33.26,-1.194 59.461,-29.154 58.086,-62.414 -1.195,-33.259 -29.155,-59.28 -62.414,-58.085 z" fill-opacity="0" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+    <path d="m 174.425,153.164 c 0,0 2.676,-24.788 8.998,-24.466 6.322,0.322 9.419,25.451 16.289,25.753 6.87,0.302 4.898,-24.045 11.19,-24.545 6.292,-0.501 7.931,22.212 13.978,22.543 6.048,0.332 4.458,-21.011 10.212,-21.218 5.754,-0.206 12.804,20.391 12.804,20.391" fill-opacity="0" stroke="#ffffff" stroke-width="7.662" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="m 272.336,205.303 c 0,0 20.363,15.277 16.891,20.786 -3.472,5.508 -27.047,-4.763 -30.779,1.247 -3.731,6.01 18.591,16.885 15.854,22.794 -2.737,5.908 -23.459,-4.417 -26.802,0.84 -3.342,5.257 16.155,14.915 13.433,20.188 -2.723,5.272 -24.323,0.903 -24.323,0.903" fill-opacity="0" stroke="#ffffff" stroke-width="7.846" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="m 182.44,270.407 c 0,0 -22.905,10.12 -25.8,4.46 -2.895,-5.66 17.407,-20.974 14.22,-27.101 -3.187,-6.127 -23.374,7.815 -26.969,2.593 -3.595,-5.221 15.338,-18.053 12.589,-23.479 -2.749,-5.427 -20.514,6.673 -23.584,1.772 -3.069,-4.901 11.306,-21.377 11.306,-21.377" fill-opacity="0" stroke="#ffffff" stroke-width="7.696" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

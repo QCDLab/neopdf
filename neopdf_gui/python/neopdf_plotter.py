@@ -2,8 +2,8 @@
 
 This module is embedded via include_str!() and executed through a Python
 subprocess. It receives pre-computed PlotData from Rust and renders plots
-using matplotlib. The resulting figures are returned either as base64-encoded
-PNG images (for the GUI) or written directly to disk.
+using matplotlib. The resulting figures are returned either as base64
+encoded PNG images (for the GUI) or written directly to disk.
 """
 
 import base64
@@ -42,9 +42,7 @@ plt.rcParams.update(
         "errorbar.capsize": 2,
         # Fonts / text
         "font.size": 12,
-        "text.usetex": True,
-        # Use a simple LaTeX preamble; keep the backslash unescaped for TeX.
-        "text.latex.preamble": r"\usepackage{amsmath}",
+        "text.usetex": False,
         "mathtext.default": "regular",
         # Figure
         "figure.figsize": (5.6, 3.9),

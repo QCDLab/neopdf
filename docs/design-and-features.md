@@ -139,7 +139,8 @@ style A fill:#8B4513,stroke:#D2691E,stroke-width:2px
 style B fill:#1E3A5F,stroke:#4169E1,stroke-width:2px
 style C fill:#2F4F2F,stroke:#3CB371,stroke-width:2px
 style D fill:#8B2F2F,stroke:#CD5C5C,stroke-width:2px
-```
+
+```text
 </div>
 
 In order to support these distributions, `NeoPDF` provides Hermite Cubic Spline and Chebyshev

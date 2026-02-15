@@ -19,11 +19,13 @@ different platforms.
 First, you need to install `Pixi`. Depending on your platform, run one of the following commands:
 
 **Linux & macOS:**
+
 ```bash
 curl -fsSL https://pixi.sh/install.sh | sh
 ```
 
 **Windows:**
+
 ```powershell
 powershell -ExecutionPolicy ByPass -c "irm -useb https://pixi.sh/install.ps1 | iex"
 ```
@@ -37,15 +39,18 @@ After the installation, restart your terminal or source your shell configuration
 ### Initializing the Development Environment
 
 1. **Clone the repository and navigate to the project:**
+
    ```bash
    git clone https://github.com/Radonirinaunimi/neopdf
    cd neopdf
    ```
+
    This directory contains the `pixi.toml` configuration file which contains the list of
    dependencies and tasks. For more details on how to configure the `pixi.toml` file, head
    over to the [documentation](https://pixi.sh/latest/reference/pixi_manifest/).
 
 2. **Verify the environment:**
+
    ```bash
    # Check Rust version
    pixi run rustc --version
@@ -76,6 +81,7 @@ After the installation, restart your terminal or source your shell configuration
 The core Rust library provides the main interpolation functionality.
 
 **Building the library:**
+
 ```bash
 # Build in debug mode
 pixi run cargo build --manifest-path neopdf/Cargo.toml
@@ -85,6 +91,7 @@ pixi run cargo build --release --manifest-path neopdf/Cargo.toml
 ```
 
 **Running tests:**
+
 ```bash
 # Run all Rust tests
 pixi run test-rust
@@ -97,6 +104,7 @@ pixi run cargo test --no-fail-fast --manifest-path neopdf/Cargo.toml -- --nocapt
 ```
 
 **Running benchmarks:**
+
 ```bash
 pixi run cargo bench --manifest-path neopdf/Cargo.toml
 ```
@@ -107,6 +115,7 @@ The Python API provides high-level bindings to the Rust library using PyO3. For
 more examples on using the Python API, see the [tutorials](https://radonirinaunimi.github.io/neopdf/examples/neopdf-pyapi/).
 
 **Installing the Python API:**
+
 ```bash
 # Install in development mode
 pixi run install-pyapi
@@ -116,6 +125,7 @@ pixi run maturin develop --manifest-path neopdf_pyapi/Cargo.toml --extras test
 ```
 
 **Running Python tests:**
+
 ```bash
 # Run all Python tests
 pixi run test-pyapi
@@ -133,6 +143,7 @@ The C-API provides low-level bindings for C and C++ applications. For more examp
 on using the C/C++ API, see the corresponding [tutorials](examples/c-oop.md).
 
 **Installing the C-API:**
+
 ```bash
 # Install C-API
 pixi run install-capi
@@ -142,6 +153,7 @@ pixi run cargo cinstall --manifest-path neopdf_capi/Cargo.toml --prefix=/usr/loc
 ```
 
 **Running C-API tests:**
+
 ```bash
 # Run C-API tests
 pixi run test-capi
@@ -156,6 +168,7 @@ The CLI provides command-line tools for working with `NeoPDF` files. For more il
 on how to use the CLI, head over to the [tutorials](cli-tutorials.md)
 
 **Installing the CLI:**
+
 ```bash
 # Install CLI
 pixi run install-cli
@@ -165,6 +178,7 @@ pixi run cargo install --path neopdf_cli --debug
 ```
 
 **Using the CLI:**
+
 ```bash
 # Show help
 pixi run neopdf --help
@@ -185,6 +199,7 @@ The Fortran API provides bindings for Fortran applications. Fore some examples o
 use the Fortran API, see the [tutorials](examples/fortran.md).
 
 **Building the Fortran module:**
+
 ```bash
 # Compile Fortran module
 pixi run gfortran -c neopdf_fapi/neopdf.f90
@@ -200,6 +215,7 @@ pixi run make -C neopdf_fapi check-fapi
 ### Environment Management
 
 **Activating the environment:**
+
 ```bash
 # Activate the full development environment
 pixi shell
@@ -210,6 +226,7 @@ pixi shell --feature capi
 ```
 
 **Adding new dependencies:**
+
 ```bash
 # Add Python dependency
 pixi add numpy
@@ -224,6 +241,7 @@ pixi add cmake
 ### Building and Testing
 
 **Complete build and test workflow:**
+
 ```bash
 # 1. Activate environment
 pixi shell
@@ -243,6 +261,7 @@ pixi run cargo bench --manifest-path neopdf/Cargo.toml
 ```
 
 **Continuous Integration tasks:**
+
 ```bash
 # Run all tests in CI mode
 pixi run cargo test --no-fail-fast --release
@@ -254,6 +273,7 @@ pixi run cargo test --target x86_64-unknown-linux-gnu
 ### Documentation
 
 **Building documentation:**
+
 ```bash
 # Serve documentation locally
 pixi run docs
@@ -263,6 +283,7 @@ pixi run mkdocs build
 ```
 
 **Generating API documentation:**
+
 ```bash
 # Generate Rust documentation
 pixi run cargo doc --manifest-path neopdf/Cargo.toml --open
@@ -278,6 +299,7 @@ pixi run maturin build --manifest-path neopdf_pyapi/Cargo.toml --documentation
 ### Custom Tasks
 
 **Adding custom tasks to `pixi.toml`:**
+
 ```toml
 [tasks]
 # Custom development task
@@ -288,6 +310,7 @@ test-all = "cargo test && pytest && make -C neopdf_capi/tests"
 ```
 
 **Running custom tasks:**
+
 ```bash
 pixi run dev-setup
 pixi run test-all
@@ -296,12 +319,14 @@ pixi run test-all
 ### Platform-Specific Development
 
 **Linux development:**
+
 ```bash
 # Linux-specific tasks
 pixi run test-rust  # Uses Linux-specific configuration
 ```
 
 **Cross-platform development:**
+
 ```bash
 # Build for multiple platforms
 pixi run cargo build --target x86_64-unknown-linux-gnu
@@ -311,6 +336,7 @@ pixi run cargo build --target x86_64-apple-darwin
 ### Performance Profiling
 
 **Profiling Rust code:**
+
 ```bash
 # Install profiling tools
 pixi add cargo-instruments  # macOS
@@ -321,6 +347,7 @@ pixi run cargo flamegraph --manifest-path neopdf/Cargo.toml
 ```
 
 **Profiling Python code:**
+
 ```bash
 # Install Python profiling tools
 pixi add pytest-profiling
@@ -336,6 +363,7 @@ pixi run pytest neopdf_pyapi/tests --profile
 ### Common Issues
 
 **Environment activation problems:**
+
 ```bash
 # Reset environment
 pixi clean
@@ -345,6 +373,7 @@ pixi install
 ```
 
 **Build failures:**
+
 ```bash
 # Clean all builds
 pixi run cargo clean --manifest-path neopdf/Cargo.toml
@@ -357,6 +386,7 @@ pixi run install-capi
 ```
 
 **Test failures:**
+
 ```bash
 # Run tests with verbose output
 pixi run cargo test --manifest-path neopdf/Cargo.toml -- --nocapture
@@ -368,6 +398,7 @@ pixi run cargo test --manifest-path neopdf/Cargo.toml test_name -- --nocapture
 ### Debugging
 
 **Rust debugging:**
+
 ```bash
 # Run with debug symbols
 pixi run cargo build --manifest-path neopdf/Cargo.toml --debug
@@ -377,6 +408,7 @@ pixi run RUST_LOG=debug cargo test --manifest-path neopdf/Cargo.toml
 ```
 
 **Python debugging:**
+
 ```bash
 # Run with Python debugger
 pixi run python -m pdb -m pytest neopdf_pyapi/tests/test_pdfs.py
@@ -392,6 +424,7 @@ pixi run pytest neopdf_pyapi/tests -v -s
 ### Building Release Artifacts
 
 **Rust crates:**
+
 ```bash
 # Build for crates.io
 pixi run cargo build --release --manifest-path neopdf/Cargo.toml
@@ -399,6 +432,7 @@ pixi run cargo package --manifest-path neopdf/Cargo.toml
 ```
 
 **Python wheels:**
+
 ```bash
 # Build Python wheels
 pixi run maturin build --manifest-path neopdf_pyapi/Cargo.toml --release
@@ -408,6 +442,7 @@ pixi run maturin build --manifest-path neopdf_pyapi/Cargo.toml --release --targe
 ```
 
 **C-API libraries:**
+
 ```bash
 # Build C-API for distribution
 pixi run cargo cinstall --manifest-path neopdf_capi/Cargo.toml --release --prefix=/usr/local
@@ -416,12 +451,14 @@ pixi run cargo cinstall --manifest-path neopdf_capi/Cargo.toml --release --prefi
 ### Publishing
 
 **Publishing to crates.io:**
+
 ```bash
 # Publish Rust crates
 pixi run cargo publish --manifest-path neopdf/Cargo.toml
 ```
 
 **Publishing to PyPI:**
+
 ```bash
 # Publish Python package
 pixi run maturin upload --manifest-path neopdf_pyapi/Cargo.toml target/wheels/*

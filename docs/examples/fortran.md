@@ -97,7 +97,7 @@ end program check_fapi
 
 The above code would print the following results:
 
-```
+```text
 --------------------------------------
          x        LHAPDF        NeOPDF
 --------------------------------------

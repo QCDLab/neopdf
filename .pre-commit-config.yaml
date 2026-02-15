@@ -42,6 +42,10 @@ repos:
       pass_filenames: false
       types: [file, rust]
       language: system
+  - repo: https://github.com/rvben/rumdl-pre-commit
+    rev: v0.1.21
+    hooks:
+      - id: rumdl-fmt
   - repo: https://github.com/pre-commit/pre-commit
     rev: v3.8.0
     hooks:

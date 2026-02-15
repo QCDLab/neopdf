@@ -31,27 +31,30 @@ plt.rcParams.update(
                 "#ffd92f",
                 "#e5c494",
                 "#b3b3b3",
+                "#c37892",
+                "#789895",
             ]
         ),
         "axes.labelsize": "small",
         "axes.formatter.limits": (-5, 5),
         "axes.formatter.use_mathtext": True,
-        "axes.spines.top": True,
-        "axes.spines.right": True,
+        "axes.formatter.useoffset": False,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
         # Errorbar
         "errorbar.capsize": 2,
         # Fonts / text
-        "font.size": 12,
+        "font.size": 14,
         "text.usetex": False,
         "mathtext.default": "regular",
         # Figure
-        "figure.figsize": (5.6, 3.9),
+        "figure.figsize": (7, 4.3),
         # Grid
         "grid.color": "#cccccc",
         "grid.linestyle": "-",
         "grid.linewidth": 0.05,
         # Legend
-        "legend.fontsize": "small",
+        "legend.fontsize": "xx-small",
         "legend.numpoints": 1,
         "legend.scatterpoints": 1,
         "legend.loc": "best",
@@ -60,8 +63,8 @@ plt.rcParams.update(
         # Lines
         "lines.markersize": 4,
         # Ticks
-        "xtick.labelsize": "medium",
-        "ytick.labelsize": "medium",
+        "xtick.labelsize": "small",
+        "ytick.labelsize": "small",
         "xtick.top": False,
         "ytick.right": False,
         # SVG
@@ -79,6 +82,8 @@ COLORS = [
     "#ffd92f",
     "#e5c494",
     "#b3b3b3",
+    "#c37892",
+    "#789895",
 ]
 
 
@@ -99,7 +104,7 @@ def _build_figure(data, x_label, y_label, x_log, y_log, title):
     -------
     fig : matplotlib.figure.Figure
     """
-    fig, ax = plt.subplots(figsize=(5.6, 3.9))
+    fig, ax = plt.subplots(figsize=(7, 4.3))
 
     for i, d in enumerate(data):
         color = COLORS[i % len(COLORS)]

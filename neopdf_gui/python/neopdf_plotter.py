@@ -133,7 +133,7 @@ def render_plot(data, x_label, y_label, x_log, y_log, title):
     fig = _build_figure(data, x_label, y_label, x_log, y_log, title)
 
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=150, bbox_inches="tight")
+    fig.savefig(buf, format="png", dpi=350, bbox_inches="tight")
     plt.close(fig)
     buf.seek(0)
 
@@ -143,5 +143,5 @@ def render_plot(data, x_label, y_label, x_log, y_log, title):
 def save_plot(data, x_label, y_label, x_log, y_log, title, output_path):
     """Save the plot to a file (PNG, PDF, SVG, etc.)."""
     fig = _build_figure(data, x_label, y_label, x_log, y_log, title)
-    fig.savefig(output_path, dpi=150, bbox_inches="tight")
+    fig.savefig(output_path, dpi=350, bbox_inches="tight")
     plt.close(fig)

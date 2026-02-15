@@ -262,6 +262,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  margin: 0;
   font-size: 13px;
   color: var(--text);
   cursor: pointer;
@@ -468,7 +469,7 @@ button.primary:disabled {
   font-size: 12px;
 }
 
-.fixed-param-row input {
+.panel-section .fixed-param-row input {
   width: 88px;
   flex: none;
 }

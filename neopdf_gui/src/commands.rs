@@ -92,14 +92,57 @@ fn linspace(min: f64, max: f64, n: usize, log: bool) -> Vec<f64> {
     }
 }
 
-/// Compute mean and +/- 1-sigma band from member evaluations.
+/// Compute central value and +/- 1-sigma band from member evaluations,
+/// dispatching on the PDF set error type.
+///
+/// - `"replicas"` (Monte Carlo): member 0 is central; mean and std over members 1..N.
+/// - `"hessian"` (asymmetric): member 0 is central; +/- pairs in quadrature.
+/// - `"symmhessian"` (symmetric): member 0 is central; deviations in quadrature.
+/// - Fallback: same as replicas.
 #[allow(clippy::cast_precision_loss)]
-fn mean_and_band(values: &[f64]) -> (f64, f64, f64) {
-    let n = values.len() as f64;
-    let mean = values.iter().sum::<f64>() / n;
-    let variance = values.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / n;
-    let std = variance.sqrt();
-    (mean, mean + std, mean - std)
+fn mean_and_band(values: &[f64], error_type: &str) -> (f64, f64, f64) {
+    if values.len() <= 1 {
+        let v = values.first().copied().unwrap_or(0.0);
+        return (v, v, v);
+    }
+
+    match error_type {
+        "hessian" => {
+            let central = values[0];
+            let mut delta_up = 0.0_f64;
+            let mut delta_dn = 0.0_f64;
+            // Members come in +/- pairs: (1,2), (3,4), ...
+            let pairs = (values.len() - 1) / 2;
+            for i in 0..pairs {
+                let v_plus = values[2 * i + 1];
+                let v_minus = values[2 * i + 2];
+                delta_up += (v_plus - central).max(v_minus - central).max(0.0).powi(2);
+                delta_dn += (central - v_plus).max(central - v_minus).max(0.0).powi(2);
+            }
+            (
+                central,
+                central + delta_up.sqrt(),
+                central - delta_dn.sqrt(),
+            )
+        }
+        "symmhessian" => {
+            let central = values[0];
+            let delta = values[1..]
+                .iter()
+                .map(|v| (v - central).powi(2))
+                .sum::<f64>()
+                .sqrt();
+            (central, central + delta, central - delta)
+        }
+        // "replicas" and any unknown type: MC replica method
+        _ => {
+            let replicas = &values[1..];
+            let n = replicas.len() as f64;
+            let mean = replicas.iter().sum::<f64>() / n;
+            let std = (replicas.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / (n - 1.0)).sqrt();
+            (mean, mean + std, mean - std)
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -363,6 +406,8 @@ pub fn generate_plot(request: PlotRequest, state: State<'_, AppState>) -> Result
             .get(set_name)
             .ok_or_else(|| format!("Set '{set_name}' not loaded"))?;
 
+        let error_type = loaded.members[0].metadata().error_type.clone();
+
         let mut means = Vec::with_capacity(request.n_points);
         let mut uppers = Vec::with_capacity(request.n_points);
         let mut lowers = Vec::with_capacity(request.n_points);
@@ -382,7 +427,7 @@ pub fn generate_plot(request: PlotRequest, state: State<'_, AppState>) -> Result
                 .map(|pdf| pdf.xfxq2(request.pid, &points))
                 .collect();
 
-            let (mean, upper, lower) = mean_and_band(&results);
+            let (mean, upper, lower) = mean_and_band(&results, &error_type);
             means.push(mean);
             uppers.push(upper);
             lowers.push(lower);
@@ -484,6 +529,8 @@ pub fn export_plot_png(
             .get(set_name)
             .ok_or_else(|| format!("Set '{set_name}' not loaded"))?;
 
+        let error_type = loaded.members[0].metadata().error_type.clone();
+
         let mut means = Vec::with_capacity(request.n_points);
         let mut uppers = Vec::with_capacity(request.n_points);
         let mut lowers = Vec::with_capacity(request.n_points);
@@ -502,7 +549,7 @@ pub fn export_plot_png(
                 .map(|pdf| pdf.xfxq2(request.pid, &points))
                 .collect();
 
-            let (mean, upper, lower) = mean_and_band(&results);
+            let (mean, upper, lower) = mean_and_band(&results, &error_type);
             means.push(mean);
             uppers.push(upper);
             lowers.push(lower);

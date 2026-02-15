@@ -12,7 +12,7 @@ const CONFIG_FILENAME: &str = "neopdf_gui_config.json";
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct GuiConfig {
-    /// Folder from which PDF grids are loaded (equivalent to NEOPDF_DATA_PATH).
+    /// Folder from which PDF grids are loaded (equivalent to `NEOPDF_DATA_PATH`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data_path: Option<String>,
     /// Path to the Python binary used for matplotlib plotting.

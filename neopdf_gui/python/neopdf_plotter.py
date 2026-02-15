@@ -122,7 +122,7 @@ def _build_figure(data, x_label, y_label, x_log, y_log, title):
     if y_log:
         ax.set_yscale("log")
     if title:
-        ax.set_title(title, fontsize=14)
+        ax.set_title(title, fontsize=12)
 
     ax.set_xlabel(x_label, fontsize=12)
     ax.set_ylabel(y_label, fontsize=12)

@@ -16,9 +16,9 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState::new())
         .setup(|app| {
-            settings::apply_config_to_env(&app.handle())
+            settings::apply_config_to_env(app.handle())
                 .map_err(|e| {
-                    eprintln!("Failed to apply config to environment: {}", e);
+                    eprintln!("Failed to apply config to environment: {e}");
                 })
                 .ok();
             Ok(())

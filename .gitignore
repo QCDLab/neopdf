@@ -1,5 +1,13 @@
 /target
 /neopdf_gui/build/
+
+/neopdf_gui/icons/64x64.png
+/neopdf_gui/icons/icon.png
+/neopdf_gui/icons/android/
+/neopdf_gui/icons/ios/
+/neopdf_gui/icons/Square*.png
+/neopdf_gui/icons/StoreLogo.png
+
 /neopdf_capi/docs/build/
 /neopdf_capi/docs/xml/
 /neopdf_capi/docs/html/

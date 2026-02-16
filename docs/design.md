@@ -73,6 +73,7 @@ by half the size of a given LHAPDF PDF set:
     grid spacing and interpolation.
 
 ### Access Patterns
+
 - **Eager Loading**: The entire collection of grids can be decompressed and loaded into memory for
   batch operations.
 - **Random Access**: The `GridArrayReader` provides random access to individual grids using the offset
@@ -81,6 +82,7 @@ by half the size of a given LHAPDF PDF set:
   grid members, suitable for processing very large sets.
 
 ### Advantages
+
 - **Performance**: LZ4 compression and binary serialization provide fast read/write speeds and small
   file sizes.
 - **Scalability**: Lazy and random access patterns allow working with very large PDF sets without

@@ -61,9 +61,9 @@ sed -i \
     Cargo.toml
 git add Cargo.toml
 
-# update GUI version
-sed -i "s/^project(neopdf_gui VERSION .*)/project(neopdf_gui VERSION ${version})/" neopdf_gui/CMakeLists.txt
-git add neopdf_gui/CMakeLists.txt
+# update Tauri GUI version
+sed -i "s/\"version\": *\"[^\"]*\"/\"version\": \"${version}\"/" neopdf_gui/tauri.conf.json
+git add neopdf_gui/tauri.conf.json
 
 echo ">>> Updating Cargo.lock ..."
 

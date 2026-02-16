@@ -1,0 +1,6 @@
+{
+  "identifier": "default",
+  "description": "Default capability for the main window",
+  "windows": ["*"],
+  "permissions": ["dialog:allow-save", "dialog:allow-open"]
+}

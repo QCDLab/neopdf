@@ -167,7 +167,6 @@ jobs:
           gh release edit v${version} --draft=false
 
   gui-macos:
-    needs: capi-macos
     strategy:
       matrix:
         include:
@@ -178,63 +177,70 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - name: Install Qt
-        run: brew install qt6
-      - name: Set Qt path
-        run: echo "CMAKE_PREFIX_PATH=$(brew --prefix qt6)" >> $GITHUB_ENV
-      - name: Download capi artifact
-        uses: actions/download-artifact@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          name: neopdf_capi-${{ matrix.target }}
-          path: neopdf_capi_artifact
-      - name: Build and package
+          targets: ${{ matrix.target }}
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2"
+      - name: Build Tauri app (macOS)
+        working-directory: neopdf_gui
+        run: cargo tauri build --target ${{ matrix.target }}
+      - name: Prepare GUI artifact
         run: |
-          mkdir capi_install
-          tar -xzf neopdf_capi_artifact/neopdf_capi-${{ matrix.target }}.tar.gz -C capi_install
-          export CARGO_C_INSTALL_PREFIX=$(pwd)/capi_install
-          cmake -S neopdf_gui -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(pwd)/install -DCMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH
-          cmake --build build --config Release
-          cmake --install build
-          cd install
-          cpack
+          BUNDLE=$(find target/${{ matrix.target }}/release/bundle -name "*.dmg" | head -1)
+          cp "$BUNDLE" neopdf_gui-${{ matrix.target }}.dmg
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: neopdf_gui-${{ matrix.target }}
-          path: install/*.dmg
+          path: neopdf_gui-${{ matrix.target }}.dmg
 
   gui-linux:
-    needs: capi-linux
     runs-on: ubuntu-latest
     strategy:
       matrix:
         target: [x86_64-unknown-linux-gnu]
     steps:
       - uses: actions/checkout@v4
-      - name: Install Qt and build essentials
+      - name: Install Linux dependencies (Tauri / WebKit)
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential qt6-base-dev qt6-charts-dev
-      - name: Download capi artifact
-        uses: actions/download-artifact@v4
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libglib2.0-dev \
+            patchelf
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          name: neopdf_capi-${{ matrix.target }}
-          path: neopdf_capi_artifact
-      - name: Build and package
+          targets: ${{ matrix.target }}
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2"
+      - name: Build Tauri app (Linux)
+        working-directory: neopdf_gui
+        run: cargo tauri build --target ${{ matrix.target }}
+      - name: Prepare GUI artifact
         run: |
-          mkdir capi_install
-          tar -xzf neopdf_capi_artifact/neopdf_capi-${{ matrix.target }}.tar.gz -C capi_install
-          export CARGO_C_INSTALL_PREFIX=$(pwd)/capi_install
-          cmake -S neopdf_gui -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(pwd)/install
-          cmake --build build --config Release
-          cmake --install build
-          cd install
-          cpack
+          DIR=target/${{ matrix.target }}/release/bundle
+          mkdir -p gui-out
+          if ls $DIR/appimage/*.AppImage 1>/dev/null 2>&1; then
+            cp $DIR/appimage/*.AppImage gui-out/neopdf_gui-${{ matrix.target }}.AppImage
+          else
+            cp $DIR/deb/*.deb gui-out/neopdf_gui-${{ matrix.target }}.deb
+          fi
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: neopdf_gui-${{ matrix.target }}
-          path: install/*.tar.gz
+          path: gui-out/
 
 
   publish-crates:

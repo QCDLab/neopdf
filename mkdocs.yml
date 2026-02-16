@@ -30,6 +30,7 @@ nav:
   - Design Rationale: design.md
   - Custom Interpolation: custom-interpolation.md
   - CLI Tutorials: cli-tutorials.md
+  - GUI Interface: gui.md
   - TMDlib Interface: tmdlib.md
   - LHAPDF Sets Benchmark: 'lhapdf_benchmark/pdfs.md'
   - Examples:

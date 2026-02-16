@@ -71,6 +71,7 @@ widely used, have limitations in terms of extensibility and features. `NeoPDF` a
 - **[Installation Guide](./installation.md)**: Complete installation instructions for all platforms and APIs
 - **[Development with Pixi](./development-with-pixi.md)**: Comprehensive guide for using Pixi environment manager
 - **[CLI Tutorials](./cli-tutorials.md)**: Showcase how to use the command-line interface
+- **[GUI Interface](./gui.md)**: Interactive desktop application for exploring and plotting PDF sets
 - **[Examples](./examples/rust.md)**: Code examples for Rust, Python, C++, C, Fortran, and Mathematica APIs
 
 ---

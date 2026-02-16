@@ -200,7 +200,7 @@ dependence. One can now check the value of $xf(A, x, Q^2)$ for the Iron $^{56}_{
 neopdf compute xfx_q2 nNNPDF30_nlo_as_0118.neopdf.lz4 --member=0 --pid=21 56 1e-3 10.0
 ```
 
-### Combine multiple  $\alpha_s$ LHAPDF sets
+### Combine multiple $\alpha_s$ LHAPDF sets
 
 To combine multiple $\alpha_s$ LHAPDF sets into a single NeoPDF grid with an explicit dependence
 on $\alpha_s$, the procedure is the same as when combining multiple nuclear PDFs with the option

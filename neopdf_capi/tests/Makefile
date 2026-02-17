@@ -11,8 +11,6 @@ CHECKS = \
 	check-writer \
 	check-writer-8d \
 	check-writer-oop \
-	check-xapi \
-	check-xwriter \
 	check-lhapdf-compatibility
 
 BENCHMARKS = \
@@ -29,11 +27,11 @@ test-examples: $(CHECKS)
 test-benchmarks: $(BENCHMARKS)
 	set -e && for i in $(BENCHMARKS); do ./$${i} > output; diff -u $${i}.output output; done; rm output
 
-check-capi: check-capi.cpp
-	$(CXX) $(CXXFLAGS) $< $(LHAPDF_DEPS) $(NEOPDF_DEPS) -o $@
+check-capi: check-capi.c
+	$(CC) $(CXXFLAGS) $< $(NEOPDF_DEPS) $(MATH_LIBS) -o $@
 
-check-writer: check-writer.cpp
-	$(CXX) $(CXXFLAGS) $< $(LHAPDF_DEPS) $(NEOPDF_DEPS) -o $@
+check-writer: check-writer.c
+	$(CC) $(CXXFLAGS) $< $(NEOPDF_DEPS) $(MATH_LIBS) -o $@
 
 check-writer-8d: check-writer-8d.cpp
 	$(CXX) $(CXXFLAGS) $< $(LHAPDF_DEPS) $(NEOPDF_DEPS) -o $@
@@ -49,12 +47,6 @@ bench-xfxq2-single: bench-xfxq2-single.cpp
 
 bench-xfxq2-allpids: bench-xfxq2-allpids.cpp
 	$(CXX) $(CXXFLAGS) $< $(LHAPDF_DEPS) $(NEOPDF_DEPS) -o $@
-
-check-xapi: check-capi.c
-	$(CC) $(CXXFLAGS) $< $(NEOPDF_DEPS) $(MATH_LIBS) -o $@
-
-check-xwriter: check-writer.c
-	$(CC) $(CXXFLAGS) $< $(NEOPDF_DEPS) $(MATH_LIBS) -o $@
 
 check-lhapdf-compatibility: check-lhapdf-compatibility.cpp
 	$(CXX) $(CXXFLAGS) $< $(NEOPDF_DEPS) -o $@

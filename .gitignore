@@ -1,5 +1,6 @@
 /target
 /neopdf_gui/build/
+/neopdf_gui/gen/
 
 /neopdf_gui/icons/64x64.png
 /neopdf_gui/icons/icon.png

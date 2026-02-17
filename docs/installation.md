@@ -150,3 +150,47 @@ pip install neopdf-cli
     This will compile the CLI in debug mode and make the `neopdf` command available in your
     cargo bin directory (usually `~/.cargo/bin`). You can then run `neopdf --help` to see
     the available commands.
+
+---
+
+## GUI Interface
+
+The `NeoPDF` graphical user interface (GUI) is distributed as pre-built binaries for macOS
+and Linux. The GUI installers are attached to each release on the NeoPDF GitHub Releases
+page. To get the corresponding binary for your system, first go to the
+[NeoPDF Releases](https://github.com/QCDLab/neopdf/releases) page, then select the latest
+(stable) release (tagged `vX.Y.Z`), and finally download the file matching your operating
+system and CPU architecture from the list of assets.
+
+=== "<i class='devicon-apple-original colored'></i> macOS"
+
+    !!! note "Follow the steps:"
+
+        1. Double-click the downloaded `.dmg` file (`neopdf_gui-x86_64-apple-darwin.dmg` for
+           Intel, `neopdf_gui-aarch64-apple-darwin.dmg` for Apple Silicon).
+        2. In the window that opens, drag the `NeoPDF` application into your `Applications`
+           folder.
+        3. Launch `NeoPDF` from Launchpad or Finder.
+        4. If macOS warns that the app is from an unidentified developer, open
+           **System Settings → Privacy & Security**, and click **Open Anyway** for `NeoPDF`.
+           Alternatively, right-click the app in `Applications` and choose **Open** once.
+
+=== "<i class='devicon-linux-plain colored'></i> Linux"
+
+    !!! note "Follow the steps:"
+
+        1. Download `neopdf_gui-x86_64-unknown-linux-gnu.AppImage` from the latest release.
+        2. Make the AppImage executable:
+
+           ```bash
+           chmod +x neopdf_gui-x86_64-unknown-linux-gnu.AppImage
+           ```
+
+        3. Run the application:
+
+           ```bash
+           ./neopdf_gui-x86_64-unknown-linux-gnu.AppImage
+           ```
+
+        Optionally, move the AppImage to a directory such as `~/Applications` and create a
+        desktop entry so that it appears in your application launcher.

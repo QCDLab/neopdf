@@ -168,7 +168,6 @@ fn xfxq2_kt_tmdlib() {
 }
 
 #[test]
-#[cfg(feature = "tmdlib")]
 fn xfxq2_kt_neopdf_tmdlib() {
     Command::cargo_bin("neopdf")
         .unwrap()

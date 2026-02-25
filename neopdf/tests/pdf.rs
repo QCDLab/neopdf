@@ -338,3 +338,30 @@ pub fn test_xfxq2_cheby_batch() {
         }
     }
 }
+
+#[test]
+pub fn test_xfxq2s_cheby_consistency() {
+    let pdf = PDF::load("MAP22_grids_FF_Km_N3LL.neopdf.lz4", 0);
+    let ids = vec![21, 1, 2, 3, -1, -2, -3];
+    let pts = [
+        [1e-4, 1e-2, 2.0],
+        [1e-3, 1e-1, 10.0],
+        [1e-2, 0.5, 100.0],
+        [1e-1, 0.9, 1000.0],
+    ];
+    let pts_slices: Vec<&[f64]> = pts.iter().map(|p| &p[..]).collect();
+
+    let results_all = pdf.xfxq2s(ids.clone(), &pts_slices);
+
+    for (i, &pid) in ids.iter().enumerate() {
+        for (j, pt) in pts_slices.iter().enumerate() {
+            let expected = pdf.xfxq2(pid, pt);
+            assert!(
+                (results_all[[i, j]] - expected).abs() < PRECISION,
+                "Mismatch for pid {} at pt {:?}",
+                pid,
+                pt
+            );
+        }
+    }
+}

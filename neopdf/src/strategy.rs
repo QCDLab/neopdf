@@ -1488,6 +1488,245 @@ where
     }
 }
 
+/// Maximum number of Chebyshev grid points supported per dimension.
+/// Used for stack-allocated scratch buffers in the interpolation hot path.
+const CHEBY_MAX_N: usize = 64;
+
+/// Pre-computed barycentric coefficients for one kinematic point, reusable across PIDs.
+/// Produced by [`ChebyshevAllPids::locate`] and consumed by [`ChebyshevAllPids::eval_allpids`].
+pub(crate) struct ChebyshevLocation {
+    /// Barycentric coefficients, one sub-array per dimension.
+    pub(crate) coeffs: [[f64; CHEBY_MAX_N]; 5],
+    /// Grid size per dimension.
+    pub(crate) n: [usize; 5],
+    /// Total number of dimensions (2–5).
+    pub(crate) ndim: usize,
+}
+
+/// All-flavors Chebyshev evaluator for one subgrid. Analogous to `InterleavedHermite`.
+/// Built once at load time; allows computing barycentric coefficients once per kinematic
+/// point and reusing them for all PIDs.
+pub(crate) struct ChebyshevAllPids {
+    /// Coordinate arrays per dimension, matching the factory's scale (ln or raw).
+    coords: Vec<Vec<f64>>,
+    /// Pre-computed Chebyshev t-nodes in [-1,1] per dimension.
+    t_coords: Vec<Vec<f64>>,
+    /// Pre-computed barycentric weights per dimension.
+    weights: Vec<Vec<f64>>,
+    /// Per-PID values, one flat C-order `Vec<f64>` per PID.
+    values: Vec<Vec<f64>>,
+    /// Grid size per dimension (same order as `coords`).
+    shape: Vec<usize>,
+}
+
+impl ChebyshevAllPids {
+    pub(crate) fn build<F>(coord_vecs: Vec<Vec<f64>>, n_pids: usize, get_value: F) -> Self
+    where
+        F: Fn(usize, &[usize]) -> f64, // (pid_idx, multi_index) -> value
+    {
+        let ndim = coord_vecs.len();
+        let shape: Vec<usize> = coord_vecs.iter().map(|c| c.len()).collect();
+
+        // C-order strides for multi_index → flat decoding
+        let mut strides = vec![1usize; ndim];
+        for d in (0..ndim - 1).rev() {
+            strides[d] = strides[d + 1] * shape[d + 1];
+        }
+
+        let t_coords: Vec<Vec<f64>> = shape
+            .iter()
+            .map(|&n| {
+                (0..n)
+                    .map(|j| (std::f64::consts::PI * (n - 1 - j) as f64 / (n - 1) as f64).cos())
+                    .collect()
+            })
+            .collect();
+        let weights: Vec<Vec<f64>> = shape
+            .iter()
+            .map(|&n| LogChebyshevInterpolation::<1>::compute_barycentric_weights(n))
+            .collect();
+
+        let total: usize = shape.iter().product();
+        let values: Vec<Vec<f64>> = (0..n_pids)
+            .map(|pid| {
+                let mut v = vec![0.0_f64; total];
+                let mut idx = vec![0usize; ndim];
+                for (flat, v_val) in v.iter_mut().enumerate() {
+                    let mut rem = flat;
+                    for d in 0..ndim {
+                        idx[d] = rem / strides[d];
+                        rem %= strides[d];
+                    }
+                    *v_val = get_value(pid, &idx);
+                }
+                v
+            })
+            .collect();
+
+        Self {
+            coords: coord_vecs,
+            t_coords,
+            weights,
+            values,
+            shape,
+        }
+    }
+
+    /// Compute barycentric coefficients for all dimensions. Clamps point to grid bounds.
+    pub(crate) fn locate(&self, points: &[f64]) -> ChebyshevLocation {
+        let ndim = self.shape.len();
+        let mut loc = ChebyshevLocation {
+            coeffs: [[0.0; CHEBY_MAX_N]; 5],
+            n: [0; 5],
+            ndim,
+        };
+        for d in 0..ndim {
+            let coords = &self.coords[d];
+            let n = coords.len();
+            let lo = coords[0];
+            let hi = coords[n - 1];
+            let pt = points[d].clamp(lo, hi);
+            let t = 2.0 * (pt - lo) / (hi - lo) - 1.0;
+            loc.n[d] = n;
+            LogChebyshevInterpolation::<1>::fill_barycentric_coefficients(
+                t,
+                &self.t_coords[d],
+                &self.weights[d],
+                &mut loc.coeffs[d][..n],
+            );
+        }
+        loc
+    }
+
+    pub(crate) fn eval_allpids(
+        &self,
+        loc: &ChebyshevLocation,
+        pid_slots: &[Option<usize>],
+        force_positive_fn: fn(f64) -> f64,
+        out: &mut [f64],
+    ) {
+        for (o, slot) in out.iter_mut().zip(pid_slots.iter()) {
+            let pi = match *slot {
+                Some(i) => i,
+                None => {
+                    *o = 0.0;
+                    continue;
+                }
+            };
+            let result = match loc.ndim {
+                2 => Self::contract_2d(&self.values[pi], loc),
+                3 => Self::contract_3d(&self.values[pi], loc),
+                4 => Self::contract_4d(&self.values[pi], loc),
+                5 => Self::contract_5d(&self.values[pi], loc),
+                _ => unreachable!(),
+            };
+            *o = force_positive_fn(result);
+        }
+    }
+
+    fn contract_2d(vals: &[f64], loc: &ChebyshevLocation) -> f64 {
+        let (n0, n1) = (loc.n[0], loc.n[1]);
+        let (c0, c1) = (&loc.coeffs[0][..n0], &loc.coeffs[1][..n1]);
+        let mut result = 0.0_f64;
+        for i in 0..n0 {
+            let row = &vals[i * n1..(i + 1) * n1];
+            let mut acc = 0.0_f64;
+            for j in 0..n1 {
+                acc += c1[j] * row[j];
+            }
+            result += c0[i] * acc;
+        }
+        result
+    }
+
+    fn contract_3d(vals: &[f64], loc: &ChebyshevLocation) -> f64 {
+        let (n0, n1, n2) = (loc.n[0], loc.n[1], loc.n[2]);
+        let (c0, c1, c2) = (
+            &loc.coeffs[0][..n0],
+            &loc.coeffs[1][..n1],
+            &loc.coeffs[2][..n2],
+        );
+        let mut result = 0.0_f64;
+        for i in 0..n0 {
+            let mut acc_ij = 0.0_f64;
+            for j in 0..n1 {
+                let base = (i * n1 + j) * n2;
+                let row = &vals[base..base + n2];
+                let mut acc_k = 0.0_f64;
+                for k in 0..n2 {
+                    acc_k += c2[k] * row[k];
+                }
+                acc_ij += c1[j] * acc_k;
+            }
+            result += c0[i] * acc_ij;
+        }
+        result
+    }
+
+    fn contract_4d(vals: &[f64], loc: &ChebyshevLocation) -> f64 {
+        let (n0, n1, n2, n3) = (loc.n[0], loc.n[1], loc.n[2], loc.n[3]);
+        let (c0, c1, c2, c3) = (
+            &loc.coeffs[0][..n0],
+            &loc.coeffs[1][..n1],
+            &loc.coeffs[2][..n2],
+            &loc.coeffs[3][..n3],
+        );
+        let mut result = 0.0_f64;
+        for i in 0..n0 {
+            let mut a3 = 0.0_f64;
+            for j in 0..n1 {
+                let mut a2 = 0.0_f64;
+                for k in 0..n2 {
+                    let base = ((i * n1 + j) * n2 + k) * n3;
+                    let row = &vals[base..base + n3];
+                    let mut a1 = 0.0_f64;
+                    for l in 0..n3 {
+                        a1 += c3[l] * row[l];
+                    }
+                    a2 += c2[k] * a1;
+                }
+                a3 += c1[j] * a2;
+            }
+            result += c0[i] * a3;
+        }
+        result
+    }
+
+    fn contract_5d(vals: &[f64], loc: &ChebyshevLocation) -> f64 {
+        let (n0, n1, n2, n3, n4) = (loc.n[0], loc.n[1], loc.n[2], loc.n[3], loc.n[4]);
+        let (c0, c1, c2, c3, c4) = (
+            &loc.coeffs[0][..n0],
+            &loc.coeffs[1][..n1],
+            &loc.coeffs[2][..n2],
+            &loc.coeffs[3][..n3],
+            &loc.coeffs[4][..n4],
+        );
+        let mut result = 0.0_f64;
+        for i in 0..n0 {
+            let mut a4 = 0.0_f64;
+            for j in 0..n1 {
+                let mut a3 = 0.0_f64;
+                for k in 0..n2 {
+                    let mut a2 = 0.0_f64;
+                    for l in 0..n3 {
+                        let base = (((i * n1 + j) * n2 + k) * n3 + l) * n4;
+                        let row = &vals[base..base + n4];
+                        let mut a1 = 0.0_f64;
+                        for m in 0..n4 {
+                            a1 += c4[m] * row[m];
+                        }
+                        a2 += c3[l] * a1;
+                    }
+                    a3 += c2[k] * a2;
+                }
+                a4 += c1[j] * a3;
+            }
+            result += c0[i] * a4;
+        }
+        result
+    }
+}
+
 /// Implements a global N-dimensional interpolation using Chebyshev polynomials with logarithmic
 /// coordinate scaling.
 ///
@@ -1573,29 +1812,33 @@ impl<const DIM: usize> LogChebyshevInterpolation<DIM> {
         weights
     }
 
-    /// Computes normalized barycentric coefficients for interpolation
-    /// Returns a vector of coefficients that sum to 1
-    fn barycentric_coefficients(t: f64, t_coords: &[f64], weights: &[f64]) -> Vec<f64> {
-        let mut coeffs = vec![0.0; t_coords.len()];
+    /// Fills `out[0..t_coords.len()]` with normalized barycentric coefficients.
+    /// Separates the rare exact-match scan from the branch-free division loop,
+    /// enabling auto-vectorization of the hot path.
+    fn fill_barycentric_coefficients(t: f64, t_coords: &[f64], weights: &[f64], out: &mut [f64]) {
+        let n = t_coords.len();
+        debug_assert_eq!(out.len(), n);
 
+        // Exact-match scan (rare, kept separate to keep the hot loop branch-free)
         for (j, &t_j) in t_coords.iter().enumerate() {
             if (t - t_j).abs() < 1e-15 {
-                coeffs[j] = 1.0;
-                return coeffs;
+                out.iter_mut().for_each(|c| *c = 0.0);
+                out[j] = 1.0;
+                return;
             }
         }
 
-        let mut terms = Vec::with_capacity(t_coords.len());
-        for (j, &t_j) in t_coords.iter().enumerate() {
-            terms.push(weights[j] / (t - t_j));
+        // Hot path: branch-free — auto-vectorizable with AVX2
+        let mut sum = 0.0_f64;
+        for j in 0..n {
+            let term = weights[j] / (t - t_coords[j]);
+            out[j] = term;
+            sum += term;
         }
-
-        let sum: f64 = terms.iter().sum();
-        for (j, &term) in terms.iter().enumerate() {
-            coeffs[j] = term / sum;
+        let inv_sum = sum.recip();
+        for j in 0..n {
+            out[j] *= inv_sum;
         }
-
-        coeffs
     }
 
     /// Legacy barycentric interpolation method (kept for compatibility)
@@ -1700,24 +1943,45 @@ where
         let x_coords = data.grid[0].as_slice().unwrap();
         let y_coords = data.grid[1].as_slice().unwrap();
 
-        let x_min = *x_coords.first().unwrap();
-        let x_max = *x_coords.last().unwrap();
-        let y_min = *y_coords.first().unwrap();
-        let y_max = *y_coords.last().unwrap();
+        let n_x = x_coords.len();
+        let n_y = y_coords.len();
+        debug_assert!(n_x <= CHEBY_MAX_N && n_y <= CHEBY_MAX_N);
+
+        let x_min = x_coords[0];
+        let x_max = x_coords[n_x - 1];
+        let y_min = y_coords[0];
+        let y_max = y_coords[n_y - 1];
 
         let t_x = 2.0 * (x - x_min) / (x_max - x_min) - 1.0;
         let t_y = 2.0 * (y - y_min) / (y_max - y_min) - 1.0;
 
-        let x_coeffs = Self::barycentric_coefficients(t_x, &self.t_coords[0], &self.weights[0]);
-        let y_coeffs = Self::barycentric_coefficients(t_y, &self.t_coords[1], &self.weights[1]);
+        // Stack-allocated coefficient buffers — zero heap allocation (Rec 1)
+        let mut cx = [0.0_f64; CHEBY_MAX_N];
+        let mut cy = [0.0_f64; CHEBY_MAX_N];
+        Self::fill_barycentric_coefficients(
+            t_x,
+            &self.t_coords[0],
+            &self.weights[0],
+            &mut cx[..n_x],
+        );
+        Self::fill_barycentric_coefficients(
+            t_y,
+            &self.t_coords[1],
+            &self.weights[1],
+            &mut cy[..n_y],
+        );
 
-        let mut result = 0.0;
-        for (i, &x_coeff) in x_coeffs.iter().enumerate() {
-            for (j, &y_coeff) in y_coeffs.iter().enumerate() {
-                result += x_coeff * y_coeff * data.values[[i, j]];
+        // Raw slice + manual flat index (Rec 3) — exposes vectorizable inner loop
+        let vals = data.values.as_slice().unwrap();
+        let mut result = 0.0_f64;
+        for i in 0..n_x {
+            let row = &vals[i * n_y..(i + 1) * n_y];
+            let mut acc = 0.0_f64;
+            for j in 0..n_y {
+                acc += cy[j] * row[j];
             }
+            result += cx[i] * acc;
         }
-
         Ok(result)
     }
 
@@ -1758,30 +2022,59 @@ where
         let y_coords = data.grid[1].as_slice().unwrap();
         let z_coords = data.grid[2].as_slice().unwrap();
 
-        let x_min = *x_coords.first().unwrap();
-        let x_max = *x_coords.last().unwrap();
-        let y_min = *y_coords.first().unwrap();
-        let y_max = *y_coords.last().unwrap();
-        let z_min = *z_coords.first().unwrap();
-        let z_max = *z_coords.last().unwrap();
+        let n_x = x_coords.len();
+        let n_y = y_coords.len();
+        let n_z = z_coords.len();
+        debug_assert!(n_x <= CHEBY_MAX_N && n_y <= CHEBY_MAX_N && n_z <= CHEBY_MAX_N);
+
+        let x_min = x_coords[0];
+        let x_max = x_coords[n_x - 1];
+        let y_min = y_coords[0];
+        let y_max = y_coords[n_y - 1];
+        let z_min = z_coords[0];
+        let z_max = z_coords[n_z - 1];
 
         let t_x = 2.0 * (x - x_min) / (x_max - x_min) - 1.0;
         let t_y = 2.0 * (y - y_min) / (y_max - y_min) - 1.0;
         let t_z = 2.0 * (z - z_min) / (z_max - z_min) - 1.0;
 
-        let x_coeffs = Self::barycentric_coefficients(t_x, &self.t_coords[0], &self.weights[0]);
-        let y_coeffs = Self::barycentric_coefficients(t_y, &self.t_coords[1], &self.weights[1]);
-        let z_coeffs = Self::barycentric_coefficients(t_z, &self.t_coords[2], &self.weights[2]);
+        let mut cx = [0.0_f64; CHEBY_MAX_N];
+        let mut cy = [0.0_f64; CHEBY_MAX_N];
+        let mut cz = [0.0_f64; CHEBY_MAX_N];
+        Self::fill_barycentric_coefficients(
+            t_x,
+            &self.t_coords[0],
+            &self.weights[0],
+            &mut cx[..n_x],
+        );
+        Self::fill_barycentric_coefficients(
+            t_y,
+            &self.t_coords[1],
+            &self.weights[1],
+            &mut cy[..n_y],
+        );
+        Self::fill_barycentric_coefficients(
+            t_z,
+            &self.t_coords[2],
+            &self.weights[2],
+            &mut cz[..n_z],
+        );
 
-        let mut result = 0.0;
-        for (i, &x_coeff) in x_coeffs.iter().enumerate() {
-            for (j, &y_coeff) in y_coeffs.iter().enumerate() {
-                for (k, &z_coeff) in z_coeffs.iter().enumerate() {
-                    result += x_coeff * y_coeff * z_coeff * data.values[[i, j, k]];
+        let vals = data.values.as_slice().unwrap();
+        let mut result = 0.0_f64;
+        for i in 0..n_x {
+            let mut acc_ij = 0.0_f64;
+            for j in 0..n_y {
+                let base = (i * n_y + j) * n_z;
+                let row = &vals[base..base + n_z];
+                let mut acc_k = 0.0_f64;
+                for k in 0..n_z {
+                    acc_k += cz[k] * row[k];
                 }
+                acc_ij += cy[j] * acc_k;
             }
+            result += cx[i] * acc_ij;
         }
-
         Ok(result)
     }
 
@@ -1830,36 +2123,76 @@ where
         let z_coords = data.grid[2].as_slice().unwrap();
         let w_coords = data.grid[3].as_slice().unwrap();
 
-        let x_min = *x_coords.first().unwrap();
-        let x_max = *x_coords.last().unwrap();
-        let y_min = *y_coords.first().unwrap();
-        let y_max = *y_coords.last().unwrap();
-        let z_min = *z_coords.first().unwrap();
-        let z_max = *z_coords.last().unwrap();
-        let w_min = *w_coords.first().unwrap();
-        let w_max = *w_coords.last().unwrap();
+        let n_x = x_coords.len();
+        let n_y = y_coords.len();
+        let n_z = z_coords.len();
+        let n_w = w_coords.len();
+        debug_assert!(
+            n_x <= CHEBY_MAX_N && n_y <= CHEBY_MAX_N && n_z <= CHEBY_MAX_N && n_w <= CHEBY_MAX_N
+        );
+
+        let x_min = x_coords[0];
+        let x_max = x_coords[n_x - 1];
+        let y_min = y_coords[0];
+        let y_max = y_coords[n_y - 1];
+        let z_min = z_coords[0];
+        let z_max = z_coords[n_z - 1];
+        let w_min = w_coords[0];
+        let w_max = w_coords[n_w - 1];
 
         let t_x = 2.0 * (x - x_min) / (x_max - x_min) - 1.0;
         let t_y = 2.0 * (y - y_min) / (y_max - y_min) - 1.0;
         let t_z = 2.0 * (z - z_min) / (z_max - z_min) - 1.0;
         let t_w = 2.0 * (w - w_min) / (w_max - w_min) - 1.0;
 
-        let x_coeffs = Self::barycentric_coefficients(t_x, &self.t_coords[0], &self.weights[0]);
-        let y_coeffs = Self::barycentric_coefficients(t_y, &self.t_coords[1], &self.weights[1]);
-        let z_coeffs = Self::barycentric_coefficients(t_z, &self.t_coords[2], &self.weights[2]);
-        let w_coeffs = Self::barycentric_coefficients(t_w, &self.t_coords[3], &self.weights[3]);
+        let mut cx = [0.0_f64; CHEBY_MAX_N];
+        let mut cy = [0.0_f64; CHEBY_MAX_N];
+        let mut cz = [0.0_f64; CHEBY_MAX_N];
+        let mut cw = [0.0_f64; CHEBY_MAX_N];
+        Self::fill_barycentric_coefficients(
+            t_x,
+            &self.t_coords[0],
+            &self.weights[0],
+            &mut cx[..n_x],
+        );
+        Self::fill_barycentric_coefficients(
+            t_y,
+            &self.t_coords[1],
+            &self.weights[1],
+            &mut cy[..n_y],
+        );
+        Self::fill_barycentric_coefficients(
+            t_z,
+            &self.t_coords[2],
+            &self.weights[2],
+            &mut cz[..n_z],
+        );
+        Self::fill_barycentric_coefficients(
+            t_w,
+            &self.t_coords[3],
+            &self.weights[3],
+            &mut cw[..n_w],
+        );
 
-        let mut result = 0.0;
-        for (i, &x_coeff) in x_coeffs.iter().enumerate() {
-            for (j, &y_coeff) in y_coeffs.iter().enumerate() {
-                for (k, &z_coeff) in z_coeffs.iter().enumerate() {
-                    for (l, &w_coeff) in w_coeffs.iter().enumerate() {
-                        result += x_coeff * y_coeff * z_coeff * w_coeff * data.values[[i, j, k, l]];
+        let vals = data.values.as_slice().unwrap();
+        let mut result = 0.0_f64;
+        for i in 0..n_x {
+            let mut a3 = 0.0_f64;
+            for j in 0..n_y {
+                let mut a2 = 0.0_f64;
+                for k in 0..n_z {
+                    let base = ((i * n_y + j) * n_z + k) * n_w;
+                    let row = &vals[base..base + n_w];
+                    let mut a1 = 0.0_f64;
+                    for l in 0..n_w {
+                        a1 += cw[l] * row[l];
                     }
+                    a2 += cz[k] * a1;
                 }
+                a3 += cy[j] * a2;
             }
+            result += cx[i] * a3;
         }
-
         Ok(result)
     }
 
@@ -1909,16 +2242,29 @@ where
         let w_coords = data.grid[3].as_slice().unwrap();
         let v_coords = data.grid[4].as_slice().unwrap();
 
-        let x_min = *x_coords.first().unwrap();
-        let x_max = *x_coords.last().unwrap();
-        let y_min = *y_coords.first().unwrap();
-        let y_max = *y_coords.last().unwrap();
-        let z_min = *z_coords.first().unwrap();
-        let z_max = *z_coords.last().unwrap();
-        let w_min = *w_coords.first().unwrap();
-        let w_max = *w_coords.last().unwrap();
-        let v_min = *v_coords.first().unwrap();
-        let v_max = *v_coords.last().unwrap();
+        let n_x = x_coords.len();
+        let n_y = y_coords.len();
+        let n_z = z_coords.len();
+        let n_w = w_coords.len();
+        let n_v = v_coords.len();
+        debug_assert!(
+            n_x <= CHEBY_MAX_N
+                && n_y <= CHEBY_MAX_N
+                && n_z <= CHEBY_MAX_N
+                && n_w <= CHEBY_MAX_N
+                && n_v <= CHEBY_MAX_N
+        );
+
+        let x_min = x_coords[0];
+        let x_max = x_coords[n_x - 1];
+        let y_min = y_coords[0];
+        let y_max = y_coords[n_y - 1];
+        let z_min = z_coords[0];
+        let z_max = z_coords[n_z - 1];
+        let w_min = w_coords[0];
+        let w_max = w_coords[n_w - 1];
+        let v_min = v_coords[0];
+        let v_max = v_coords[n_v - 1];
 
         let t_x = 2.0 * (x - x_min) / (x_max - x_min) - 1.0;
         let t_y = 2.0 * (y - y_min) / (y_max - y_min) - 1.0;
@@ -1926,30 +2272,65 @@ where
         let t_w = 2.0 * (w - w_min) / (w_max - w_min) - 1.0;
         let t_v = 2.0 * (v_ - v_min) / (v_max - v_min) - 1.0;
 
-        let x_coeffs = Self::barycentric_coefficients(t_x, &self.t_coords[0], &self.weights[0]);
-        let y_coeffs = Self::barycentric_coefficients(t_y, &self.t_coords[1], &self.weights[1]);
-        let z_coeffs = Self::barycentric_coefficients(t_z, &self.t_coords[2], &self.weights[2]);
-        let w_coeffs = Self::barycentric_coefficients(t_w, &self.t_coords[3], &self.weights[3]);
-        let v_coeffs = Self::barycentric_coefficients(t_v, &self.t_coords[4], &self.weights[4]);
+        let mut cx = [0.0_f64; CHEBY_MAX_N];
+        let mut cy = [0.0_f64; CHEBY_MAX_N];
+        let mut cz = [0.0_f64; CHEBY_MAX_N];
+        let mut cw = [0.0_f64; CHEBY_MAX_N];
+        let mut cv = [0.0_f64; CHEBY_MAX_N];
+        Self::fill_barycentric_coefficients(
+            t_x,
+            &self.t_coords[0],
+            &self.weights[0],
+            &mut cx[..n_x],
+        );
+        Self::fill_barycentric_coefficients(
+            t_y,
+            &self.t_coords[1],
+            &self.weights[1],
+            &mut cy[..n_y],
+        );
+        Self::fill_barycentric_coefficients(
+            t_z,
+            &self.t_coords[2],
+            &self.weights[2],
+            &mut cz[..n_z],
+        );
+        Self::fill_barycentric_coefficients(
+            t_w,
+            &self.t_coords[3],
+            &self.weights[3],
+            &mut cw[..n_w],
+        );
+        Self::fill_barycentric_coefficients(
+            t_v,
+            &self.t_coords[4],
+            &self.weights[4],
+            &mut cv[..n_v],
+        );
 
-        let mut result = 0.0;
-        for (i, &x_coeff) in x_coeffs.iter().enumerate() {
-            for (j, &y_coeff) in y_coeffs.iter().enumerate() {
-                for (k, &z_coeff) in z_coeffs.iter().enumerate() {
-                    for (l, &w_coeff) in w_coeffs.iter().enumerate() {
-                        for (m, &v_coeff) in v_coeffs.iter().enumerate() {
-                            result += x_coeff
-                                * y_coeff
-                                * z_coeff
-                                * w_coeff
-                                * v_coeff
-                                * data.values[[i, j, k, l, m]];
+        let vals = data.values.as_slice().unwrap();
+        let mut result = 0.0_f64;
+        for i in 0..n_x {
+            let mut a4 = 0.0_f64;
+            for j in 0..n_y {
+                let mut a3 = 0.0_f64;
+                for k in 0..n_z {
+                    let mut a2 = 0.0_f64;
+                    for l in 0..n_w {
+                        let base = (((i * n_y + j) * n_z + k) * n_w + l) * n_v;
+                        let row = &vals[base..base + n_v];
+                        let mut a1 = 0.0_f64;
+                        for m in 0..n_v {
+                            a1 += cv[m] * row[m];
                         }
+                        a2 += cw[l] * a1;
                     }
+                    a3 += cz[k] * a2;
                 }
+                a4 += cy[j] * a3;
             }
+            result += cx[i] * a4;
         }
-
         Ok(result)
     }
 
@@ -2047,6 +2428,7 @@ impl<const DIM: usize> LogChebyshevBatchInterpolation<DIM> {
         let num_points = t_values.len();
         let num_coords = t_coords.len();
         let mut coeffs = Array2::<f64>::zeros((num_points, num_coords));
+        let mut terms = [0.0_f64; CHEBY_MAX_N];
 
         for (p, &t) in t_values.iter().enumerate() {
             let mut found_exact = false;
@@ -2059,15 +2441,15 @@ impl<const DIM: usize> LogChebyshevBatchInterpolation<DIM> {
             }
 
             if !found_exact {
-                let mut terms = Vec::with_capacity(num_coords);
-                for (j, &t_j) in t_coords.iter().enumerate() {
-                    terms.push(weights[j] / (t - t_j));
+                debug_assert!(num_coords <= CHEBY_MAX_N);
+                for j in 0..num_coords {
+                    terms[j] = weights[j] / (t - t_coords[j]);
                 }
 
-                let sum: f64 = terms.iter().sum();
+                let sum: f64 = terms[..num_coords].iter().sum();
 
-                for (j, &term) in terms.iter().enumerate() {
-                    coeffs[[p, j]] = term / sum;
+                for j in 0..num_coords {
+                    coeffs[[p, j]] = terms[j] / sum;
                 }
             }
         }

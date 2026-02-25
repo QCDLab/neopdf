@@ -61,9 +61,9 @@ int main() {
         std::abort();
     }
     std::cout << "NeoPDF is faster than LHAPDF!" << std::endl;
-    std::cout << "LHAPDF:     " << lhapdf_ns << " ns/call\n";
-    std::cout << "NeoPDF:     " << neopdf_ns << " ns/call\n";
-    std::cout << "Ratio:      " << neopdf_ns / lhapdf_ns << "x\n";
+    // std::cout << "LHAPDF:     " << lhapdf_ns << " ns/call\n";
+    // std::cout << "NeoPDF:     " << neopdf_ns << " ns/call\n";
+    // std::cout << "Ratio:      " << neopdf_ns / lhapdf_ns << "x\n";
 
     (void)sink;
     return EXIT_SUCCESS;

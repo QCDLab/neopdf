@@ -32,7 +32,7 @@ jobs:
       - name: Run benchmarks
         run: |
           export NEOPDF_DATA_PATH=${PWD}/neopdf-data
-          cargo bench -p neopdf
+          cargo bench -p  neopdf@0.3.0-alpha4
 
       - name: Upload benchmark reports
         if: always()

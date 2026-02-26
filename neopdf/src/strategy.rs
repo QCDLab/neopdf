@@ -1580,7 +1580,7 @@ impl ChebyshevAllPids {
             n: [0; 5],
             ndim,
         };
-        for d in 0..ndim {
+        (0..ndim).for_each(|d| {
             let coords = &self.coords[d];
             let n = coords.len();
             let lo = coords[0];
@@ -1594,7 +1594,7 @@ impl ChebyshevAllPids {
                 &self.weights[d],
                 &mut loc.coeffs[d][..n],
             );
-        }
+        });
         loc
     }
 
@@ -1647,9 +1647,9 @@ impl ChebyshevAllPids {
             &loc.coeffs[2][..n2],
         );
         let mut result = 0.0_f64;
-        for i in 0..n0 {
+        (0..n0).for_each(|i| {
             let mut acc_ij = 0.0_f64;
-            for j in 0..n1 {
+            (0..n1).for_each(|j| {
                 let base = (i * n1 + j) * n2;
                 let row = &vals[base..base + n2];
                 let mut acc_k = 0.0_f64;
@@ -1657,9 +1657,9 @@ impl ChebyshevAllPids {
                     acc_k += c2[k] * row[k];
                 }
                 acc_ij += c1[j] * acc_k;
-            }
+            });
             result += c0[i] * acc_ij;
-        }
+        });
         result
     }
 
@@ -1672,11 +1672,11 @@ impl ChebyshevAllPids {
             &loc.coeffs[3][..n3],
         );
         let mut result = 0.0_f64;
-        for i in 0..n0 {
+        (0..n0).for_each(|i| {
             let mut a3 = 0.0_f64;
-            for j in 0..n1 {
+            (0..n1).for_each(|j| {
                 let mut a2 = 0.0_f64;
-                for k in 0..n2 {
+                (0..n2).for_each(|k| {
                     let base = ((i * n1 + j) * n2 + k) * n3;
                     let row = &vals[base..base + n3];
                     let mut a1 = 0.0_f64;
@@ -1684,11 +1684,11 @@ impl ChebyshevAllPids {
                         a1 += c3[l] * row[l];
                     }
                     a2 += c2[k] * a1;
-                }
+                });
                 a3 += c1[j] * a2;
-            }
+            });
             result += c0[i] * a3;
-        }
+        });
         result
     }
 
@@ -1702,13 +1702,13 @@ impl ChebyshevAllPids {
             &loc.coeffs[4][..n4],
         );
         let mut result = 0.0_f64;
-        for i in 0..n0 {
+        (0..n0).for_each(|i| {
             let mut a4 = 0.0_f64;
-            for j in 0..n1 {
+            (0..n1).for_each(|j| {
                 let mut a3 = 0.0_f64;
-                for k in 0..n2 {
+                (0..n2).for_each(|k| {
                     let mut a2 = 0.0_f64;
-                    for l in 0..n3 {
+                    (0..n3).for_each(|l| {
                         let base = (((i * n1 + j) * n2 + k) * n3 + l) * n4;
                         let row = &vals[base..base + n4];
                         let mut a1 = 0.0_f64;
@@ -1716,13 +1716,13 @@ impl ChebyshevAllPids {
                             a1 += c4[m] * row[m];
                         }
                         a2 += c3[l] * a1;
-                    }
+                    });
                     a3 += c2[k] * a2;
-                }
+                });
                 a4 += c1[j] * a3;
-            }
+            });
             result += c0[i] * a4;
-        }
+        });
         result
     }
 }
@@ -1836,9 +1836,9 @@ impl<const DIM: usize> LogChebyshevInterpolation<DIM> {
             sum += term;
         }
         let inv_sum = sum.recip();
-        for j in 0..n {
+        (0..n).for_each(|j| {
             out[j] *= inv_sum;
-        }
+        });
     }
 
     /// Legacy barycentric interpolation method (kept for compatibility)
@@ -2062,9 +2062,9 @@ where
 
         let vals = data.values.as_slice().unwrap();
         let mut result = 0.0_f64;
-        for i in 0..n_x {
+        (0..n_x).for_each(|i| {
             let mut acc_ij = 0.0_f64;
-            for j in 0..n_y {
+            (0..n_y).for_each(|j| {
                 let base = (i * n_y + j) * n_z;
                 let row = &vals[base..base + n_z];
                 let mut acc_k = 0.0_f64;
@@ -2072,9 +2072,9 @@ where
                     acc_k += cz[k] * row[k];
                 }
                 acc_ij += cy[j] * acc_k;
-            }
+            });
             result += cx[i] * acc_ij;
-        }
+        });
         Ok(result)
     }
 
@@ -2176,11 +2176,11 @@ where
 
         let vals = data.values.as_slice().unwrap();
         let mut result = 0.0_f64;
-        for i in 0..n_x {
+        (0..n_x).for_each(|i| {
             let mut a3 = 0.0_f64;
-            for j in 0..n_y {
+            (0..n_y).for_each(|j| {
                 let mut a2 = 0.0_f64;
-                for k in 0..n_z {
+                (0..n_z).for_each(|k| {
                     let base = ((i * n_y + j) * n_z + k) * n_w;
                     let row = &vals[base..base + n_w];
                     let mut a1 = 0.0_f64;
@@ -2188,11 +2188,11 @@ where
                         a1 += cw[l] * row[l];
                     }
                     a2 += cz[k] * a1;
-                }
+                });
                 a3 += cy[j] * a2;
-            }
+            });
             result += cx[i] * a3;
-        }
+        });
         Ok(result)
     }
 
@@ -2310,13 +2310,13 @@ where
 
         let vals = data.values.as_slice().unwrap();
         let mut result = 0.0_f64;
-        for i in 0..n_x {
+        (0..n_x).for_each(|i| {
             let mut a4 = 0.0_f64;
-            for j in 0..n_y {
+            (0..n_y).for_each(|j| {
                 let mut a3 = 0.0_f64;
-                for k in 0..n_z {
+                (0..n_z).for_each(|k| {
                     let mut a2 = 0.0_f64;
-                    for l in 0..n_w {
+                    (0..n_w).for_each(|l| {
                         let base = (((i * n_y + j) * n_z + k) * n_w + l) * n_v;
                         let row = &vals[base..base + n_v];
                         let mut a1 = 0.0_f64;
@@ -2324,13 +2324,13 @@ where
                             a1 += cv[m] * row[m];
                         }
                         a2 += cw[l] * a1;
-                    }
+                    });
                     a3 += cz[k] * a2;
-                }
+                });
                 a4 += cy[j] * a3;
-            }
+            });
             result += cx[i] * a4;
-        }
+        });
         Ok(result)
     }
 

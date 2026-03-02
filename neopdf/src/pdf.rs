@@ -26,6 +26,7 @@ use super::gridpdf::{ForcePositive, GridArray, GridPDF};
 use super::metadata::MetaData;
 use super::parser::{LhapdfSet, NeopdfSet};
 use super::subgrid::{RangeParameters, SubGrid};
+use super::utils::lookup_lhaid;
 
 /// Trait for abstracting over different PDF set backends (e.g., LHAPDF, NeoPDF).
 ///
@@ -185,6 +186,36 @@ impl PDF {
         } else {
             pdfsets_seq_loader(LhapdfSet::new(pdf_name))
         }
+    }
+
+    /// Loads a PDF member by its LHAPDF ID (LHAID).
+    ///
+    /// The set name and member index are resolved by fetching the LHAPDF set index from
+    /// `https://lhapdfsets.web.cern.ch/current/pdfsets.index`. Each entry in the index
+    /// assigns a base ID and a member count to a named PDF set; an LHAID encodes both:
+    ///
+    /// ```text
+    /// lhaid = set_base_id + member_offset
+    /// ```
+    ///
+    /// For example, if `CT10nlo` has base ID 11000 and 53 members, then LHAID 11003
+    /// maps to `CT10nlo` member 3.
+    ///
+    /// # Arguments
+    ///
+    /// * `lhaid` - The LHAPDF ID uniquely identifying both the PDF set and the member.
+    ///
+    /// # Returns
+    ///
+    /// A `PDF` instance for the set and member encoded in `lhaid`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the index cannot be fetched or `lhaid` is not found.
+    pub fn load_by_lhaid(lhaid: u32) -> Self {
+        let (name, member) =
+            lookup_lhaid(lhaid).unwrap_or_else(|e| panic!("Failed to resolve LHAID {lhaid}: {e}"));
+        Self::load(&name, member)
     }
 
     /// Creates an iterator that loads PDF members lazily.

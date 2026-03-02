@@ -3,7 +3,57 @@
 //! It includes helpers for finding interval indices in coordinate arrays and for
 //! performing 1D cubic interpolation using Hermite basis functions. Finds the index
 //! of the interval in a sorted coordinate array that contains the given value.
+
+/// Dynamical object that contains the LHAPDF mapping from LHAID to PDF names.
+const LHAPDF_INDEX_URL: &str = "https://lhapdfsets.web.cern.ch/current/pdfsets.index";
+
+/// Resolves an LHAID to a `(set_name, member_index)` pair by fetching the LHAPDF index.
 ///
+/// Each entry in `pdfsets.index` gives the base LHAID for a named PDF set. The range
+/// owned by a set is `[base_id, next_base_id)`, so member N has LHAID `base_id + N`.
+/// For example, if `NNPDF40_nnlo_as_01180` has base ID 331100, then LHAID 331103
+/// maps to `("NNPDF40_nnlo_as_01180", 3)`.
+pub(crate) fn lookup_lhaid(lhaid: u32) -> Result<(String, usize), String> {
+    let text = reqwest::blocking::get(LHAPDF_INDEX_URL)
+        .map_err(|e| format!("Failed to fetch pdfsets.index: {e}"))?
+        .text()
+        .map_err(|e| format!("Failed to read pdfsets.index response: {e}"))?;
+
+    let mut entries: Vec<(u32, String)> = Vec::new();
+    for line in text.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let mut parts = line.split_whitespace();
+        let base_id: u32 = match parts.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => continue,
+        };
+        let name = match parts.next() {
+            Some(s) => s.to_string(),
+            None => continue,
+        };
+        entries.push((base_id, name));
+    }
+
+    for window in entries.windows(2) {
+        let (base, name) = &window[0];
+        let (next_base, _) = &window[1];
+        if lhaid >= *base && lhaid < *next_base {
+            return Ok((name.clone(), (lhaid - base) as usize));
+        }
+    }
+
+    if let Some((base, name)) = entries.last() {
+        if lhaid >= *base {
+            return Ok((name.clone(), (lhaid - base) as usize));
+        }
+    }
+
+    Err(format!("LHAID {lhaid} not found in pdfsets.index"))
+}
+
 /// This function performs a binary search to efficiently locate the correct interval.
 ///
 /// # Arguments

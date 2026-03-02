@@ -23,7 +23,8 @@ jobs:
           cd neopdf_pyapi
           python3 -m venv --system-site-packages myenv
           . myenv/bin/activate
-          pip install maturin
+           # maturin-1.12.5 fails with: `--include-debuginfo cannot be used with --strip`
+          pip install maturin==1.12.4
           maturin develop --extras test
           export NEOPDF_DATA_PATH=/usr/share/LHAPDF
           pytest --verbose

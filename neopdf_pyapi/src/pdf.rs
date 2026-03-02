@@ -171,6 +171,29 @@ impl PyPDF {
         Self::new(pdf_name, member)
     }
 
+    /// Loads a PDF member by its LHAPDF ID (LHAID).
+    ///
+    /// The set name and member index are resolved by fetching the LHAPDF set
+    /// index from `https://lhapdfsets.web.cern.ch/current/pdfsets.index`.
+    ///
+    /// Parameters
+    /// ----------
+    /// lhaid : int
+    ///     The LHAPDF ID uniquely identifying both the PDF set and the member.
+    ///
+    /// Returns
+    /// -------
+    /// PDF
+    ///     A new `PDF` instance for the set and member encoded in `lhaid`.
+    #[must_use]
+    #[staticmethod]
+    #[pyo3(name = "mkPDF_lhaid")]
+    pub fn mkpdf_lhaid(lhaid: u32) -> Self {
+        Self {
+            pdf: PDF::load_by_lhaid(lhaid),
+        }
+    }
+
     /// Loads all members of the PDF set.
     ///
     /// This function loads all available members for a given PDF set,

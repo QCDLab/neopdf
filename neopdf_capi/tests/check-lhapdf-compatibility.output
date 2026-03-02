@@ -18,3 +18,15 @@ Native NeoPDF: 1.781227e-01
 NeoPDF (LHAPDF compat): 1.781227e-01
 Relative difference: 0.000000e+00
 LHAPDF C Compatibility test passed.
+=== Test Loading PDF by LHAID (NeoPDF OOP) ===
+LHAID 331100 -> xfxQ2(pid=21, x=0.0001, Q2=100)
+  from_name:  30.8985
+  from_lhaid: 30.8985
+  Relative diff: 0
+NeoPDF OOP LHAID loading test passed.
+=== Test Loading PDF by LHAID (NEOLHAPDF mkPDF) ===
+mkPDF(331100) -> xfxQ2(pid=21, x=0.0001, Q2=100)
+  mkPDF(name):  30.8985
+  mkPDF(lhaid): 30.8985
+  Relative diff: 0
+NEOLHAPDF mkPDF(LHAID) test passed.

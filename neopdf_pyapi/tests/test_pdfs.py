@@ -110,6 +110,42 @@ class TestLazyLoader:
             assert isinstance(res, float)
 
 
+class TestLHAID:
+    def test_mkpdf_lhaid_base(self, neo_pdf):
+        # NNPDF40_nnlo_as_01180 has base LHAID 331100; member 0 = LHAID 331100
+        from neopdf.pdf import PDF
+
+        pdf_by_id = PDF.mkPDF_lhaid(331100)
+        pdf_by_name = neo_pdf("NNPDF40_nnlo_as_01180")
+
+        x, q2, pid = 1e-4, 100.0, 21
+        np.testing.assert_equal(
+            pdf_by_id.xfxQ2(pid, x, q2),
+            pdf_by_name.xfxQ2(pid, x, q2),
+        )
+        np.testing.assert_equal(
+            pdf_by_id.alphasQ2(q2),
+            pdf_by_name.alphasQ2(q2),
+        )
+
+    def test_mkpdf_lhaid_member_offset(self, neo_pdfs):
+        # ABMP16als118_5_nnlo owns range [42780, 42810); member 10 = LHAID 42790
+        from neopdf.pdf import PDF
+
+        pdf_by_id = PDF.mkPDF_lhaid(42790)
+        pdf_by_name = neo_pdfs("ABMP16als118_5_nnlo")[10]
+
+        x, q2, pid = 1e-3, 10.0, 1
+        np.testing.assert_equal(
+            pdf_by_id.xfxQ2(pid, x, q2),
+            pdf_by_name.xfxQ2(pid, x, q2),
+        )
+        np.testing.assert_equal(
+            pdf_by_id.alphasQ2(q2),
+            pdf_by_name.alphasQ2(q2),
+        )
+
+
 class TestForcePositive:
     def test_force_positive(self, neo_pdf):
         neopdf = neo_pdf("nNNPDF30_nlo_as_0118_A56_Z26")

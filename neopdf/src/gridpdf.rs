@@ -16,6 +16,7 @@ use super::interleaved::InterleavedHermite;
 use super::interpolator::{DynInterpolator, InterpolationConfig, InterpolatorFactory};
 use super::metadata::{InterpolatorType, MetaData};
 use super::parser::SubgridData;
+use super::strategy::ChebyshevAllPids;
 use super::subgrid::{ParamRange, RangeParameters, SubGrid};
 
 /// Errors that can occur during PDF grid operations.
@@ -471,6 +472,121 @@ fn build_interleaved(
     }
 }
 
+/// Build a `ChebyshevAllPids` for a subgrid, if its config is supported.
+fn build_chebyshev_fast(
+    subgrid: &SubGrid,
+    config: InterpolationConfig,
+    n_pids: usize,
+) -> Option<ChebyshevAllPids> {
+    let log_xs: Vec<f64> = subgrid.xs.iter().map(|&x| x.ln()).collect();
+    let log_q2s: Vec<f64> = subgrid.q2s.iter().map(|&q| q.ln()).collect();
+
+    match config {
+        InterpolationConfig::TwoD => {
+            let coords = vec![log_xs, log_q2s];
+            let grid = subgrid.grid.view();
+            let is_8d = subgrid.is_8d();
+            Some(ChebyshevAllPids::build(coords, n_pids, |pid, idx| {
+                if is_8d {
+                    grid[[0, 0, 0, 0, 0, pid, idx[0], idx[1]]]
+                } else {
+                    grid[[0, 0, pid, 0, idx[0], idx[1]]]
+                }
+            }))
+        }
+        InterpolationConfig::ThreeDNucleons => {
+            let log_nucs: Vec<f64> = subgrid.nucleons.iter().map(|&v| v.ln()).collect();
+            let coords = vec![log_nucs, log_xs, log_q2s];
+            let grid = subgrid.grid.view();
+            Some(ChebyshevAllPids::build(coords, n_pids, |pid, idx| {
+                grid[[idx[0], 0, pid, 0, idx[1], idx[2]]]
+            }))
+        }
+        InterpolationConfig::ThreeDAlphas => {
+            let log_alps: Vec<f64> = subgrid.alphas.iter().map(|&v| v.ln()).collect();
+            let coords = vec![log_alps, log_xs, log_q2s];
+            let grid = subgrid.grid.view();
+            Some(ChebyshevAllPids::build(coords, n_pids, |pid, idx| {
+                grid[[0, idx[0], pid, 0, idx[1], idx[2]]]
+            }))
+        }
+        InterpolationConfig::ThreeDKt => {
+            let log_kts: Vec<f64> = subgrid.kts.iter().map(|&v| v.ln()).collect();
+            let coords = vec![log_kts, log_xs, log_q2s];
+            let grid = subgrid.grid.view();
+            Some(ChebyshevAllPids::build(coords, n_pids, |pid, idx| {
+                grid[[0, 0, pid, idx[0], idx[1], idx[2]]]
+            }))
+        }
+        InterpolationConfig::ThreeDXi => {
+            let log_xis: Vec<f64> = subgrid.xis.iter().map(|&v| v.ln()).collect();
+            let coords = vec![log_xis, log_xs, log_q2s];
+            let grid = subgrid.grid.view();
+            Some(ChebyshevAllPids::build(coords, n_pids, |pid, idx| {
+                grid[[0, 0, idx[0], 0, 0, pid, idx[1], idx[2]]]
+            }))
+        }
+        InterpolationConfig::ThreeDDelta => {
+            let log_dels: Vec<f64> = subgrid.deltas.iter().map(|&v| v.ln()).collect();
+            let coords = vec![log_dels, log_xs, log_q2s];
+            let grid = subgrid.grid.view();
+            Some(ChebyshevAllPids::build(coords, n_pids, |pid, idx| {
+                grid[[0, 0, 0, idx[0], 0, pid, idx[1], idx[2]]]
+            }))
+        }
+        InterpolationConfig::FourDNucleonsAlphas => {
+            let coords = vec![
+                subgrid.nucleons.to_vec(),
+                subgrid.alphas.to_vec(),
+                subgrid.xs.to_vec(),
+                subgrid.q2s.to_vec(),
+            ];
+            let grid = subgrid.grid.view();
+            Some(ChebyshevAllPids::build(coords, n_pids, |pid, idx| {
+                grid[[idx[0], idx[1], pid, 0, idx[2], idx[3]]]
+            }))
+        }
+        InterpolationConfig::FourDNucleonsKt => {
+            let log_nucs: Vec<f64> = subgrid.nucleons.iter().map(|&v| v.ln()).collect();
+            let log_kts: Vec<f64> = subgrid.kts.iter().map(|&v| v.ln()).collect();
+            let coords = vec![log_nucs, log_kts, log_xs, log_q2s];
+            let grid = subgrid.grid.view();
+            Some(ChebyshevAllPids::build(coords, n_pids, |pid, idx| {
+                grid[[idx[0], 0, pid, idx[1], idx[2], idx[3]]]
+            }))
+        }
+        InterpolationConfig::FourDAlphasKt => {
+            let log_alps: Vec<f64> = subgrid.alphas.iter().map(|&v| v.ln()).collect();
+            let log_kts: Vec<f64> = subgrid.kts.iter().map(|&v| v.ln()).collect();
+            let coords = vec![log_alps, log_kts, log_xs, log_q2s];
+            let grid = subgrid.grid.view();
+            Some(ChebyshevAllPids::build(coords, n_pids, |pid, idx| {
+                grid[[0, idx[0], pid, idx[1], idx[2], idx[3]]]
+            }))
+        }
+        InterpolationConfig::FourDXiDelta => {
+            let log_xis: Vec<f64> = subgrid.xis.iter().map(|&v| v.ln()).collect();
+            let log_dels: Vec<f64> = subgrid.deltas.iter().map(|&v| v.ln()).collect();
+            let coords = vec![log_xis, log_dels, log_xs, log_q2s];
+            let grid = subgrid.grid.view();
+            Some(ChebyshevAllPids::build(coords, n_pids, |pid, idx| {
+                grid[[0, 0, idx[0], idx[1], 0, pid, idx[2], idx[3]]]
+            }))
+        }
+        InterpolationConfig::FiveD => {
+            let log_kts: Vec<f64> = subgrid.kts.iter().map(|&v| v.ln()).collect();
+            let log_xis: Vec<f64> = subgrid.xis.iter().map(|&v| v.ln()).collect();
+            let log_dels: Vec<f64> = subgrid.deltas.iter().map(|&v| v.ln()).collect();
+            let coords = vec![log_kts, log_xis, log_dels, log_xs, log_q2s];
+            let grid = subgrid.grid.view();
+            Some(ChebyshevAllPids::build(coords, n_pids, |pid, idx| {
+                grid[[0, 0, idx[1], idx[2], idx[0], pid, idx[3], idx[4]]]
+            }))
+        }
+        _ => None,
+    }
+}
+
 /// The main PDF grid interface, providing high-level methods for interpolation.
 pub struct GridPDF {
     /// The metadata associated with the PDF set.
@@ -489,6 +605,8 @@ pub struct GridPDF {
     force_positive_fn: fn(f64) -> f64,
     /// Optional fast path for all-flavor evaluation (cubic Hermite, 2D–5D).
     interleaved: Option<Vec<InterleavedHermite>>,
+    /// Optional fast path for all-flavor evaluation (Chebyshev, 2D–5D).
+    chebyshev_fast: Option<Vec<ChebyshevAllPids>>,
 }
 
 impl GridPDF {
@@ -533,6 +651,24 @@ impl GridPDF {
             None
         };
 
+        // Build fast path for Chebyshev grids (2D–5D)
+        let chebyshev_fast = if info.interpolator_type == InterpolatorType::LogChebyshev {
+            let built: Vec<Option<ChebyshevAllPids>> = knot_array
+                .subgrids
+                .iter()
+                .map(|sg| {
+                    build_chebyshev_fast(sg, sg.interpolation_config(), knot_array.pids.len())
+                })
+                .collect();
+            if built.iter().all(|o| o.is_some()) {
+                Some(built.into_iter().map(|o| o.unwrap()).collect())
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
         Self {
             info,
             knot_array,
@@ -542,6 +678,7 @@ impl GridPDF {
             use_log,
             force_positive_fn: fp_identity,
             interleaved,
+            chebyshev_fast,
         }
     }
 
@@ -697,6 +834,25 @@ impl GridPDF {
             return;
         }
 
+        // Fast path: Chebyshev — compute barycentric coefficients once, loop over PIDs
+        if let Some(ref cf) = self.chebyshev_fast {
+            let cf = &cf[subgrid_idx];
+            let mut buf = [0.0f64; 8];
+            for (i, &p) in points.iter().enumerate() {
+                buf[i] = if self.use_log { p.ln() } else { p };
+            }
+            let log_points = &buf[..points.len()];
+
+            let mut pid_slots: [Option<usize>; 32] = [None; 32];
+            for (i, &pid) in pids.iter().enumerate().take(32) {
+                pid_slots[i] = self.knot_array.pid_index(pid);
+            }
+
+            let loc = cf.locate(log_points);
+            cf.eval_allpids(&loc, &pid_slots[..pids.len()], self.force_positive_fn, out);
+            return;
+        }
+
         // Generic fallback
         let mut buf = [0.0f64; 8];
         for (i, &p) in points.iter().enumerate() {
@@ -706,6 +862,70 @@ impl GridPDF {
 
         for (o, &pid) in out.iter_mut().zip(pids.iter()) {
             *o = match self.knot_array.pid_index(pid) {
+                Some(pid_idx) => {
+                    match self.interpolators[subgrid_idx][pid_idx].interpolate_point(log_points) {
+                        Ok(result) => (self.force_positive_fn)(result),
+                        Err(e) => panic!("InterpolationError: {e}"),
+                    }
+                }
+                None => 0.0,
+            };
+        }
+    }
+
+    /// Internal fast path using pre-resolved PID slots.
+    pub(crate) fn xfxq2_allpids_with_slots(
+        &self,
+        pid_slots: &[Option<usize>],
+        points: &[f64],
+        out: &mut [f64],
+    ) {
+        let subgrid_idx = match self.knot_array.find_subgrid(points) {
+            Some(idx) => idx,
+            None => {
+                out.iter_mut().for_each(|v| *v = 0.0);
+                return;
+            }
+        };
+
+        // Fast path: interleaved Hermite coefficients (2D–5D)
+        if let Some(ref il) = self.interleaved {
+            let il = &il[subgrid_idx];
+            let loc = match il.locate(points) {
+                Some(l) => l,
+                None => {
+                    out.iter_mut().for_each(|v| *v = 0.0);
+                    return;
+                }
+            };
+
+            il.eval_allpids(&loc, pid_slots, self.force_positive_fn, out);
+            return;
+        }
+
+        // Fast path: Chebyshev — compute barycentric coefficients once, loop over PIDs
+        if let Some(ref cf) = self.chebyshev_fast {
+            let cf = &cf[subgrid_idx];
+            let mut buf = [0.0f64; 8];
+            for (i, &p) in points.iter().enumerate() {
+                buf[i] = if self.use_log { p.ln() } else { p };
+            }
+            let log_points = &buf[..points.len()];
+
+            let loc = cf.locate(log_points);
+            cf.eval_allpids(&loc, pid_slots, self.force_positive_fn, out);
+            return;
+        }
+
+        // Generic fallback
+        let mut buf = [0.0f64; 8];
+        for (i, &p) in points.iter().enumerate() {
+            buf[i] = if self.use_log { p.ln() } else { p };
+        }
+        let log_points = &buf[..points.len()];
+
+        for (o, slot) in out.iter_mut().zip(pid_slots.iter()) {
+            *o = match *slot {
                 Some(pid_idx) => {
                     match self.interpolators[subgrid_idx][pid_idx].interpolate_point(log_points) {
                         Ok(result) => (self.force_positive_fn)(result),
@@ -729,18 +949,24 @@ impl GridPDF {
     ///
     /// A 2D array of interpolated PDF values with shape `[flavors, N_knots]`.
     pub fn xfxq2s(&self, flavors: Vec<i32>, slice_points: &[&[f64]]) -> Array2<f64> {
-        let grid_shape = [flavors.len(), slice_points.len()];
-        let flatten_len = grid_shape.iter().product();
+        let n_pids = flavors.len();
+        let n_points = slice_points.len();
 
-        let data: Vec<f64> = (0..flatten_len)
-            .map(|idx| {
-                let num_cols = slice_points.len();
-                let (fl_idx, s_idx) = (idx / num_cols, idx % num_cols);
-                self.xfxq2_fast(flavors[fl_idx], slice_points[s_idx])
-            })
+        let pid_slots: Vec<Option<usize>> = flavors
+            .iter()
+            .map(|&pid| self.knot_array.pid_index(pid))
             .collect();
 
-        Array2::from_shape_vec(grid_shape, data).unwrap()
+        let mut results = Array2::<f64>::zeros((n_pids, n_points));
+        let mut out_buf = vec![0.0; n_pids];
+
+        for (j, point) in slice_points.iter().enumerate() {
+            self.xfxq2_allpids_with_slots(&pid_slots, point, &mut out_buf);
+            for i in 0..n_pids {
+                results[[i, j]] = out_buf[i];
+            }
+        }
+        results
     }
 
     /// Interpolates PDF values for multiple points in parallel using Chebyshev batch interpolation.

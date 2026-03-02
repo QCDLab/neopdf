@@ -338,3 +338,73 @@ pub fn test_xfxq2_cheby_batch() {
         }
     }
 }
+
+#[test]
+pub fn test_xfxq2s_cheby_consistency() {
+    let pdf = PDF::load("MAP22_grids_FF_Km_N3LL.neopdf.lz4", 0);
+    let ids = vec![21, 1, 2, 3, -1, -2, -3];
+    let pts = [
+        [1e-4, 1e-2, 2.0],
+        [1e-3, 1e-1, 10.0],
+        [1e-2, 0.5, 100.0],
+        [1e-1, 0.9, 1000.0],
+    ];
+    let pts_slices: Vec<&[f64]> = pts.iter().map(|p| &p[..]).collect();
+
+    let results_all = pdf.xfxq2s(ids.clone(), &pts_slices);
+
+    for (i, &pid) in ids.iter().enumerate() {
+        for (j, pt) in pts_slices.iter().enumerate() {
+            let expected = pdf.xfxq2(pid, pt);
+            assert!(
+                (results_all[[i, j]] - expected).abs() < PRECISION,
+                "Mismatch for pid {} at pt {:?}",
+                pid,
+                pt
+            );
+        }
+    }
+}
+
+#[test]
+fn test_load_by_lhaid_base() {
+    let pdf_by_id = PDF::load_by_lhaid(331100);
+
+    let cases = [
+        (21_i32, 1e-9_f64, 1.65 * 1.65, 0.14844111_f64),
+        (1, 1e-9, 1.65 * 1.65, 1.4254154),
+        (2, 1e-9, 1.65 * 1.65, 1.4257712),
+        (21, 1.2970848e-9, 1.65 * 1.65, 0.15395356),
+    ];
+    for (pid, x, q2, expected) in cases {
+        assert!(
+            (pdf_by_id.xfxq2(pid, &[x, q2]) - expected).abs() < PRECISION,
+            "xfxq2 mismatch for pid={pid} x={x} q2={q2}"
+        );
+    }
+}
+
+#[test]
+fn test_load_by_lhaid_member_offset() {
+    let pdf_by_id = PDF::load_by_lhaid(42790);
+    let pdf_by_name = PDF::load("ABMP16als118_5_nnlo", 10);
+
+    let q2 = 1e4_f64;
+    assert!(
+        (pdf_by_id.alphas_q2(q2) - pdf_by_name.alphas_q2(q2)).abs() < PRECISION,
+        "alphas_q2 mismatch for ABMP16als118_5_nnlo member 10"
+    );
+    for (pid, x) in [(21, 1e-3_f64), (2, 0.5)] {
+        let expected = pdf_by_name.xfxq2(pid, &[x, q2]);
+        assert!(
+            (pdf_by_id.xfxq2(pid, &[x, q2]) - expected).abs() < PRECISION,
+            "xfxq2 mismatch for pid={pid} x={x} q2={q2}"
+        );
+    }
+}
+
+#[test]
+#[should_panic(expected = "Failed to resolve LHAID")]
+fn test_load_by_lhaid_unknown() {
+    let _ = PDF::load_by_lhaid(0);
+}

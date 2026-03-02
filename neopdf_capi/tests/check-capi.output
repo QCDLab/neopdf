@@ -4513,3 +4513,13 @@ Statistics across all members:
 Mean: 1.425415e+00
 Std Dev: 2.826554e-01
 Relative Std Dev: 1.982968e-01
+=== Test Loading a PDF Member by LHAID ===
+LHAID 331100 -> xfxQ2(pid=21, x=1.000000e-04, Q2=1.000000e+02)
+  load_by_name:  3.089847e+01
+  load_by_lhaid: 3.089847e+01
+  Relative diff: 0.000000e+00
+LHAID 331100 -> alphasQ2(Q2=1.000000e+02)
+  load_by_name:  1.781227e-01
+  load_by_lhaid: 1.781227e-01
+  Relative diff: 0.000000e+00
+LHAID loading test passed.

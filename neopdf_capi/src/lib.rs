@@ -66,6 +66,20 @@ pub unsafe extern "C" fn neopdf_pdf_load(
     Box::into_raw(Box::new(NeoPDFWrapper(pdf)))
 }
 
+/// Loads a PDF member by its LHAPDF ID (LHAID).
+///
+/// The set name and member index are resolved by fetching the LHAPDF set index
+/// from `https://lhapdfsets.web.cern.ch/current/pdfsets.index`.
+///
+/// # Panics
+///
+/// Panics if the index cannot be fetched or `lhaid` is not found in the index.
+#[no_mangle]
+pub extern "C" fn neopdf_pdf_load_by_lhaid(lhaid: u32) -> *mut NeoPDFWrapper {
+    let pdf = PDF::load_by_lhaid(lhaid);
+    Box::into_raw(Box::new(NeoPDFWrapper(pdf)))
+}
+
 /// Loads all members of the PDF set.
 ///
 /// Returns a `NeoPDFMembers` containing pointers to all PDF objects in the set.

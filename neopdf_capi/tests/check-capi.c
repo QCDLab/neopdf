@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 double* geomspace(double start, double stop, int num, bool endpoint) {
     double* result = (double*)malloc(num * sizeof(double));
@@ -106,6 +105,47 @@ void test_all_pdf_members() {
     neopdf_pdf_array_free(neo_pdfs);
 }
 
+void test_load_by_lhaid() {
+    printf("=== Test Loading a PDF Member by LHAID ===\n");
+
+    /* NNPDF40_nnlo_as_01180 has base LHAID 331100; member 0 = LHAID 331100 */
+    uint32_t lhaid = 331100;
+    const char* pdfname = "NNPDF40_nnlo_as_01180";
+
+    NeoPDFWrapper* pdf_by_id   = neopdf_pdf_load_by_lhaid(lhaid);
+    NeoPDFWrapper* pdf_by_name = neopdf_pdf_load(pdfname, 0);
+
+    int    pid = 21;
+    double x   = 1e-4;
+    double q2  = 100.0;
+
+    double result   = neopdf_pdf_xfxq2(pdf_by_id,   pid, x, q2);
+    double expected = neopdf_pdf_xfxq2(pdf_by_name, pid, x, q2);
+    double reldif   = fabs(result - expected) / fabs(expected);
+
+    printf("LHAID %u -> xfxQ2(pid=%d, x=%e, Q2=%e)\n", lhaid, pid, x, q2);
+    printf("  load_by_name:  %e\n", expected);
+    printf("  load_by_lhaid: %e\n", result);
+    printf("  Relative diff: %e\n", reldif);
+
+    double as_result   = neopdf_pdf_alphas_q2(pdf_by_id,   q2);
+    double as_expected = neopdf_pdf_alphas_q2(pdf_by_name, q2);
+    double as_reldif   = fabs(as_result - as_expected) / fabs(as_expected);
+
+    printf("LHAID %u -> alphasQ2(Q2=%e)\n", lhaid, q2);
+    printf("  load_by_name:  %e\n", as_expected);
+    printf("  load_by_lhaid: %e\n", as_result);
+    printf("  Relative diff: %e\n", as_reldif);
+
+    assert(reldif < 1e-15);
+    assert(as_reldif < 1e-15);
+
+    neopdf_pdf_free(pdf_by_id);
+    neopdf_pdf_free(pdf_by_name);
+
+    printf("LHAID loading test passed.\n");
+}
+
 void test_lazy_loading() {
     printf("=== Test Lazy Loading of PDF Members ===\n");
 
@@ -144,6 +184,7 @@ void test_lazy_loading() {
 int main() {
     test_single_pdf();
     test_all_pdf_members();
+    test_load_by_lhaid();
     // test_lazy_loading();
 
     return EXIT_SUCCESS;

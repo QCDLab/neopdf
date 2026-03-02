@@ -91,9 +91,73 @@ void test_lhapdf_compatibility_c() {
     neopdf_pdf_free(neo_pdf);
 }
 
+void test_load_by_lhaid_oop() {
+    std::cout << "=== Test Loading PDF by LHAID (NeoPDF OOP) ===\n";
+
+    // NNPDF40_nnlo_as_01180 has base LHAID 331100; member 0 = LHAID 331100
+    uint32_t lhaid = 331100;
+    std::string pdfname = "NNPDF40_nnlo_as_01180";
+
+    auto pdf_by_id = neopdf::NeoPDF::from_lhaid(lhaid);
+    neopdf::NeoPDF pdf_by_name(pdfname, 0);
+
+    double x   = 1e-4;
+    double q2  = 100.0;
+    int    pid = 21;
+
+    double result   = pdf_by_id->xfxQ2(pid, x, q2);
+    double expected = pdf_by_name.xfxQ2(pid, x, q2);
+    double reldif   = std::abs(result - expected) / std::abs(expected);
+
+    std::cout << "LHAID " << lhaid << " -> xfxQ2(pid=" << pid << ", x=" << x << ", Q2=" << q2 << ")\n";
+    std::cout << "  from_name:  " << expected << "\n";
+    std::cout << "  from_lhaid: " << result << "\n";
+    std::cout << "  Relative diff: " << reldif << "\n";
+
+    assert(reldif < TOLERANCE);
+
+    double as_result   = pdf_by_id->alphasQ2(q2);
+    double as_expected = pdf_by_name.alphasQ2(q2);
+    double as_reldif   = std::abs(as_result - as_expected) / std::abs(as_expected);
+
+    assert(as_reldif < TOLERANCE);
+
+    std::cout << "NeoPDF OOP LHAID loading test passed." << std::endl;
+}
+
+void test_load_by_lhaid_lhapdf_compat() {
+    std::cout << "=== Test Loading PDF by LHAID (NEOLHAPDF mkPDF) ===\n";
+
+    // NNPDF40_nnlo_as_01180 has base LHAID 331100; member 0 = LHAID 331100
+    PDF* pdf_by_id   = mkPDF((uint32_t)331100);
+    PDF* pdf_by_name = mkPDF(std::string("NNPDF40_nnlo_as_01180"), 0);
+
+    double x   = 1e-4;
+    double q2  = 100.0;
+    int    pid = 21;
+
+    double result   = pdf_by_id->xfxQ2(pid, x, q2);
+    double expected = pdf_by_name->xfxQ2(pid, x, q2);
+    double reldif   = std::abs(result - expected) / std::abs(expected);
+
+    std::cout << "mkPDF(331100) -> xfxQ2(pid=" << pid << ", x=" << x << ", Q2=" << q2 << ")\n";
+    std::cout << "  mkPDF(name):  " << expected << "\n";
+    std::cout << "  mkPDF(lhaid): " << result << "\n";
+    std::cout << "  Relative diff: " << reldif << "\n";
+
+    assert(reldif < TOLERANCE);
+
+    delete pdf_by_id;
+    delete pdf_by_name;
+
+    std::cout << "NEOLHAPDF mkPDF(LHAID) test passed." << std::endl;
+}
+
 int main() {
     test_lhapdf_compatibility_oop();
     test_lhapdf_compatibility_c();
+    test_load_by_lhaid_oop();
+    test_load_by_lhaid_lhapdf_compat();
 
     return 0;
 }

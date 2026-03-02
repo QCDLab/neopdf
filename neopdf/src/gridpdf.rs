@@ -806,11 +806,71 @@ impl GridPDF {
     /// is performed once and all flavors are evaluated with optimal cache locality.
     /// Falls back to per-flavor interpolation for other grid types.
     pub(crate) fn xfxq2_allpids(&self, pids: &[i32], points: &[f64], out: &mut [f64]) {
-        let pid_slots: Vec<Option<usize>> = pids
-            .iter()
-            .map(|&pid| self.knot_array.pid_index(pid))
-            .collect();
-        self.xfxq2_allpids_with_slots(&pid_slots, points, out);
+        let subgrid_idx = match self.knot_array.find_subgrid(points) {
+            Some(idx) => idx,
+            None => {
+                out.iter_mut().for_each(|v| *v = 0.0);
+                return;
+            }
+        };
+
+        // Fast path: interleaved Hermite coefficients (2D–5D)
+        if let Some(ref il) = self.interleaved {
+            let il = &il[subgrid_idx];
+            let loc = match il.locate(points) {
+                Some(l) => l,
+                None => {
+                    out.iter_mut().for_each(|v| *v = 0.0);
+                    return;
+                }
+            };
+
+            let mut pid_slots: [Option<usize>; 32] = [None; 32];
+            for (i, &pid) in pids.iter().enumerate().take(32) {
+                pid_slots[i] = self.knot_array.pid_index(pid);
+            }
+
+            il.eval_allpids(&loc, &pid_slots[..pids.len()], self.force_positive_fn, out);
+            return;
+        }
+
+        // Fast path: Chebyshev — compute barycentric coefficients once, loop over PIDs
+        if let Some(ref cf) = self.chebyshev_fast {
+            let cf = &cf[subgrid_idx];
+            let mut buf = [0.0f64; 8];
+            for (i, &p) in points.iter().enumerate() {
+                buf[i] = if self.use_log { p.ln() } else { p };
+            }
+            let log_points = &buf[..points.len()];
+
+            let mut pid_slots: [Option<usize>; 32] = [None; 32];
+            for (i, &pid) in pids.iter().enumerate().take(32) {
+                pid_slots[i] = self.knot_array.pid_index(pid);
+            }
+
+            let loc = cf.locate(log_points);
+            cf.eval_allpids(&loc, &pid_slots[..pids.len()], self.force_positive_fn, out);
+            return;
+        }
+
+        // Generic fallback
+        let mut buf = [0.0f64; 8];
+        for (i, &p) in points.iter().enumerate() {
+            buf[i] = if self.use_log { p.ln() } else { p };
+        }
+        let log_points = &buf[..points.len()];
+
+        for (o, &pid) in out.iter_mut().zip(pids.iter()) {
+            *o = match self.knot_array.pid_index(pid) {
+                Some(pid_idx) => {
+                    match self.interpolators[subgrid_idx][pid_idx].interpolate_point(log_points) {
+                        Ok(result) => (self.force_positive_fn)(result),
+                        Err(e) => panic!("InterpolationError: {e}"),
+                    }
+                }
+                None => 0.0,
+            };
+        }
     }
 
     /// Internal fast path using pre-resolved PID slots.

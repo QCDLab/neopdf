@@ -127,6 +127,11 @@ module neopdf
             integer (c_size_t), value :: member
         end function
 
+        type (c_ptr) function c_neopdf_pdf_load_by_lhaid(lhaid) bind(c, name="neopdf_pdf_load_by_lhaid")
+            use iso_c_binding
+            integer (c_int32_t), value :: lhaid
+        end function
+
         type (c_ptr) function c_neopdf_pdf_load_lazy(pdf_name) bind(c, name="neopdf_pdf_load_lazy")
             use iso_c_binding
             character (c_char) :: pdf_name(*)
@@ -426,6 +431,14 @@ contains
         integer, intent(in) :: member
 
         neopdf_pdf_load = neopdf_pdf(c_neopdf_pdf_load(pdf_name // c_null_char, int(member, c_size_t)))
+    end function
+
+    type (neopdf_pdf) function neopdf_pdf_load_by_lhaid(lhaid)
+        implicit none
+
+        integer, intent(in) :: lhaid
+
+        neopdf_pdf_load_by_lhaid = neopdf_pdf(c_neopdf_pdf_load_by_lhaid(int(lhaid, c_int32_t)))
     end function
 
     type (neopdf_lazy_iterator) function neopdf_pdf_load_lazy(pdf_name)

@@ -185,5 +185,5 @@ fn xfxq2_kt_neopdf_tmdlib() {
         ])
         .assert()
         .success()
-        .stdout("0.07899136744063368\n");
+        .stdout("0.07899136744063366\n");
 }

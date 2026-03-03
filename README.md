@@ -2,7 +2,7 @@
   <img src="https://github.com/Radonirinaunimi/neopdf/blob/master/logo/neopdf.svg" alt="NeoPDF Logo" width="450">
 </p>
 <div align="center">
-    <a href="https://app.codecov.io/gh/Radonirinaunimi/neopdf/tree/master"><img
+    <a href="https://app.codecov.io/gh/QCDLab/neopdf/tree/master"><img
         alt="Codecov"
         src="https://img.shields.io/codecov/c/github/QCDLab/neopdf?style=for-the-badge&logo=codecov&logoColor=red&color=blue"
         height="22"

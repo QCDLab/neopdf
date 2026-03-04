@@ -15,7 +15,7 @@ COMMAND=$(gum choose "read" "compute" "write" "install")
 
 # --- Read Subcommands ---
 if [ "$COMMAND" == "read" ]; then
-    READ_COMMAND=$(gum choose "metadata" "num_subgrids" "subgrid-info" "subgrid" "git-version")
+    READ_COMMAND=$(gum choose "metadata" "num_subgrids" "subgrid-info" "subgrid" "git-version" "code-version")
 
     PDF_NAME=$(gum input --placeholder "Enter PDF name")
 
@@ -42,6 +42,9 @@ if [ "$COMMAND" == "read" ]; then
             ;;
         "git-version")
             neopdf read git-version "$PDF_NAME"
+            ;;
+        "code-version")
+            neopdf read code-version "$PDF_NAME"
             ;;
     esac
 fi

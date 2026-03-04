@@ -65,6 +65,10 @@ git add Cargo.toml
 sed -i "s/\"version\": *\"[^\"]*\"/\"version\": \"${version}\"/" neopdf_gui/tauri.conf.json
 git add neopdf_gui/tauri.conf.json
 
+# update Pixi version
+sed -i "/^\[project\]/,/^\[/ s:^version = \".*\":version = \"${version}\":" pixi.toml
+git add pixi.toml
+
 echo ">>> Updating Cargo.lock ..."
 
 # update explicit version for `neopdf_tmdlib` in `neopdf_cli`

@@ -508,6 +508,77 @@ mod tests {
     fn test_param_range() {
         let range = ParamRange::new(1.0, 10.0);
         assert!(range.contains(5.0));
-        assert!(!range.contains(15.0));
+        assert!(range.contains(1.0));
+        assert!(range.contains(10.0));
+        assert!(!range.contains(0.9));
+        assert!(!range.contains(10.1));
+    }
+
+    #[test]
+    fn test_subgrid_creation_and_properties() {
+        let xs = vec![0.1, 0.2];
+        let q2s = vec![1.0, 2.0];
+        let kts = vec![0.0];
+        let nucs = vec![1.0];
+        let alphas = vec![0.118];
+        let grid_data = vec![1.0, 2.0, 3.0, 4.0];
+
+        let sg = SubGrid::new(nucs, alphas, kts, xs, q2s, 1, grid_data);
+
+        assert_eq!(sg.xs.len(), 2);
+        assert_eq!(sg.q2s.len(), 2);
+        assert!(sg.contains_point(&[0.15, 1.5]));
+        assert!(!sg.contains_point(&[0.05, 1.5]));
+
+        assert!(!sg.is_8d());
+        assert!(sg.grid_6d().shape() == [1, 1, 1, 1, 2, 2]);
+    }
+
+    #[test]
+    fn test_subgrid_8d_creation() {
+        let xis = vec![0.1];
+        let deltas = vec![0.1];
+        let xs = vec![0.1, 0.2];
+        let q2s = vec![1.0, 2.0];
+        let grid_data = vec![1.0, 2.0, 3.0, 4.0];
+
+        let sg = SubGrid::new_8d(
+            vec![1.0],
+            vec![0.118],
+            xis,
+            deltas,
+            vec![0.0],
+            xs,
+            q2s,
+            1,
+            grid_data,
+        );
+
+        assert!(sg.is_8d());
+        assert_eq!(sg.grid_8d().shape(), &[1, 1, 1, 1, 1, 1, 2, 2]);
+    }
+
+    #[test]
+    fn test_distance_to_point() {
+        let xs = vec![1.0, 2.0];
+        let q2s = vec![10.0, 20.0];
+        let sg = SubGrid::new(vec![1.0], vec![0.118], vec![0.0], xs, q2s, 1, vec![0.0; 4]);
+
+        assert_eq!(sg.distance_to_point(&[1.5, 15.0]), 0.0);
+        assert!(sg.distance_to_point(&[0.0, 15.0]) > 0.0);
+        assert_eq!(sg.distance_to_point(&[3.0, 15.0]), 1.0);
+        assert_eq!(sg.distance_to_point(&[1.5, 25.0]), 25.0);
+    }
+
+    #[test]
+    fn test_grid_slice_2d() {
+        let xs = vec![0.1, 0.2];
+        let q2s = vec![1.0, 2.0];
+        let grid_data = vec![10.0, 20.0, 30.0, 40.0];
+        let sg = SubGrid::new(vec![1.0], vec![0.118], vec![0.0], xs, q2s, 1, grid_data);
+
+        let slice = sg.grid_slice(0);
+        assert_eq!(slice[[0, 0]], 10.0);
+        assert_eq!(slice[[1, 1]], 40.0);
     }
 }

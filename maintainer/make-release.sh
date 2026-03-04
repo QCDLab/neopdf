@@ -66,7 +66,7 @@ sed -i "s/\"version\": *\"[^\"]*\"/\"version\": \"${version}\"/" neopdf_gui/taur
 git add neopdf_gui/tauri.conf.json
 
 # update Pixi version
-sed -i "/^\[project\]/,/^\[/ s:^version = \".*\":version = \"${version}\":" pixi.toml
+sed -i "/^\[workspace\]/,/^\[/ s:^version = \".*\":version = \"${version}\":" pixi.toml
 git add pixi.toml
 
 echo ">>> Updating Cargo.lock ..."

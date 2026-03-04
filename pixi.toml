@@ -1,4 +1,4 @@
-[project]
+[workspace]
 name = "neopdf"
 version = "0.3.0-alpha4"
 authors = ["Tanjona R. Rabemananjara <tanjona.hepc@gmail.com>"]

@@ -1087,6 +1087,20 @@ impl GridPDF {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::metadata::InterpolatorType;
+
+    #[test]
+    fn test_pid_lookup() {
+        let pids = Array1::from(vec![21, 1, 2, -1, -2, 22]);
+        let lut = PidLookup::build(&pids);
+
+        assert_eq!(lut.get(0), Some(0));
+        assert_eq!(lut.get(21), Some(0));
+        assert_eq!(lut.get(1), Some(1));
+        assert_eq!(lut.get(-1), Some(3));
+        assert_eq!(lut.get(22), Some(5));
+        assert_eq!(lut.get(100), None);
+    }
 
     #[test]
     fn test_grid_array_creation() {
@@ -1113,5 +1127,67 @@ mod tests {
             _ => std::panic!("Expected 6D grid"),
         }
         assert!(grid_array.find_subgrid(&[1.5, 4.5]).is_some());
+        assert_eq!(grid_array.pid_index(22), Some(1));
+    }
+
+    #[test]
+    fn test_grid_pdf_interpolation() {
+        let meta = MetaData {
+            set_desc: "Test".into(),
+            set_index: 0,
+            num_members: 1,
+            x_min: 0.1,
+            x_max: 1.0,
+            q_min: 1.0,
+            q_max: 10.0,
+            flavors: vec![21],
+            format: "test".into(),
+            alphas_q_values: vec![],
+            alphas_vals: vec![],
+            polarised: false,
+            set_type: crate::metadata::SetType::SpaceLike,
+            interpolator_type: InterpolatorType::Bilinear,
+            error_type: "test".into(),
+            hadron_pid: 2212,
+            git_version: "".into(),
+            code_version: "".into(),
+            flavor_scheme: "".into(),
+            order_qcd: 0,
+            alphas_order_qcd: 0,
+            m_w: 0.0,
+            m_z: 91.18,
+            m_up: 0.0,
+            m_down: 0.0,
+            m_strange: 0.0,
+            m_charm: 1.5,
+            m_bottom: 4.5,
+            m_top: 173.0,
+            alphas_type: "".into(),
+            number_flavors: 5,
+            xi_min: 0.0,
+            xi_max: 0.0,
+            delta_min: 0.0,
+            delta_max: 0.0,
+        };
+
+        let subgrid_data = vec![SubgridData {
+            nucleons: vec![1.0],
+            alphas: vec![0.118],
+            kts: vec![0.0],
+            xis: vec![0.0],
+            deltas: vec![0.0],
+            xs: vec![0.1, 0.2],
+            q2s: vec![1.0, 2.0],
+            grid_data: vec![10.0, 20.0, 30.0, 40.0],
+        }];
+        let grid_array = GridArray::new(subgrid_data, vec![21]);
+        let grid_pdf = GridPDF::new(meta, grid_array);
+
+        let res = grid_pdf.xfxq2(21, &[0.15, 1.5]).unwrap();
+        assert!((res - 25.0).abs() < 1e-12);
+
+        let mut out = [0.0];
+        grid_pdf.xfxq2_allpids(&[21], &[0.15, 1.5], &mut out);
+        assert!((out[0] - 25.0).abs() < 1e-12);
     }
 }

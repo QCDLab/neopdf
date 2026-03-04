@@ -66,3 +66,20 @@ class TestGridPDF:
 
         assert grid_array.pids() == pids
         assert len(grid_array.subgrids()) == 2
+
+    def test_subgrid_extra_ranges(self, xq2_points):
+        xmin, xmax, q2min, q2max = (1e-5, 1.0, 1.65, 1.0e8)
+        xs, q2s = xq2_points(xmin, xmax, q2min, q2max)
+        kts = [0.5, 1.0]
+        xis = [0.1, 0.2]
+        deltas = [0.3, 0.4]
+        nucleons = [1.0, 2.0]
+        alphas = [0.118, 0.120]
+
+        grid = np.random.rand(2, 2, 2, 2, 2, len(xs), len(q2s), 1)
+        subgrid = SubGrid(xs, q2s, kts, xis, deltas, nucleons, alphas, grid)
+
+        assert subgrid.xi_range() == (0.1, 0.2)
+        assert subgrid.delta_range() == (0.3, 0.4)
+        assert subgrid.nucleons_range() == (1.0, 2.0)
+        assert subgrid.kt_range() == (0.5, 1.0)

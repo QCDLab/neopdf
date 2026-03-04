@@ -76,3 +76,35 @@ class TestMetaData:
         assert meta.interpolator_type() == metadata.InterpolatorType.LogBicubic
         assert meta.error_type() == "replicas"
         assert meta.hadron_pid() == 2212
+
+    def test_metadata_to_dict(self):
+        phys_params = metadata.PhysicsParameters(
+            flavor_scheme="variable",
+            order_qcd=2,
+        )
+        meta = metadata.MetaData(
+            set_desc="test_desc",
+            set_index=1,
+            num_members=1,
+            x_min=1e-5,
+            x_max=1.0,
+            q_min=1.65,
+            q_max=1.0e4,
+            xsi_min=0.0,
+            xsi_max=0.0,
+            delta_min=0.0,
+            delta_max=0.0,
+            flavors=[21],
+            format="test_format",
+            phys_params=phys_params,
+        )
+
+        d = meta.to_dict()
+        assert d["set_desc"] == "test_desc"
+        assert d["set_index"] == 1
+        assert d["flavor_scheme"] == "variable"
+        assert d["order_qcd"] == 2
+
+        pd = phys_params.to_dict()
+        assert pd["flavor_scheme"] == "variable"
+        assert pd["order_qcd"] == 2

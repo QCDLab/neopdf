@@ -987,6 +987,120 @@ mod tests {
         SubGrid::new(nucleons, alphas, vec![0.0], xs, q2s, 1, grid_data)
     }
 
+    fn mock_subgrid_3d_xi() -> SubGrid {
+        let xis = vec![0.1, 0.2, 0.3, 0.4];
+        let xs = vec![0.1, 0.2, 0.3, 0.4];
+        let q2s = vec![1.0, 2.0, 3.0, 4.0];
+        let grid_data = (1..=64).map(|v| v as f64).collect();
+
+        SubGrid::new_8d(
+            vec![1.0],
+            vec![0.118],
+            xis,
+            vec![0.0],
+            vec![0.0],
+            xs,
+            q2s,
+            1,
+            grid_data,
+        )
+    }
+
+    fn mock_subgrid_3d_delta() -> SubGrid {
+        let deltas = vec![0.1, 0.2, 0.3, 0.4];
+        let xs = vec![0.1, 0.2, 0.3, 0.4];
+        let q2s = vec![1.0, 2.0, 3.0, 4.0];
+        let grid_data = (1..=64).map(|v| v as f64).collect();
+
+        SubGrid::new_8d(
+            vec![1.0],
+            vec![0.118],
+            vec![0.0],
+            deltas,
+            vec![0.0],
+            xs,
+            q2s,
+            1,
+            grid_data,
+        )
+    }
+
+    fn mock_subgrid_4d_xi_delta() -> SubGrid {
+        let xis = vec![0.1, 0.2];
+        let deltas = vec![0.1, 0.2];
+        let xs = vec![0.1, 0.2];
+        let q2s = vec![1.0, 2.0];
+        let grid_data = (1..=16).map(|v| v as f64).collect();
+
+        SubGrid::new_8d(
+            vec![1.0],
+            vec![0.118],
+            xis,
+            deltas,
+            vec![0.0],
+            xs,
+            q2s,
+            1,
+            grid_data,
+        )
+    }
+
+    fn mock_subgrid_5d() -> SubGrid {
+        let kts = vec![0.1, 0.2];
+        let xis = vec![0.1, 0.2];
+        let deltas = vec![0.1, 0.2];
+        let xs = vec![0.1, 0.2];
+        let q2s = vec![1.0, 2.0];
+        let grid_data = (1..=32).map(|v| v as f64).collect();
+
+        SubGrid::new_8d(
+            vec![1.0],
+            vec![0.118],
+            xis,
+            deltas,
+            kts,
+            xs,
+            q2s,
+            1,
+            grid_data,
+        )
+    }
+
+    fn mock_subgrid_6d() -> SubGrid {
+        let nucleons = vec![1.0, 2.0];
+        let kts = vec![0.1, 0.2];
+        let xis = vec![0.1, 0.2];
+        let deltas = vec![0.1, 0.2];
+        let xs = vec![0.1, 0.2];
+        let q2s = vec![1.0, 2.0];
+        let grid_data = (1..=64).map(|v| v as f64).collect();
+
+        SubGrid::new_8d(
+            nucleons,
+            vec![0.118],
+            xis,
+            deltas,
+            kts,
+            xs,
+            q2s,
+            1,
+            grid_data,
+        )
+    }
+
+    fn mock_subgrid_7d() -> SubGrid {
+        let nucleons = vec![1.0, 2.0];
+        let alphas = vec![0.118, 0.120];
+        let kts = vec![0.1, 0.2];
+        let xis = vec![0.1, 0.2];
+        let deltas = vec![0.1, 0.2];
+        let xs = vec![0.1, 0.2];
+        let q2s = vec![1.0, 2.0];
+        let grid_data = (1..=128).map(|v| v as f64).collect();
+
+        SubGrid::new_8d(nucleons, alphas, xis, deltas, kts, xs, q2s, 1, grid_data)
+    }
+
     #[test]
     fn test_interpolation_config() {
         assert!(matches!(
@@ -1000,6 +1114,14 @@ mod tests {
         assert!(matches!(
             InterpolationConfig::from_dimensions(1, 2, 1, 1, 1),
             InterpolationConfig::ThreeDAlphas
+        ));
+        assert!(matches!(
+            InterpolationConfig::from_dimensions(1, 1, 2, 1, 1),
+            InterpolationConfig::ThreeDXi
+        ));
+        assert!(matches!(
+            InterpolationConfig::from_dimensions(1, 1, 1, 2, 1),
+            InterpolationConfig::ThreeDDelta
         ));
         assert!(matches!(
             InterpolationConfig::from_dimensions(1, 1, 1, 1, 2),
@@ -1018,8 +1140,20 @@ mod tests {
             InterpolationConfig::FourDAlphasKt
         ));
         assert!(matches!(
+            InterpolationConfig::from_dimensions(1, 1, 2, 2, 1),
+            InterpolationConfig::FourDXiDelta
+        ));
+        assert!(matches!(
             InterpolationConfig::from_dimensions(1, 1, 2, 2, 2),
             InterpolationConfig::FiveD
+        ));
+        assert!(matches!(
+            InterpolationConfig::from_dimensions(2, 1, 2, 2, 2),
+            InterpolationConfig::SixD
+        ));
+        assert!(matches!(
+            InterpolationConfig::from_dimensions(2, 2, 2, 2, 2),
+            InterpolationConfig::SevenD
         ));
     }
 
@@ -1062,6 +1196,26 @@ mod tests {
     }
 
     #[test]
+    fn test_3d_xi_interpolation() {
+        let subgrid = mock_subgrid_3d_xi();
+        let interpolator = InterpolatorFactory::create(InterpolatorType::LogTricubic, &subgrid, 0);
+        let result = interpolator
+            .interpolate_point(&[0.2f64.ln(), 0.2f64.ln(), 2.0f64.ln()])
+            .unwrap();
+        assert!((result - 22.0).abs() < MAXDIFF);
+    }
+
+    #[test]
+    fn test_3d_delta_interpolation() {
+        let subgrid = mock_subgrid_3d_delta();
+        let interpolator = InterpolatorFactory::create(InterpolatorType::LogTricubic, &subgrid, 0);
+        let result = interpolator
+            .interpolate_point(&[0.2f64.ln(), 0.2f64.ln(), 2.0f64.ln()])
+            .unwrap();
+        assert!((result - 22.0).abs() < MAXDIFF);
+    }
+
+    #[test]
     fn test_4d_nucleons_alphas_interpolation() {
         let subgrid = mock_subgrid_4d_nucleons_alphas();
         let interpolator =
@@ -1070,6 +1224,75 @@ mod tests {
             .interpolate_point(&[1.5, 0.119, 0.15, 1.5])
             .unwrap();
         assert!((result - 8.5).abs() < MAXDIFF);
+    }
+
+    #[test]
+    fn test_4d_xi_delta_interpolation() {
+        let subgrid = mock_subgrid_4d_xi_delta();
+        let interpolator =
+            InterpolatorFactory::create(InterpolatorType::InterpNDLinear, &subgrid, 0);
+
+        let result = interpolator
+            .interpolate_point(&[0.15f64.ln(), 0.15f64.ln(), 0.15f64.ln(), 1.5f64.ln()])
+            .unwrap();
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_5d_interpolation() {
+        let subgrid = mock_subgrid_5d();
+        let interpolator =
+            InterpolatorFactory::create(InterpolatorType::InterpNDLinear, &subgrid, 0);
+
+        let result = interpolator
+            .interpolate_point(&[
+                0.15f64.ln(),
+                0.15f64.ln(),
+                0.15f64.ln(),
+                0.15f64.ln(),
+                1.5f64.ln(),
+            ])
+            .unwrap();
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_6d_interpolation() {
+        let subgrid = mock_subgrid_6d();
+        let interpolator =
+            InterpolatorFactory::create(InterpolatorType::InterpNDLinear, &subgrid, 0);
+
+        let result = interpolator
+            .interpolate_point(&[
+                1.5f64.ln(),
+                0.15f64.ln(),
+                0.15f64.ln(),
+                0.15f64.ln(),
+                0.15f64.ln(),
+                1.5f64.ln(),
+            ])
+            .unwrap();
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_7d_interpolation() {
+        let subgrid = mock_subgrid_7d();
+        let interpolator =
+            InterpolatorFactory::create(InterpolatorType::InterpNDLinear, &subgrid, 0);
+
+        let result = interpolator
+            .interpolate_point(&[
+                1.5f64.ln(),
+                0.119f64.ln(),
+                0.15f64.ln(),
+                0.15f64.ln(),
+                0.15f64.ln(),
+                0.15f64.ln(),
+                1.5f64.ln(),
+            ])
+            .unwrap();
+        assert!(result > 0.0);
     }
 
     #[test]

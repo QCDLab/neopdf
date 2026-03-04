@@ -1101,6 +1101,26 @@ mod tests {
         SubGrid::new_8d(nucleons, alphas, xis, deltas, kts, xs, q2s, 1, grid_data)
     }
 
+    fn mock_subgrid_4d_nucleons_kts() -> SubGrid {
+        let nucleons = vec![1.0, 2.0];
+        let kts = vec![0.1, 0.2];
+        let xs = vec![0.1, 0.2];
+        let q2s = vec![1.0, 2.0];
+        let grid_data = (1..=16).map(|v| v as f64).collect();
+
+        SubGrid::new(nucleons, vec![0.118], kts, xs, q2s, 1, grid_data)
+    }
+
+    fn mock_subgrid_4d_alphas_kts() -> SubGrid {
+        let alphas = vec![0.118, 0.120];
+        let kts = vec![0.1, 0.2];
+        let xs = vec![0.1, 0.2];
+        let q2s = vec![1.0, 2.0];
+        let grid_data = (1..=16).map(|v| v as f64).collect();
+
+        SubGrid::new(vec![1.0], alphas, kts, xs, q2s, 1, grid_data)
+    }
+
     #[test]
     fn test_interpolation_config() {
         assert!(matches!(
@@ -1300,5 +1320,46 @@ mod tests {
     fn test_unsupported_interpolator() {
         let subgrid = mock_subgrid_2d();
         InterpolatorFactory::create(InterpolatorType::LogTricubic, &subgrid, 0);
+    }
+
+    #[test]
+    fn test_4d_nucleons_kts_interpolation() {
+        let subgrid = mock_subgrid_4d_nucleons_kts();
+        let interpolator =
+            InterpolatorFactory::create(InterpolatorType::InterpNDLinear, &subgrid, 0);
+
+        let result = interpolator
+            .interpolate_point(&[1.5f64.ln(), 0.15f64.ln(), 0.15f64.ln(), 1.5f64.ln()])
+            .unwrap();
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_4d_alphas_kts_interpolation() {
+        let subgrid = mock_subgrid_4d_alphas_kts();
+        let interpolator =
+            InterpolatorFactory::create(InterpolatorType::InterpNDLinear, &subgrid, 0);
+
+        let result = interpolator
+            .interpolate_point(&[0.119f64.ln(), 0.15f64.ln(), 0.15f64.ln(), 1.5f64.ln()])
+            .unwrap();
+        assert!(result > 0.0);
+    }
+
+    #[test]
+    fn test_create_batch_interpolator() {
+        let subgrid_2d = mock_subgrid_2d();
+        let batch_2d = InterpolatorFactory::create_batch_interpolator(&subgrid_2d, 0).unwrap();
+        match batch_2d {
+            BatchInterpolator::Chebyshev2D(_, _) => {}
+            _ => panic!("Expected Chebyshev2D"),
+        }
+
+        let subgrid_3d = mock_subgrid_3d_nucleons();
+        let batch_3d = InterpolatorFactory::create_batch_interpolator(&subgrid_3d, 0).unwrap();
+        match batch_3d {
+            BatchInterpolator::Chebyshev3D(_, _) => {}
+            _ => panic!("Expected Chebyshev3D"),
+        }
     }
 }

@@ -164,3 +164,45 @@ fn read_num_subgrid_info_neopdf() {
         .success()
         .stdout(SUBGRID_INFO_LHAPDF);
 }
+
+#[test]
+fn read_subgrid_lhapdf() {
+    Command::cargo_bin("neopdf")
+        .unwrap()
+        .args([
+            "read",
+            "subgrid",
+            "NNPDF40_nnlo_as_01180",
+            "--subgrid-index",
+            "0",
+            "--pid",
+            "21",
+            "--member",
+            "0",
+        ])
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("[x | Q2]"))
+        .stdout(predicates::str::contains("1.00000e-9  1.48441e-1"));
+}
+
+#[test]
+fn read_subgrid_neopdf() {
+    Command::cargo_bin("neopdf")
+        .unwrap()
+        .args([
+            "read",
+            "subgrid",
+            "NNPDF40_nnlo_as_01180.neopdf.lz4",
+            "--subgrid-index",
+            "0",
+            "--pid",
+            "21",
+            "--member",
+            "0",
+        ])
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("[x | Q2]"))
+        .stdout(predicates::str::contains("1.00000e-9  1.48441e-1"));
+}

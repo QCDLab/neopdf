@@ -22,7 +22,7 @@ dynamic = ["version"]
 readme = "README.md"
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-cov"]
+test = ["pytest", "pytest-cov", "matplotlib", "pytest-mpl"]
 
 [project.urls]
 homepage = "https://github.com/Radonirinaunimi/neopdf"

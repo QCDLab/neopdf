@@ -27,7 +27,7 @@ jobs:
           pip install maturin==1.12.4
           maturin develop --extras test
           export NEOPDF_DATA_PATH=/usr/share/LHAPDF
-          pytest --verbose
+          pytest --verbose --mpl
 
           # from https://github.com/NNPDF/pineappl/blob/master/.github/workflows/python.yml
           find . -name '*.profraw' -exec $(rustc --print target-libdir)/../bin/llvm-profdata merge -sparse -o neopdf.profdata {} +

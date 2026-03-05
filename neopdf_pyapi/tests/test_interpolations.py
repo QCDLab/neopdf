@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 import matplotlib.pyplot as plt
+from pathlib import Path
+from typing import Union, List, Optional, Dict, Any
 
 from neopdf.pdf import PDF as NEOPDF
 from neopdf.writer import compress
@@ -8,7 +10,7 @@ from neopdf.gridpdf import GridArray, SubGrid
 from neopdf.metadata import InterpolatorType, SetType, MetaData, PhysicsParameters
 
 
-def f_ubar_abmp16_nnlo(x):
+def f_ubar_abmp16_nnlo(x: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
     """Analytic u-bar parametrization from ABMP16 NNLO."""
     return (
         0.0703
@@ -17,14 +19,19 @@ def f_ubar_abmp16_nnlo(x):
     )
 
 
-def f_gluon_herapdf20_nlo(x):
+def f_gluon_herapdf20_nlo(x: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
     """Analytic gluon parametrization from HERAPDF 2.0 NLO."""
     return (
         4.34 * x ** (-0.015) * (1 - x) ** 9.11 - 1.048 * x ** (-0.167) * (1 - x) ** 25.0
     )
 
 
-def remove_near_nodes(x_samples, nodes, rel_tol=1e-1, abs_tol=None):
+def remove_near_nodes(
+    x_samples: np.ndarray,
+    nodes: np.ndarray,
+    rel_tol: float = 1e-1,
+    abs_tol: Optional[float] = None,
+) -> np.ndarray:
     """Remove points from x_samples that are too close to grid
     nodes to avoid trivial matches.
     """
@@ -55,7 +62,10 @@ def create_cheby_grid(n_points: int, x_min: float, x_max: float) -> np.ndarray:
 
 class TestInterpolations:
     @pytest.fixture(scope="class")
-    def interpolation_sets(self, tmp_path_factory):
+    def interpolation_sets(
+        self,
+        tmp_path_factory: pytest.TempPathFactory,
+    ) -> Dict[str, Any]:
         """Fixture to generate toy NeoPDF sets with different interpolation
         types.
         """
@@ -113,7 +123,14 @@ class TestInterpolations:
             "N_CHEB_NODES_B": N_CHEB_NODES_B,
         }
 
-    def _generate_pdf(self, path, name, interp_type, x_vals_list, q2_vals):
+    def _generate_pdf(
+        self,
+        path: Path,
+        name: str,
+        interp_type: InterpolatorType,
+        x_vals_list: List[np.ndarray],
+        q2_vals: np.ndarray,
+    ) -> None:
         global_x_min = min(xv.min() for xv in x_vals_list)
         global_x_max = max(xv.max() for xv in x_vals_list)
 
@@ -123,12 +140,16 @@ class TestInterpolations:
         compress(
             grids=[grid_member],
             metadata=meta,
-            path=str(
-                path / f"interp_test_{name}.neopdf.lz4",
-            ),
+            path=str(path / f"interp_test_{name}.neopdf.lz4"),
         )
 
-    def _get_metadata(self, interp_type, x_min, x_max, q2_vals):
+    def _get_metadata(
+        self,
+        interp_type: InterpolatorType,
+        x_min: float,
+        x_max: float,
+        q2_vals: np.ndarray,
+    ) -> MetaData:
         phys = PhysicsParameters(
             flavor_scheme="fixed",
             order_qcd=2,
@@ -159,7 +180,7 @@ class TestInterpolations:
             phys_params=phys,
         )
 
-    def _create_subgrid(self, x_vals, q2_vals):
+    def _create_subgrid(self, x_vals: np.ndarray, q2_vals: np.ndarray) -> SubGrid:
         pids = [-2, 21]
         xq2_flavors = []
         for pid in pids:
@@ -192,23 +213,22 @@ class TestInterpolations:
 
     @pytest.mark.mpl_image_compare(baseline_dir="baseline", tolerance=10)
     @pytest.mark.parametrize("pid, label", [(21, "gluon"), (-2, "ubar")])
-    def test_interpolation_visual(self, interpolation_sets, pid, label):
+    def test_interpolation_visual(
+        self, interpolation_sets: Dict[str, Any], pid: int, label: str
+    ) -> plt.Figure:
         """Generates error plots and checks numerical consistency."""
         base_path = interpolation_sets["path"]
 
         pdf_lin = NEOPDF(str(base_path / "interp_test_logbilinear.neopdf.lz4"))
         pdf_cub = NEOPDF(str(base_path / "interp_test_logbicubic.neopdf.lz4"))
+
+        n_cheb = interpolation_sets["N_CHEB_NODES"]
+        n_cheb_b = interpolation_sets["N_CHEB_NODES_B"]
         pdf_cheb = NEOPDF(
-            str(
-                base_path
-                / f"interp_test_logchebyshev_{interpolation_sets['N_CHEB_NODES']}.neopdf.lz4"
-            )
+            str(base_path / f"interp_test_logchebyshev_{n_cheb}.neopdf.lz4")
         )
         pdf_cheb_b = NEOPDF(
-            str(
-                base_path
-                / f"interp_test_logchebyshev_{interpolation_sets['N_CHEB_NODES_B']}.neopdf.lz4"
-            )
+            str(base_path / f"interp_test_logchebyshev_{n_cheb_b}.neopdf.lz4")
         )
 
         x_tests = np.logspace(-6, 0, 250)

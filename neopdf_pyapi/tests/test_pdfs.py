@@ -1,5 +1,7 @@
 import pytest
 import numpy as np
+import os
+from pathlib import Path
 
 from itertools import product
 from neopdf.pdf import ForcePositive
@@ -144,6 +146,27 @@ class TestLHAID:
             pdf_by_id.alphasQ2(q2),
             pdf_by_name.alphasQ2(q2),
         )
+
+
+class TestLoadFromFile:
+    def test_mkpdf_lhapdf_by_file(self):
+        from neopdf.pdf import PDF
+
+        neopdf_data_path = os.environ.get("NEOPDF_DATA_PATH")
+        if not neopdf_data_path:
+            pytest.skip("NEOPDF_DATA_PATH environment variable not set.")
+
+        path = Path(neopdf_data_path).joinpath(
+            "NNPDF40_nnlo_as_01180/NNPDF40_nnlo_as_01180_0000.dat"
+        )
+
+        if not path.exists():
+            pytest.skip(f"Data file not found at {path}")
+
+        pdf = PDF.mkPDF_lhapdf_file(str(path))
+
+        xf = pdf.xfxQ2(21, 1e-9, 1.65 * 1.65)
+        np.testing.assert_allclose(xf, 0.14844111, rtol=1e-8)
 
 
 class TestForcePositive:

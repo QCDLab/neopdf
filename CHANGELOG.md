@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added new methods to the Fortran and C/C++ APIs to write and compress grids
   with `xi` and `delta` dependence.
 - Added `load_by_lhaid` method to load PDF set using the LHAPDF ID.
+- Added `load_lhapdf_by_file` method to load a PDF member using full path.
 
 ### Changed
 

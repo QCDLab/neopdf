@@ -194,6 +194,26 @@ impl PyPDF {
         }
     }
 
+    /// Loads a PDF member from a specific LHAPDF `.dat` file path.
+    ///
+    /// Parameters
+    /// ----------
+    /// path : str
+    ///     The path to the LHAPDF `.dat` file.
+    ///
+    /// Returns
+    /// -------
+    /// PDF
+    ///     A new `PDF` instance for the specified file.
+    #[must_use]
+    #[staticmethod]
+    #[pyo3(name = "mkPDF_lhapdf_file")]
+    pub fn mkpdf_lhapdf_file(path: &str) -> Self {
+        Self {
+            pdf: PDF::load_lhapdf_by_file(path),
+        }
+    }
+
     /// Loads all members of the PDF set.
     ///
     /// This function loads all available members for a given PDF set,

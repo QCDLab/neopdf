@@ -181,6 +181,15 @@ class NeoPDF {
             return std::unique_ptr<NeoPDF>(new NeoPDF(neopdf_pdf_load_by_lhaid(lhaid)));
         }
 
+        /**
+         * @brief Load a PDF member from a specific LHAPDF `.dat` file path.
+         * @param path The path to the LHAPDF `.dat` file.
+         */
+        static std::unique_ptr<NeoPDF> from_lhapdf_file(const std::string& path) {
+            return std::unique_ptr<NeoPDF>(new NeoPDF(neopdf_pdf_load_lhapdf_by_file(path.c_str())));
+        }
+
+
         /** @brief Get the minimum value of the x-grid for the PDF. */
         double x_min() const { return neopdf_pdf_x_min(this->raw); }
 
@@ -649,6 +658,10 @@ inline PDF* mkPDF(const std::string& name, int member = 0) {
 
 inline PDF* mkPDF(uint32_t lhaid) {
     return new GridPDF(neopdf::NeoPDF::from_lhaid(lhaid));
+}
+
+inline PDF* mkPDF_file(const std::string& path) {
+    return new GridPDF(neopdf::NeoPDF::from_lhapdf_file(path));
 }
 
 inline void setVerbosity(int /*verbosity*/) { }

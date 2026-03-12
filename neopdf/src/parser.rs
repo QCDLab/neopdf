@@ -116,7 +116,7 @@ impl LhapdfSet {
     /// # Returns
     ///
     /// A `Result` containing the `Info` struct if successful, or a `serde_yaml::Error` otherwise.
-    fn read_metadata(path: &Path) -> Result<MetaData, serde_yaml::Error> {
+    pub fn read_metadata(path: &Path) -> Result<MetaData, serde_yaml::Error> {
         let content = fs::read_to_string(path).unwrap();
         serde_yaml::from_str(&content)
     }

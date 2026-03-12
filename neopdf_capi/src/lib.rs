@@ -80,6 +80,24 @@ pub extern "C" fn neopdf_pdf_load_by_lhaid(lhaid: u32) -> *mut NeoPDFWrapper {
     Box::into_raw(Box::new(NeoPDFWrapper(pdf)))
 }
 
+/// Loads a PDF member from a specific LHAPDF `.dat` file path.
+///
+/// # Panics
+///
+/// This function will panic if the provided C string is not valid UTF-8
+/// or if the file cannot be loaded.
+///
+/// # Safety
+///
+/// The `path` C string must be null-terminated and valid UTF-8.
+#[no_mangle]
+pub unsafe extern "C" fn neopdf_pdf_load_lhapdf_by_file(path: *const c_char) -> *mut NeoPDFWrapper {
+    let c_str = unsafe { CStr::from_ptr(path) };
+    let path_str = c_str.to_str().expect("Invalid UTF-8 string for path");
+    let pdf = PDF::load_lhapdf_by_file(path_str);
+    Box::into_raw(Box::new(NeoPDFWrapper(pdf)))
+}
+
 /// Loads all members of the PDF set.
 ///
 /// Returns a `NeoPDFMembers` containing pointers to all PDF objects in the set.

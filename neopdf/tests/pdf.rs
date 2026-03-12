@@ -1,5 +1,6 @@
 use ndarray::Array2;
 use neopdf::pdf::PDF;
+use std::path::PathBuf;
 
 const PRECISION: f64 = 1e-16;
 const LOW_PRECISION: f64 = 1e-12;
@@ -407,4 +408,23 @@ fn test_load_by_lhaid_member_offset() {
 #[should_panic(expected = "Failed to resolve LHAID")]
 fn test_load_by_lhaid_unknown() {
     let _ = PDF::load_by_lhaid(0);
+}
+
+#[test]
+fn test_load_lhapdf_by_file() {
+    let neopdf_data_path = std::env::var("NEOPDF_DATA_PATH").expect("NEOPDF_DATA_PATH not set!");
+    let mut path = PathBuf::from(neopdf_data_path);
+    path.push("NNPDF40_nnlo_as_01180");
+    path.push("NNPDF40_nnlo_as_01180_0000.dat");
+
+    if !path.exists() {
+        eprintln!("Data file not found at {:?}", path);
+        return;
+    }
+
+    let pdf = PDF::load_lhapdf_by_file(&path);
+
+    let xf = pdf.xfxq2(21, &[1e-9, 1.65 * 1.65]);
+    assert_eq!(pdf.metadata().set_index, 331100);
+    assert!((xf - 0.14844111).abs() < 1e-8);
 }

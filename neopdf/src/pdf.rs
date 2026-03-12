@@ -218,6 +218,59 @@ impl PDF {
         Self::load(&name, member)
     }
 
+    /// Loads a PDF member from a given arbitrary path to an LHAPDF `.dat` file.
+    ///
+    /// This method loads an LHAPDF data file (`.dat`). It assumes that the
+    /// corresponding `.info` file is located in the same directory.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to the LHAPDF `.dat` file.
+    ///
+    /// # Returns
+    ///
+    /// A `PDF` instance for the specified file.
+    pub fn load_lhapdf_by_file<P: AsRef<std::path::Path>>(path: P) -> Self {
+        let path = path.as_ref();
+        let path_str = path.to_str().expect("Invalid path encoding");
+
+        if path_str.ends_with(".dat") {
+            let file_name = path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .expect("Invalid filename");
+            let parent = path.parent().expect("Invalid parent directory");
+
+            let last_underscore = file_name
+                .rfind('_')
+                .expect("LHAPDF .dat file must contain an underscore");
+            let set_name = &file_name[..last_underscore];
+            let info_path = parent.join(format!("{}.info", set_name));
+
+            let info = LhapdfSet::read_metadata(&info_path).expect("Failed to read metadata");
+            let pdf_data = LhapdfSet::read_data(path);
+            let knot_array = GridArray::new(pdf_data.subgrid_data, pdf_data.pids);
+
+            let mut info = info;
+            if info.alphas_vals.is_empty() {
+                if let (Some(vals), Some(q_values)) =
+                    (pdf_data.alphas_vals, pdf_data.alphas_q_values)
+                {
+                    if !vals.is_empty() && !q_values.is_empty() {
+                        info.alphas_vals = vals;
+                        info.alphas_q_values = q_values;
+                    }
+                }
+            }
+
+            PDF {
+                grid_pdf: GridPDF::new(info, knot_array),
+            }
+        } else {
+            panic!("Unsupported file extension: {}", path_str);
+        }
+    }
+
     /// Creates an iterator that loads PDF members lazily.
     ///
     /// This function is suitable for `.neopdf.lz4` files, which support lazy loading.

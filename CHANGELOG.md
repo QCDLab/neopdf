@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 18/03/2026
+
 ### Added
 
 - Added `xfxQ2_allpids` and `xfxQ2_allpids_ND` methods into the Python API.

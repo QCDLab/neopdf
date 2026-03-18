@@ -14,11 +14,5 @@ using [pipx](https://pipx.pypa.io/stable/):
 pipx install neopdf-hep
 ```
 
-To re-generate the `matplotlib` figures, simply run:
-
-```sh
-pytest neopdf_pyapi/tests/test_interpolations.py --mpl-generate-path=neopdf_pyapi/tests/baseline
-```
-
 For detailed examples on how to use `neopdf-hep`, please head over the
-[tutorials](https://radonirinaunimi.github.io/neopdf/examples/neopdf-pyapi/) section.
+[tutorials](https://qcdlab.github.io/neopdf/examples/neopdf-pyapi/) section.

@@ -28,7 +28,7 @@ To use `neopdf` in your Rust project, simply add the following to your `Cargo.to
 
 ```toml
 [dependencies]
-neopdf = "0.1.0" # select the version
+neopdf = "0.3.0" # select the version
 ```
 
 Cargo will automatically fetch and compile the dependencies the next time you build your project with:
@@ -81,7 +81,7 @@ By default, the script will download the latest stable release. If you would lik
 pass the version along with `--version`:
 
 ```bash
-.. | sh -s -- --version 0.2.0
+.. | sh -s -- --version 0.3.0
 ```
 
 !!! info "Development Option"

@@ -24,9 +24,9 @@ hide:
 </div>
 
 `NeoPDF` is a fast, reliable, and scalable interpolation library for **Non-Perturbative Distribution Functions**
-with **modern features**, designed for both present and future hadron collider experiments. It aims to be a modern,
-high-performance alternative to both [LHAPDF](https://www.lhapdf.org/) and [TMDlib](https://tmdlib.hepforge.org/),
-focusing on:
+(including but not limited to PDFs, TMDs, GPDs, and GTMDs) with **modern features**, designed for both present
+and future hadron collider experiments. It aims to be a modern, high-performance alternative to both
+[LHAPDF](https://www.lhapdf.org/) and [TMDlib](https://tmdlib.hepforge.org/), focusing on:
 
 <div class="feature-grid">
   <div class="feature-card">

@@ -1,20 +1,19 @@
 //! # NeoPDF Library
 //!
 //! NeoPDF is a modern, fast, and reliable Rust library for reading, managing, and interpolating
-//! both collinear and transverse momentum Parton Distribution Functions ([TMD] PDFs) from both
-//! the LHAPDF, TMDlib, and NeoPDF formats.
+//! non-perturbative functions, including but not limited to PDFs, TMDS, GPDs, and GTMDs.
 //!
 //! ## Main Features
 //!
 //! - **Unified PDF Set Interface:** Load, access, and interpolate PDF sets from both LHAPDF and
 //!   NeoPDF formats using a consistent API.
 //! - **High-Performance Interpolation:** Provides multi-dimensional interpolation (including
-//!   log-bicubic, log-tricubic, and more) for PDF values, supporting advanced use cases in
-//!   high-energy physics.
+//!   log-bicubic, log-tricubic, Chebyshev, and more) for PDF values, supporting advanced
+//!   use-cases in high-energy physics.
 //! - **Flexible Metadata Handling:** Rich metadata structures for describing PDF sets, including
 //!   support for an arbitrary type of hadrons.
-//! - **Conversion and Compression:** Tools to convert LHAPDF sets to NeoPDF format and to combine
-//!   multiple nuclear PDF sets into a single file with explicit A dependence.
+//! - **Conversion and Compression:** Tools to convert LHAPDF and TMDlib sets to NeoPDF format and
+//!   to combine multiple nuclear PDF sets into a single file with explicit A dependence.
 //! - **Efficient Storage:** Compressed storage and random access to large PDF sets using LZ4 and
 //!   bincode serialization.
 //!
@@ -22,6 +21,7 @@
 //!
 //! - [`converter`]: Utilities for converting and combining PDF sets.
 //! - [`gridpdf`]: Core grid data structures and high-level PDF grid interface.
+//! - [`interleaved`]: Pre-compute the interpolation coefficients for caching.
 //! - [`interpolator`]: Dynamic interpolation traits and factories for PDF grids.
 //! - [`manage`]: Management utilities for PDF set installation, download, and path resolution.
 //! - [`metadata`]: Metadata structures and types for describing PDF sets.

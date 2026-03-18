@@ -1,4 +1,4 @@
-use numpy::{IntoPyArray, PyArray2};
+use numpy::{IntoPyArray, PyArray1, PyArray2};
 use pyo3::prelude::*;
 use std::sync::Mutex;
 
@@ -456,6 +456,63 @@ impl PyPDF {
     #[allow(clippy::needless_pass_by_value)]
     pub fn xfxq2_nd(&self, id: i32, params: Vec<f64>) -> f64 {
         self.pdf.xfxq2(id, &params)
+    }
+
+    /// Evaluates all requested flavors at a single kinematic point.
+    ///
+    /// Parameters
+    /// ----------
+    /// pids : list[int]
+    ///     A list of flavor IDs.
+    /// x : float
+    ///     The momentum fraction.
+    /// q2 : float
+    ///     The energy scale squared.
+    ///
+    /// Returns
+    /// -------
+    /// numpy.ndarray
+    ///     A 1D NumPy array containing the interpolated PDF values for each PID.
+    #[must_use]
+    #[pyo3(name = "xfxQ2_allpids")]
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn xfxq2_allpids<'py>(
+        &self,
+        pids: Vec<i32>,
+        x: f64,
+        q2: f64,
+        py: Python<'py>,
+    ) -> Bound<'py, PyArray1<f64>> {
+        let mut out = vec![0.0; pids.len()];
+        self.pdf.xfxq2_allpids(&pids, &[x, q2], &mut out);
+        out.into_pyarray(py)
+    }
+
+    /// Evaluates all requested flavors at a single kinematic point.
+    ///
+    /// Parameters
+    /// ----------
+    /// pids : list[int]
+    ///     A list of flavor IDs.
+    /// params : list[float]
+    ///     A list of parameters (e.g., [kT, x, q2]).
+    ///
+    /// Returns
+    /// -------
+    /// numpy.ndarray
+    ///     A 1D NumPy array containing the interpolated PDF values for each PID.
+    #[must_use]
+    #[pyo3(name = "xfxQ2_allpids_ND")]
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn xfxq2_allpids_nd<'py>(
+        &self,
+        pids: Vec<i32>,
+        params: Vec<f64>,
+        py: Python<'py>,
+    ) -> Bound<'py, PyArray1<f64>> {
+        let mut out = vec![0.0; pids.len()];
+        self.pdf.xfxq2_allpids(&pids, &params, &mut out);
+        out.into_pyarray(py)
     }
 
     /// Interpolates the PDF value (xf) for a list containg a set of parameters.

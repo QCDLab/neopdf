@@ -70,6 +70,28 @@ class TestPDFInterpolations:
         ref = [lhapdf.xfxQ2(pid, x, q2) for x, q2 in product(xs, q2s)]
         np.testing.assert_equal(res, [ref])
 
+    @pytest.mark.parametrize("pdfname", ["NNPDF40_nnlo_as_01180", "MSHT20qed_an3lo"])
+    def test_xfxq2_allpids(self, neo_pdf, lha_pdf, xq2_points, pdfname):
+        neopdf = neo_pdf(pdfname)
+        lhapdf = lha_pdf(pdfname)
+
+        params_range = {
+            "xmin": lhapdf.xMin,
+            "xmax": lhapdf.xMax,
+            "q2min": lhapdf.q2Min,
+            "q2max": lhapdf.q2Max,
+        }
+        xs, q2s = xq2_points(**params_range)
+        pids = neopdf.pids()
+
+        for x, q2 in product(xs, q2s):
+            res = neopdf.xfxQ2_allpids(pids, x, q2)
+            ref = [lhapdf.xfxQ2(pid, x, q2) for pid in pids]
+            np.testing.assert_allclose(res, ref)
+
+            res_nd = neopdf.xfxQ2_allpids_ND(pids, [x, q2])
+            np.testing.assert_allclose(res_nd, ref)
+
 
 class TestAlphaSInterpolations:
     @pytest.mark.parametrize("pdfname", ["NNPDF40_nnlo_as_01180", "MSHT20qed_an3lo"])

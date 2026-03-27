@@ -181,5 +181,6 @@ pub mod parser;
 pub mod pdf;
 pub mod strategy;
 pub mod subgrid;
+pub mod uncertainty;
 pub mod utils;
 pub mod writer;

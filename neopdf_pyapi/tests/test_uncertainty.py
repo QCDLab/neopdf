@@ -128,12 +128,8 @@ class TestUncertaintyAlgorithms:
 
 
 @pytest.mark.parametrize(
-    "pdfname,error_type_hint",
-    [
-        ("NNPDF40_nnlo_as_01180", "replicas"),
-        ("CT18NNLO_as_0118", "hessian"),
-        ("MSHT20qed_an3lo", "hessian"),
-    ],
+    "pdfname",
+    ["NNPDF40_nnlo_as_01180", "CT18NNLO_as_0118", "MSHT20qed_an3lo"],
 )
 @pytest.mark.parametrize(
     "pid,x,q",
@@ -152,27 +148,27 @@ class TestAgainstLhapdf:
         ecl = float(pdfset.errorConfLevel)  # -1.0 when not set in the info file
         return pdfset, values, error_type, ecl
 
-    def test_central(self, pdfname, pid, x, q, error_type_hint):
+    def test_central(self, pdfname, pid, x, q):
         pdfset, values, error_type, ecl = self._setup(pdfname, pid, x, q)
         lha = pdfset.uncertainty(values, CL_1_SIGMA, False)
         neo = uncertainty(values, error_type, error_conf_level=ecl, cl=CL_1_SIGMA)
         np.testing.assert_allclose(neo.central, lha.central, rtol=1e-10)
 
-    def test_errminus(self, pdfname, pid, x, q, error_type_hint):
+    def test_errminus(self, pdfname, pid, x, q):
         pdfset, values, error_type, ecl = self._setup(pdfname, pid, x, q)
         lha = pdfset.uncertainty(values, CL_1_SIGMA, False)
         neo = uncertainty(values, error_type, error_conf_level=ecl, cl=CL_1_SIGMA)
         # TODO: To be investigated further
         np.testing.assert_allclose(neo.errminus, lha.errminus, rtol=1e-2)
 
-    def test_errplus(self, pdfname, pid, x, q, error_type_hint):
+    def test_errplus(self, pdfname, pid, x, q):
         pdfset, values, error_type, ecl = self._setup(pdfname, pid, x, q)
         lha = pdfset.uncertainty(values, CL_1_SIGMA, False)
         neo = uncertainty(values, error_type, error_conf_level=ecl, cl=CL_1_SIGMA)
         np.testing.assert_allclose(neo.errplus, lha.errplus, rtol=1e-3)
 
-    def test_alternative_prescription(self, pdfname, pid, x, q, error_type_hint):
-        if error_type_hint != "replicas":
+    def test_alternative_prescription(self, pdfname, pid, x, q):
+        if pdfname != "NNPDF40_nnlo_as_01180":
             pytest.skip("alternative prescription only applies to replica sets")
         pdfset, values, error_type, ecl = self._setup(pdfname, pid, x, q)
         neo = uncertainty(
@@ -194,7 +190,7 @@ class TestAgainstLhapdf:
         assert neo.errminus < 3 * neo_std.errminus
         assert neo.errplus < 3 * neo_std.errplus
 
-    def test_higher_cl(self, pdfname, pid, x, q, error_type_hint):
+    def test_higher_cl(self, pdfname, pid, x, q):
         pdfset, values, error_type, ecl = self._setup(pdfname, pid, x, q)
         neo_1s = uncertainty(values, error_type, error_conf_level=ecl, cl=CL_1_SIGMA)
         neo_2s = uncertainty(values, error_type, error_conf_level=ecl, cl=95.45)

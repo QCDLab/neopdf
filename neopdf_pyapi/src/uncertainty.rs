@@ -34,19 +34,22 @@ impl PyUncertainty {
 
 /// Compute PDF uncertainty from per-member values.
 ///
+/// # Errors
+///
+/// Raises an error if the computation of the uncertainty fails.
+///
 /// Parameters
 /// ----------
 /// values : numpy.ndarray
 ///     1D array of values for all members, with element 0 being the central member
 ///     (best-fit or average) and the following elements corresponding to error
 ///     replicas / eigenvectors, matching the LHAPDF/NeoPDF convention.
-/// error_type : str
+/// `error_type` : str
 ///     String describing the error type, typically taken from the metadata
-///     `ErrorType` field (e.g. ``"replicas"``, ``"hessian"``,
-///     ``"symmhessian"`` or ``"asymhessian"``).
-/// error_conf_level : float, optional
+///     `ErrorType` field (e.g. ``"replicas"``, ``"hessian"``, ``"symmhessian"``
+///     or ``"asymhessian"``).
+/// `error_conf_level` : float, optional
 ///     Confidence level (in %) at which the PDF's error members were constructed.
-///     Defaults to 68.268949213708578 (1 σ). Use 90.0 for sets such as CT18.
 /// cl : float
 ///     Two-sided confidence level in percent (e.g. 68.2689 for 1σ).
 /// alternative : bool
@@ -69,14 +72,14 @@ pub fn py_uncertainty<'py>(
     alternative: bool,
 ) -> PyResult<PyUncertainty> {
     let slice = unsafe { values.as_slice()? };
-    let unc = neopdf::uncertainty::uncertainty_lhapdf(
+    let unc = neopdf::uncertainty::uncertainty(
         slice,
         error_type,
         error_conf_level.unwrap_or(neopdf::uncertainty::CL_1_SIGMA),
         cl,
         alternative,
     )
-    .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
+    .map_err(pyo3::exceptions::PyValueError::new_err)?;
 
     Ok(PyUncertainty {
         central: unc.central,
@@ -86,6 +89,10 @@ pub fn py_uncertainty<'py>(
 }
 
 /// Register the `uncertainty` submodule on the parent Python module.
+///
+/// # Errors
+///
+/// TODO
 pub fn register(parent_module: &Bound<'_, PyModule>) -> PyResult<()> {
     let m = PyModule::new(parent_module.py(), "uncertainty")?;
     m.setattr(

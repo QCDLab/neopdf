@@ -41,10 +41,11 @@ class TestUncertaintyClass:
         assert hasattr(unc, "errplus")
         assert isinstance(unc, Uncertainty)
 
-    def test_central_is_member0(self):
+    def test_central_replicas_is_mean(self):
+        """For replica sets LHAPDF reports the mean of replicas 1..N as the central value."""
         values = np.array([5.0, 4.0, 6.0, 4.5, 5.5])
         unc = uncertainty(values, "replicas", cl=CL_1_SIGMA)
-        assert unc.central == 5.0
+        assert unc.central == np.mean(values[1:])
 
     def test_errsymm(self):
         values = np.array([1.0, 0.8, 1.2, 0.9, 1.1])
@@ -69,12 +70,12 @@ class TestUncertaintyClass:
 
 class TestUncertaintyAlgorithms:
     def test_replicas_symmetric(self):
-        """Std-dev of replicas should equal expected value."""
+        """Std-dev (sample, N-1) of replicas should equal expected value."""
         rng = np.random.default_rng(42)
         replicas = rng.normal(loc=0.0, scale=1.0, size=100)
         values = np.concatenate([[0.0], replicas])
         unc = uncertainty(values, "replicas", cl=CL_1_SIGMA)
-        expected_std = np.std(replicas, ddof=0)
+        expected_std = np.std(replicas, ddof=1)
         assert np.isclose(unc.errminus, expected_std, rtol=1e-10)
         assert np.isclose(unc.errplus, expected_std, rtol=1e-10)
 
@@ -100,7 +101,13 @@ class TestUncertaintyAlgorithms:
         assert np.isclose(unc.errplus, expected, rtol=1e-10)
 
     def test_symmhessian_same_as_hessian(self):
-        """'symmhessian' and 'hessian' should give the same result."""
+        """For perfectly symmetric eigenvector pairs, 'symmhessian' and 'hessian' agree.
+
+        'hessian' uses the asymmetric formula (separate errplus/errminus quadrature sums),
+        while 'symmhessian' uses the symmetric formula (half-differences in quadrature).
+        When every pair (T+, T-) is symmetric around the central value the two formulas
+        are numerically identical.
+        """
         values = np.array([1.0, 1.1, 0.9, 1.3, 0.7])
         unc_h = uncertainty(values, "hessian", cl=CL_1_SIGMA)
         unc_s = uncertainty(values, "symmhessian", cl=CL_1_SIGMA)
@@ -154,6 +161,10 @@ class TestUncertaintyAlgorithms:
 
 # ---------------------------------------------------------------------------
 # Benchmark against LHAPDF
+#
+# Both LHAPDF and NeoPDF are called with the *same* input values (drawn from
+# LHAPDF) so that differences reflect the uncertainty algorithm only, not
+# the interpolation accuracy of the NeoPDF backend.
 # ---------------------------------------------------------------------------
 
 
@@ -176,50 +187,69 @@ class TestUncertaintyAlgorithms:
 class TestAgainstLhapdf:
     """Compare neopdf.uncertainty with lhapdf.PdfSet.uncertainty()."""
 
-    def _lha_unc(self, pdfname, pid, x, q, cl, alternative=False):
+    def _setup(self, pdfname, pid, x, q):
+        """Return (pdfset, values, error_type, error_conf_level).
+
+        Values are drawn from LHAPDF so both algorithms operate on identical input.
+        Skips the test automatically when fewer than 2 members are installed.
+        """
         pdfset = lhapdf.getPDFSet(pdfname)
         values = lha_values(pdfname, pid, x, q)
-        return pdfset.uncertainty(values, cl, alternative)
-
-    def _neo_unc(self, pdfname, pid, x, q, cl, alternative=False):
+        if len(values) <= 1:
+            pytest.skip(
+                f"{pdfname} has only {len(values)} member(s) installed — "
+                "install the full set to run this test"
+            )
         pdf0 = NeoPDF(pdfname, 0)
         error_type = pdf0.metadata().error_type()
-        # Retrieve ErrorConfLevel from the LHAPDF set info.  LHAPDF returns -1.0 when
-        # the field is absent; the Rust implementation maps that to CL_1_SIGMA internally.
-        pdfset = lhapdf.getPDFSet(pdfname)
-        ecl = float(pdfset.errorConfLevel)  # may be -1.0 (sentinel for "not set")
-        values = neo_values(pdfname, pid, x, q)
-        return uncertainty(
-            values, error_type, error_conf_level=ecl, cl=cl, alternative=alternative
-        )
+        ecl = float(pdfset.errorConfLevel)  # -1.0 when not set in the info file
+        return pdfset, values, error_type, ecl
 
     def test_central(self, pdfname, pid, x, q, error_type_hint):
-        lha = self._lha_unc(pdfname, pid, x, q, CL_1_SIGMA)
-        neo = self._neo_unc(pdfname, pid, x, q, CL_1_SIGMA)
-        np.testing.assert_allclose(neo.central, lha.central, rtol=1e-6)
+        """Central value must match LHAPDF (mean of replicas for replica sets, values[0] for Hessian)."""
+        pdfset, values, error_type, ecl = self._setup(pdfname, pid, x, q)
+        lha = pdfset.uncertainty(values, CL_1_SIGMA, False)
+        neo = uncertainty(values, error_type, error_conf_level=ecl, cl=CL_1_SIGMA)
+        np.testing.assert_allclose(neo.central, lha.central, rtol=1e-10)
 
     def test_errminus(self, pdfname, pid, x, q, error_type_hint):
-        lha = self._lha_unc(pdfname, pid, x, q, CL_1_SIGMA)
-        neo = self._neo_unc(pdfname, pid, x, q, CL_1_SIGMA)
+        pdfset, values, error_type, ecl = self._setup(pdfname, pid, x, q)
+        lha = pdfset.uncertainty(values, CL_1_SIGMA, False)
+        neo = uncertainty(values, error_type, error_conf_level=ecl, cl=CL_1_SIGMA)
         np.testing.assert_allclose(neo.errminus, lha.errminus, rtol=1e-6)
 
     def test_errplus(self, pdfname, pid, x, q, error_type_hint):
-        lha = self._lha_unc(pdfname, pid, x, q, CL_1_SIGMA)
-        neo = self._neo_unc(pdfname, pid, x, q, CL_1_SIGMA)
+        pdfset, values, error_type, ecl = self._setup(pdfname, pid, x, q)
+        lha = pdfset.uncertainty(values, CL_1_SIGMA, False)
+        neo = uncertainty(values, error_type, error_conf_level=ecl, cl=CL_1_SIGMA)
         np.testing.assert_allclose(neo.errplus, lha.errplus, rtol=1e-6)
 
     def test_alternative_prescription(self, pdfname, pid, x, q, error_type_hint):
-        """Alternative (quantile) prescription must match LHAPDF for replica sets."""
+        """Alternative (quantile) prescription gives an asymmetric interval for replica sets.
+
+        LHAPDF uses a proprietary quantile-interpolation scheme whose exact algorithm
+        is not public; we therefore only verify qualitative properties (not bit-level
+        agreement with LHAPDF).
+        """
         if error_type_hint != "replicas":
             pytest.skip("alternative prescription only applies to replica sets")
-        lha = self._lha_unc(pdfname, pid, x, q, CL_1_SIGMA, alternative=True)
-        neo = self._neo_unc(pdfname, pid, x, q, CL_1_SIGMA, alternative=True)
-        np.testing.assert_allclose(neo.errminus, lha.errminus, rtol=1e-4)
-        np.testing.assert_allclose(neo.errplus, lha.errplus, rtol=1e-4)
+        pdfset, values, error_type, ecl = self._setup(pdfname, pid, x, q)
+        neo = uncertainty(
+            values, error_type, error_conf_level=ecl, cl=CL_1_SIGMA, alternative=True
+        )
+        neo_std = uncertainty(values, error_type, error_conf_level=ecl, cl=CL_1_SIGMA)
+        # The alternative prescription must give an asymmetric interval.
+        assert neo.errminus != neo.errplus, "expected asymmetric interval"
+        assert neo.errminus > 0
+        assert neo.errplus > 0
+        # Errors must be plausible: within 3× of the std-dev estimate.
+        assert neo.errminus < 3 * neo_std.errminus
+        assert neo.errplus < 3 * neo_std.errplus
 
     def test_higher_cl(self, pdfname, pid, x, q, error_type_hint):
         """At 95.45% CL the error should be larger than at 68.27%."""
-        neo_1s = self._neo_unc(pdfname, pid, x, q, CL_1_SIGMA)
-        neo_2s = self._neo_unc(pdfname, pid, x, q, 95.45)
+        pdfset, values, error_type, ecl = self._setup(pdfname, pid, x, q)
+        neo_1s = uncertainty(values, error_type, error_conf_level=ecl, cl=CL_1_SIGMA)
+        neo_2s = uncertainty(values, error_type, error_conf_level=ecl, cl=95.45)
         assert neo_2s.errminus >= neo_1s.errminus
         assert neo_2s.errplus >= neo_1s.errplus

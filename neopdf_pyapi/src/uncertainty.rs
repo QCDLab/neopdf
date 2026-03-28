@@ -104,6 +104,11 @@ pub fn register(parent_module: &Bound<'_, PyModule>) -> PyResult<()> {
         m,
         "import sys; sys.modules['neopdf.uncertainty'] = m"
     );
+    m.add("CL_1_SIGMA", neopdf::uncertainty::CL_1_SIGMA)?;
+    m.add("CL_2_SIGMA", neopdf::uncertainty::CL_2_SIGMA)?;
+    m.add("CL_3_SIGMA", neopdf::uncertainty::CL_3_SIGMA)?;
+    m.add("CL_90", neopdf::uncertainty::CL_90)?;
+    m.add("CL_95", neopdf::uncertainty::CL_95)?;
     m.add_class::<PyUncertainty>()?;
     m.add_function(wrap_pyfunction!(py_uncertainty, &m)?)?;
     parent_module.add_submodule(&m)

@@ -5,9 +5,7 @@ import pytest
 import lhapdf
 
 from neopdf.pdf import PDF as NeoPDF
-from neopdf.uncertainty import uncertainty, Uncertainty
-
-CL_1_SIGMA = 68.268_949_213_708_58  # matches lhapdf.CL_1_SIGMA
+from neopdf.uncertainty import CL_1_SIGMA, CL_2_SIGMA, uncertainty, Uncertainty
 
 
 def lha_values(pdfname: str, pid: int, x: float, q: float) -> np.ndarray:
@@ -110,14 +108,14 @@ class TestUncertaintyAlgorithms:
         unc_68 = uncertainty(
             values,
             "hessian",
-            error_conf_level=68.268_949_213_708_58,
-            cl=68.268_949_213_708_58,
+            error_conf_level=CL_1_SIGMA,
+            cl=CL_1_SIGMA,
         )
         unc_90 = uncertainty(
             values,
             "hessian",
             error_conf_level=90.0,
-            cl=68.268_949_213_708_58,
+            cl=CL_1_SIGMA,
         )
         assert unc_90.errminus < unc_68.errminus
         assert np.isclose(
@@ -193,6 +191,6 @@ class TestAgainstLhapdf:
     def test_higher_cl(self, pdfname, pid, x, q):
         pdfset, values, error_type, ecl = self._setup(pdfname, pid, x, q)
         neo_1s = uncertainty(values, error_type, error_conf_level=ecl, cl=CL_1_SIGMA)
-        neo_2s = uncertainty(values, error_type, error_conf_level=ecl, cl=95.45)
+        neo_2s = uncertainty(values, error_type, error_conf_level=ecl, cl=CL_2_SIGMA)
         assert neo_2s.errminus >= neo_1s.errminus
         assert neo_2s.errplus >= neo_1s.errplus

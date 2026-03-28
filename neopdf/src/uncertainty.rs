@@ -7,6 +7,18 @@
 /// 1-sigma confidence level (68.268949213708578%).
 pub const CL_1_SIGMA: f64 = 68.268_949_213_708_58;
 
+/// 2-sigma confidence level (95.449973610364%).
+pub const CL_2_SIGMA: f64 = 95.449_973_610_364_2;
+
+/// 3-sigma confidence level (99.730020393674%).
+pub const CL_3_SIGMA: f64 = 99.730_020_393_673_97;
+
+/// 90% confidence level.
+pub const CL_90: f64 = 90.0;
+
+/// 95% confidence level.
+pub const CL_95: f64 = 95.0;
+
 /// Inverse normal CDF (probit function) using the Abramowitz & Stegun approximation.
 ///
 /// Maps a probability `p ∈ (0, 1)` to the corresponding quantile of the standard

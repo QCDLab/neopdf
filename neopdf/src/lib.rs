@@ -34,6 +34,8 @@
 //!
 //! ## Example 1: Single Point Interpolation
 //!
+//! Evaluate a single flavor at a single kinematic point *(x, Q²)*.
+//!
 //! ```rust
 //! use neopdf::pdf::PDF;
 //!
@@ -43,33 +45,35 @@
 //! println!("xf = {}", xf);
 //! ```
 //!
-//! ## Example 2: Multiple Flavors
+//! ## Example 2: Multiple Flavors at a Single Kinematic Point
+//!
+//! [`PDF::xfxq2_allpids`] evaluates a set of flavors in a single pass, reusing the
+//! subgrid lookup and interpolation coefficients.
 //!
 //! ```rust
 //! use neopdf::pdf::PDF;
 //!
-//! // Name of the PDF set: can be a standard LHAPDF name
-//! // or a NeoPDF grid such as "NNPDF40_nnlo_as_01180.neopdf.lz4".
-//! let pdf_name = "NNPDF40_nnlo_as_01180";
-//! let member = 0usize; // central replica
+//! let pdf = PDF::load("NNPDF40_nnlo_as_01180", 0);
 //!
-//! // Load the PDF member.
-//! let pdf = PDF::load(pdf_name, member);
+//! // PDG IDs to evaluate: gluon + light quarks and their anti-quarks.
+//! let pids = [21_i32, -3, -2, -1, 1, 2, 3];
 //!
-//! // Parton ID (PDG): 21 = gluon.
-//! let pid = 21;
+//! // Single kinematic point: x = 0.1, Q² = 10 000 GeV².
+//! let point = [0.1_f64, 10_000.0];
 //!
-//! // Example kinematics.
-//! let x_values = vec![5e-2, 1.5e-1, 2.5e-1, 3.5e-1, 4.5e-1];
-//! let q2 = 100.0;
+//! let mut out = vec![0.0_f64; pids.len()];
+//! pdf.xfxq2_allpids(&pids, &point, &mut out);
 //!
-//! for x in x_values {
-//!     let xf = pdf.xfxq2(pid, &[x, q2]);
-//!     println!("{:10.3e} {:20.8e}", x, xf);
+//! for (&pid, &xf) in pids.iter().zip(out.iter()) {
+//!     println!("pid = {:3}  xf = {:14.8e}", pid, xf);
 //! }
 //! ```
 //!
 //! ## Example 3: Batch Point Interpolation
+//!
+//! [`PDF::xfxq2s`] evaluates multiple flavors across a grid of *(x, Q²)* points,
+//! returning a 2-D array of shape `[flavors, N_knots]`. Use this when you need a
+//! dense grid evaluation rather than a single kinematic point.
 //!
 //! ```rust
 //! use ndarray::Array2;
@@ -112,6 +116,10 @@
 //!
 //! ## Example 4: Inspecting Metadata
 //!
+//! Access the set description, kinematic coverage, flavor content, and per-subgrid
+//! structure through the [`MetaData`](metadata::MetaData) object returned by
+//! [`PDF::metadata`](pdf::PDF::metadata).
+//!
 //! ```rust
 //! use neopdf::pdf::PDF;
 //!
@@ -148,6 +156,10 @@
 //!
 //! ## Example 5: Controlling Positivity Clipping
 //!
+//! PDF replicas can produce negative values in sparsely-sampled regions. Use
+//! [`ForcePositive`](gridpdf::ForcePositive) to clip those values either for a
+//! single member or for an entire ensemble at once.
+//!
 //! ```rust
 //! use neopdf::gridpdf::ForcePositive;
 //! use neopdf::pdf::PDF;
@@ -168,6 +180,41 @@
 //! );
 //! ```
 //!
+//! ## Example 6: Computing PDF Uncertainties
+//!
+//! Load all members of a replica set, evaluate the gluon PDF at a single kinematic point,
+//! and compute the 1-sigma uncertainty band using the LHAPDF-compatible
+//! [`uncertainty`](uncertainty::uncertainty) function.
+//!
+//! ```no_run
+//! use neopdf::pdf::PDF;
+//! use neopdf::uncertainty::{uncertainty, CL_1_SIGMA};
+//!
+//! let pdf_name = "NNPDF40_nnlo_as_01180";
+//! let pdfs = PDF::load_pdfs(pdf_name);
+//! let meta = pdfs[0].metadata();
+//!
+//! // Evaluate xf(g, x=0.1, Q²=10000) for every member.
+//! let values: Vec<f64> = pdfs
+//!     .iter()
+//!     .map(|p| p.xfxq2(21, &[0.1, 10_000.0]))
+//!     .collect();
+//!
+//! let unc = uncertainty(
+//!     &values,
+//!     &meta.error_type,
+//!     CL_1_SIGMA, // native CL of the set (1σ for NNPDF replicas)
+//!     CL_1_SIGMA, // desired output CL
+//!     false,
+//! )
+//! .expect("uncertainty computation failed");
+//!
+//! println!("central  = {:.6}", unc.central);
+//! println!("errminus = {:.6}", unc.errminus);
+//! println!("errplus  = {:.6}", unc.errplus);
+//! println!("errsymm  = {:.6}", (unc.errminus + unc.errplus) / 2.0);
+//! ```
+//!
 //! See module-level documentation for more details and advanced usage.
 
 pub mod alphas;
@@ -181,5 +228,6 @@ pub mod parser;
 pub mod pdf;
 pub mod strategy;
 pub mod subgrid;
+pub mod uncertainty;
 pub mod utils;
 pub mod writer;

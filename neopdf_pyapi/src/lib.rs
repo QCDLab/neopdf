@@ -16,6 +16,8 @@ pub mod metadata;
 pub mod parser;
 /// Python bindings for the `PDF` module.
 pub mod pdf;
+/// Python bindings for the `uncertainty` module.
+pub mod uncertainty;
 /// Python bindings for the `writer` module.
 pub mod writer;
 
@@ -30,5 +32,6 @@ fn neopdf(m: &Bound<'_, PyModule>) -> PyResult<()> {
     manage::register(m)?;
     parser::register(m)?;
     writer::register(m)?;
+    uncertainty::register(m)?;
     Ok(())
 }

@@ -14,9 +14,10 @@ const LHAPDF_INDEX_URL: &str = "https://lhapdfsets.web.cern.ch/current/pdfsets.i
 /// For example, if `NNPDF40_nnlo_as_01180` has base ID 331100, then LHAID 331103
 /// maps to `("NNPDF40_nnlo_as_01180", 3)`.
 pub(crate) fn lookup_lhaid(lhaid: u32) -> Result<(String, usize), String> {
-    let text = reqwest::blocking::get(LHAPDF_INDEX_URL)
+    let text = ureq::get(LHAPDF_INDEX_URL)
+        .call()
         .map_err(|e| format!("Failed to fetch pdfsets.index: {e}"))?
-        .text()
+        .into_string()
         .map_err(|e| format!("Failed to read pdfsets.index response: {e}"))?;
 
     let mut entries: Vec<(u32, String)> = Vec::new();

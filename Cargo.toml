@@ -24,7 +24,7 @@ ndarray = { version = "0.16.1", features = ["serde"] }
 ninterp = "0.7.3"
 rayon = "1.5"
 regex = "1.11.1"
-reqwest = { version = "0.12.22", features = ["blocking", "gzip", "rustls-tls", "stream"], default-features = false }
+ureq = { version = "2", features = ["tls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
 tar = "0.4.44"

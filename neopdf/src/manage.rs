@@ -84,25 +84,10 @@ impl ManageData {
         );
         println!("Downloading PDF set from: {}", url);
 
-        let response = reqwest::blocking::Client::builder()
-            .timeout(None)
-            .build()?
-            .get(&url)
-            .send()?;
-
-        if !response.status().is_success() {
-            return Err(format!(
-                "Failed to download PDF set '{}': HTTP {}",
-                self.set_name,
-                response.status()
-            )
-            .into());
-        }
+        let response = ureq::get(&url).call()?;
 
         let total_size = response
-            .headers()
-            .get(reqwest::header::CONTENT_LENGTH)
-            .and_then(|v| v.to_str().ok())
+            .header("content-length")
             .and_then(|s| s.parse::<u64>().ok())
             .unwrap_or(0);
 
@@ -112,7 +97,7 @@ impl ManageData {
             .progress_chars("=>-"));
 
         let mut response_bytes = Vec::new();
-        let mut decorated_response = pb.wrap_read(response);
+        let mut decorated_response = pb.wrap_read(response.into_reader());
         decorated_response.read_to_end(&mut response_bytes)?;
 
         let tar = GzDecoder::new(&response_bytes[..]);

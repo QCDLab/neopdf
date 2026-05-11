@@ -254,6 +254,7 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           rustup default stable
+          cargo publish -p neopdf_legacy
           cargo publish -p neopdf
           cargo publish -p neopdf_tmdlib
           cargo publish -p neopdf_capi

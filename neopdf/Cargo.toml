@@ -31,7 +31,7 @@ git-version.workspace = true
 indicatif.workspace = true
 
 # For backward compatibility with v0.2.0 format
-neopdf_legacy = { path = "../neopdf_legacy" }
+neopdf_legacy.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true

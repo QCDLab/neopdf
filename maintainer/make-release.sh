@@ -58,6 +58,7 @@ fi
 sed -i \
     -e "/^\[workspace\.package\]/,/^\[/ s:^version = \".*\":version = \"${version}\":" \
     -e "s:^neopdf = { path = \"[^\"]*\", version = \"[^\"]*\" }:neopdf = { path = \"./neopdf\", version = \"${version}\" }:" \
+    -e "s:^neopdf_legacy = { path = \"[^\"]*\", version = \"[^\"]*\" }:neopdf_legacy = { path = \"./neopdf_legacy\", version = \"${version}\" }:" \
     Cargo.toml
 git add Cargo.toml
 

@@ -1,6 +1,6 @@
 [workspace]
 name = "neopdf"
-version = "0.3.3-alpha1"
+version = "0.3.3"
 authors = ["Tanjona R. Rabemananjara <tanjona.hepc@gmail.com>"]
 channels = ["conda-forge"]
 platforms = ["linux-64", "osx-64", "win-64", "osx-arm64"]

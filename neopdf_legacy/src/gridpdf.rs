@@ -455,6 +455,59 @@ impl GridPDF {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::metadata::{InterpolatorType, MetaData, MetaDataV1, SetType};
+
+    fn mock_subgrid_data_2d() -> SubgridData {
+        SubgridData {
+            nucleons: vec![1.0],
+            alphas: vec![0.118],
+            kts: vec![0.0],
+            xs: vec![0.1, 0.2],
+            q2s: vec![1.0, 2.0],
+            grid_data: vec![1.0, 2.0, 3.0, 4.0],
+        }
+    }
+
+    fn mock_metadata() -> MetaData {
+        MetaData::new_v1(MetaDataV1 {
+            set_desc: "Test".to_string(),
+            set_index: 0,
+            num_members: 1,
+            x_min: 1e-9,
+            x_max: 1.0,
+            q_min: 1.0,
+            q_max: 1000.0,
+            flavors: vec![21],
+            format: "test".to_string(),
+            alphas_q_values: vec![],
+            alphas_vals: vec![],
+            polarised: false,
+            set_type: SetType::SpaceLike,
+            interpolator_type: InterpolatorType::Bilinear,
+            error_type: "".to_string(),
+            hadron_pid: 2212,
+            git_version: "".to_string(),
+            code_version: "".to_string(),
+            flavor_scheme: "variable".to_string(),
+            order_qcd: 2,
+            alphas_order_qcd: 2,
+            m_w: 80.4,
+            m_z: 91.2,
+            m_up: 0.0,
+            m_down: 0.0,
+            m_strange: 0.0,
+            m_charm: 1.4,
+            m_bottom: 4.75,
+            m_top: 173.0,
+            alphas_type: "analytic".to_string(),
+            number_flavors: 5,
+        })
+    }
+
+    fn mock_grid_pdf() -> GridPDF {
+        let grid_array = GridArray::new(vec![mock_subgrid_data_2d()], vec![21]);
+        GridPDF::new(mock_metadata(), grid_array)
+    }
 
     #[test]
     fn test_grid_array_creation() {
@@ -473,5 +526,104 @@ mod tests {
 
         assert_eq!(grid_array.subgrids[0].grid.shape(), &[1, 1, 2, 1, 3, 2]);
         assert!(grid_array.find_subgrid(&[1.5, 4.5]).is_some());
+    }
+
+    #[test]
+    fn test_pid_lookup() {
+        let grid_array = GridArray::new(vec![mock_subgrid_data_2d()], vec![21]);
+        assert!(grid_array.find_subgrid(&[0.15, 1.5]).is_some());
+        assert!(grid_array.find_subgrid(&[0.15, 1.5]).is_some());
+    }
+
+    #[test]
+    fn test_xf_from_index() {
+        let grid_array = GridArray::new(vec![mock_subgrid_data_2d()], vec![21]);
+        let val = grid_array.xf_from_index(0, 0, 0, 0, 0, 21, 0);
+        assert_eq!(val, 1.0);
+        let val2 = grid_array.xf_from_index(0, 0, 0, 1, 1, 21, 0);
+        assert_eq!(val2, 4.0);
+    }
+
+    #[test]
+    fn test_global_ranges() {
+        let grid_array = GridArray::new(vec![mock_subgrid_data_2d()], vec![21]);
+        let ranges = grid_array.global_ranges();
+        assert_eq!(ranges.x.min, 0.1);
+        assert_eq!(ranges.x.max, 0.2);
+        assert_eq!(ranges.q2.min, 1.0);
+        assert_eq!(ranges.q2.max, 2.0);
+    }
+
+    #[test]
+    fn test_grid_pdf_new() {
+        let pdf = mock_grid_pdf();
+        assert_eq!(pdf.metadata().set_index, 0);
+    }
+
+    #[test]
+    fn test_grid_pdf_interpolation() {
+        let pdf = mock_grid_pdf();
+        let result = pdf.xfxq2(21, &[0.15, 1.5]).unwrap();
+        assert!((result - 2.5).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_grid_pdf_unknown_pid_returns_zero() {
+        let pdf = mock_grid_pdf();
+        let result = pdf.xfxq2(999, &[0.15, 1.5]).unwrap();
+        assert_eq!(result, 0.0);
+    }
+
+    #[test]
+    fn test_apply_force_positive() {
+        let mut pdf = mock_grid_pdf();
+        assert_eq!(pdf.apply_force_positive(-1.0), -1.0);
+
+        pdf.set_force_positive(ForcePositive::ClipNegative);
+        assert_eq!(pdf.apply_force_positive(-1.0), 0.0);
+        assert_eq!(pdf.apply_force_positive(5.0), 5.0);
+
+        pdf.set_force_positive(ForcePositive::ClipSmall);
+        assert_eq!(pdf.apply_force_positive(1e-15), 1e-10);
+        assert_eq!(pdf.apply_force_positive(5.0), 5.0);
+
+        pdf.set_force_positive(ForcePositive::NoClipping);
+        assert_eq!(pdf.apply_force_positive(-1.0), -1.0);
+    }
+
+    #[test]
+    fn test_grid_pdf_alphas_q2() {
+        let pdf = mock_grid_pdf();
+        let as_q2 = pdf.alphas_q2(100.0);
+        assert!(as_q2 > 0.0);
+    }
+
+    #[test]
+    fn test_grid_pdf_param_ranges() {
+        let pdf = mock_grid_pdf();
+        let ranges = pdf.param_ranges();
+        assert_eq!(ranges.x.min, 0.1);
+        assert_eq!(ranges.q2.max, 2.0);
+    }
+
+    #[test]
+    fn test_grid_pdf_get_x_q2() {
+        let pdf = mock_grid_pdf();
+        assert_eq!(pdf.get_x_q2(&[0.15, 1.5]), (0.15, 1.5));
+        assert_eq!(pdf.get_x_q2(&[5.0, 0.3, 0.15, 1.5]), (0.15, 1.5));
+    }
+
+    #[test]
+    fn test_grid_pdf_xfxq2s() {
+        let pdf = mock_grid_pdf();
+        let result = pdf.xfxq2s(vec![21], &[&[0.15, 1.5]]);
+        assert_eq!(result.shape(), &[1, 1]);
+        assert!((result[[0, 0]] - 2.5).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_grid_pdf_metadata() {
+        let pdf = mock_grid_pdf();
+        assert_eq!(pdf.metadata().flavors, vec![21]);
     }
 }

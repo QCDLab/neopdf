@@ -228,3 +228,159 @@ impl AlphaSInterpol {
         self.interpolator.interpolate(&[q2.ln()]).unwrap_or(0.0)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::metadata::{InterpolatorType, MetaData, MetaDataV1, SetType};
+
+    fn mock_metadata() -> MetaData {
+        MetaData::new_v1(MetaDataV1 {
+            set_desc: "Test PDF".to_string(),
+            set_index: 0,
+            num_members: 1,
+            x_min: 1e-9,
+            x_max: 1.0,
+            q_min: 1.0,
+            q_max: 1000.0,
+            flavors: vec![],
+            format: "test".to_string(),
+            alphas_q_values: vec![],
+            alphas_vals: vec![],
+            polarised: false,
+            set_type: SetType::SpaceLike,
+            interpolator_type: InterpolatorType::LogBicubic,
+            error_type: "test".to_string(),
+            hadron_pid: 2212,
+            git_version: "test".to_string(),
+            code_version: "test".to_string(),
+            flavor_scheme: "variable".to_string(),
+            order_qcd: 2,
+            alphas_order_qcd: 2,
+            m_w: 80.385,
+            m_z: 91.1876,
+            m_up: 0.0,
+            m_down: 0.0,
+            m_strange: 0.0,
+            m_charm: 1.4,
+            m_bottom: 4.75,
+            m_top: 173.0,
+            alphas_type: "analytic".to_string(),
+            number_flavors: 5,
+        })
+    }
+
+    #[test]
+    fn test_alphas_analytic_order_zero() {
+        let mut meta = mock_metadata();
+        meta.alphas_order_qcd = 0;
+        meta.order_qcd = 0;
+        let analytic = AlphaSAnalytic::from_metadata(&meta).unwrap();
+        assert_eq!(analytic.alphas_q2(100.0), 0.118);
+    }
+
+    #[test]
+    fn test_number_flavors_q2() {
+        let meta = mock_metadata();
+        let analytic = AlphaSAnalytic::from_metadata(&meta).unwrap();
+
+        assert_eq!(analytic.number_flavors_q2(1.0), 3);
+        assert_eq!(analytic.number_flavors_q2(2.0), 4);
+        assert_eq!(analytic.number_flavors_q2(25.0), 5);
+        assert_eq!(analytic.number_flavors_q2(30000.0), 6);
+
+        let mut meta_fixed = mock_metadata();
+        meta_fixed.flavor_scheme = "FIXED".to_string();
+        meta_fixed.number_flavors = 4;
+        let analytic_fixed = AlphaSAnalytic::from_metadata(&meta_fixed).unwrap();
+        assert_eq!(analytic_fixed.number_flavors_q2(1.0), 4);
+        assert_eq!(analytic_fixed.number_flavors_q2(30000.0), 4);
+    }
+
+    #[test]
+    fn test_lambda_qcd() {
+        let meta = mock_metadata();
+        let analytic = AlphaSAnalytic::from_metadata(&meta).unwrap();
+
+        assert_eq!(analytic.lambda_qcd(3).unwrap(), 0.339);
+        assert_eq!(analytic.lambda_qcd(4).unwrap(), 0.296);
+        assert_eq!(analytic.lambda_qcd(5).unwrap(), 0.213);
+        assert_eq!(analytic.lambda_qcd(6).unwrap(), 0.213); // falls back to nf-1
+        assert!(analytic.lambda_qcd(0).is_err());
+    }
+
+    #[test]
+    fn test_lambda_qcd_fixed_unknown_nf() {
+        let mut meta = mock_metadata();
+        meta.flavor_scheme = "FIXED".to_string();
+        meta.number_flavors = 9;
+        let analytic = AlphaSAnalytic::from_metadata(&meta).unwrap();
+        assert!(analytic.lambda_qcd(5).is_err());
+    }
+
+    #[test]
+    fn test_betas() {
+        let meta = mock_metadata();
+        let analytic = AlphaSAnalytic::from_metadata(&meta).unwrap();
+
+        let b0 = analytic.betas(0, 5).unwrap();
+        assert!((b0 - 0.610093952).abs() < 1e-9);
+        for order in 0..=4u32 {
+            assert!(analytic.betas(order, 5).is_ok());
+        }
+        assert!(analytic.betas(5, 5).is_err());
+    }
+
+    #[test]
+    fn test_alphas_q2_analytic_values() {
+        let meta = mock_metadata();
+        let analytic = AlphaSAnalytic::from_metadata(&meta).unwrap();
+
+        let as_q2 = analytic.alphas_q2(100.0);
+        assert!(as_q2 > 0.0 && as_q2 < 1.0);
+        assert!(analytic.alphas_q2(1000.0) < as_q2);
+    }
+
+    #[test]
+    fn test_alphas_q2_all_orders() {
+        for order in 1..=4u32 {
+            let mut meta = mock_metadata();
+            meta.alphas_order_qcd = order;
+            let analytic = AlphaSAnalytic::from_metadata(&meta).unwrap();
+            assert!(analytic.alphas_q2(100.0) > 0.0);
+        }
+    }
+
+    #[test]
+    fn test_alphas_q2_below_lambda() {
+        let mut meta = mock_metadata();
+        meta.alphas_order_qcd = 1;
+        let analytic = AlphaSAnalytic::from_metadata(&meta).unwrap();
+        assert!(analytic.alphas_q2(1e-10).is_infinite());
+    }
+
+    #[test]
+    fn test_alphas_order_defaults_to_order_qcd() {
+        let mut meta = mock_metadata();
+        meta.alphas_order_qcd = 0;
+        meta.order_qcd = 3;
+        let analytic = AlphaSAnalytic::from_metadata(&meta).unwrap();
+        assert!(analytic.alphas_q2(100.0) > 0.0);
+    }
+
+    #[test]
+    fn test_alphas_from_metadata_analytic() {
+        let meta = mock_metadata();
+        let alphas = AlphaS::from_metadata(&meta).unwrap();
+        assert!(alphas.alphas_q2(100.0) > 0.0);
+    }
+
+    #[test]
+    fn test_alphas_from_metadata_interpol() {
+        let mut meta = mock_metadata();
+        meta.alphas_q_values = vec![1.0, 10.0, 100.0];
+        meta.alphas_vals = vec![0.5, 0.3, 0.118];
+        let alphas = AlphaS::from_metadata(&meta).unwrap();
+        assert!(alphas.alphas_q2(100.0) > 0.0);
+    }
+}

@@ -720,4 +720,134 @@ mod tests {
         let subgrid = mock_subgrid_2d();
         InterpolatorFactory::create(InterpolatorType::LogTricubic, &subgrid, 0);
     }
+
+    fn mock_subgrid_4d_nucleons_kt() -> SubGrid {
+        let nucleons = vec![1.0, 2.0];
+        let kts = vec![0.5, 1.0];
+        let xs = vec![0.1, 0.2];
+        let q2s = vec![1.0, 2.0];
+        let grid_data: Vec<f64> = (1..=16).map(|v| v as f64).collect();
+        SubGrid::new(nucleons, vec![0.118], kts, xs, q2s, 1, grid_data)
+    }
+
+    fn mock_subgrid_4d_alphas_kt() -> SubGrid {
+        let alphas = vec![0.118, 0.120];
+        let kts = vec![0.5, 1.0];
+        let xs = vec![0.1, 0.2];
+        let q2s = vec![1.0, 2.0];
+        let grid_data: Vec<f64> = (1..=16).map(|v| v as f64).collect();
+        SubGrid::new(vec![1.0], alphas, kts, xs, q2s, 1, grid_data)
+    }
+
+    fn mock_subgrid_5d() -> SubGrid {
+        let nucleons = vec![1.0, 2.0];
+        let alphas = vec![0.118, 0.120];
+        let kts = vec![0.5, 1.0];
+        let xs = vec![0.1, 0.2];
+        let q2s = vec![1.0, 2.0];
+        let grid_data: Vec<f64> = (1..=32).map(|v| v as f64).collect();
+        SubGrid::new(nucleons, alphas, kts, xs, q2s, 1, grid_data)
+    }
+
+    #[test]
+    fn test_2d_log_bilinear_interpolation() {
+        let subgrid = mock_subgrid_2d();
+        let interpolator = InterpolatorFactory::create(InterpolatorType::LogBilinear, &subgrid, 0);
+        let result = interpolator
+            .interpolate_point(&[0.15f64.ln(), 1.5f64.ln()])
+            .unwrap();
+        assert!(result.is_finite());
+    }
+
+    #[test]
+    fn test_2d_log_bicubic_interpolation() {
+        let xs = vec![0.1, 0.2, 0.3, 0.4];
+        let q2s = vec![1.0, 2.0, 3.0, 4.0];
+        let grid_data: Vec<f64> = (1..=16).map(|v| v as f64).collect();
+        let subgrid = SubGrid::new(vec![1.0], vec![0.118], vec![0.0], xs, q2s, 1, grid_data);
+        let interpolator = InterpolatorFactory::create(InterpolatorType::LogBicubic, &subgrid, 0);
+        let result = interpolator
+            .interpolate_point(&[0.2f64.ln(), 2.0f64.ln()])
+            .unwrap();
+        assert!(result.is_finite());
+    }
+
+    #[test]
+    fn test_4d_nucleons_kt_interpolation() {
+        let subgrid = mock_subgrid_4d_nucleons_kt();
+        let interpolator =
+            InterpolatorFactory::create(InterpolatorType::InterpNDLinear, &subgrid, 0);
+        let result = interpolator
+            .interpolate_point(&[1.5, 0.75, 0.15, 1.5])
+            .unwrap();
+        assert!(result.is_finite());
+    }
+
+    #[test]
+    fn test_4d_alphas_kt_interpolation() {
+        let subgrid = mock_subgrid_4d_alphas_kt();
+        let interpolator =
+            InterpolatorFactory::create(InterpolatorType::InterpNDLinear, &subgrid, 0);
+        let result = interpolator
+            .interpolate_point(&[0.119, 0.75, 0.15, 1.5])
+            .unwrap();
+        assert!(result.is_finite());
+    }
+
+    #[test]
+    fn test_5d_interpolation() {
+        let subgrid = mock_subgrid_5d();
+        let interpolator =
+            InterpolatorFactory::create(InterpolatorType::InterpNDLinear, &subgrid, 0);
+        let result = interpolator
+            .interpolate_point(&[1.5, 0.119, 0.75, 0.15, 1.5])
+            .unwrap();
+        assert!(result.is_finite());
+    }
+
+    #[test]
+    fn test_create_batch_interpolator_2d() {
+        let subgrid = mock_subgrid_2d();
+        let batch = InterpolatorFactory::create_batch_interpolator(&subgrid, 0).unwrap();
+        let points = vec![
+            vec![0.15f64.ln(), 1.5f64.ln()],
+            vec![0.12f64.ln(), 1.2f64.ln()],
+        ];
+        let results = batch.interpolate(points).unwrap();
+        assert_eq!(results.len(), 2);
+        assert!(results.iter().all(|r| r.is_finite()));
+    }
+
+    #[test]
+    fn test_create_batch_interpolator_3d_nucleons() {
+        let subgrid = mock_subgrid_3d_nucleons();
+        let batch = InterpolatorFactory::create_batch_interpolator(&subgrid, 0).unwrap();
+        let pts = vec![vec![2.0f64.ln(), 0.2f64.ln(), 2.0f64.ln()]];
+        let results = batch.interpolate(pts).unwrap();
+        assert_eq!(results.len(), 1);
+    }
+
+    #[test]
+    fn test_create_batch_interpolator_3d_alphas() {
+        let subgrid = mock_subgrid_3d_alphas();
+        let batch = InterpolatorFactory::create_batch_interpolator(&subgrid, 0).unwrap();
+        let pts = vec![vec![0.120f64.ln(), 0.2f64.ln(), 2.0f64.ln()]];
+        let results = batch.interpolate(pts).unwrap();
+        assert_eq!(results.len(), 1);
+    }
+
+    #[test]
+    fn test_create_batch_interpolator_3d_kt() {
+        let subgrid = mock_subgrid_3d_kts();
+        let batch = InterpolatorFactory::create_batch_interpolator(&subgrid, 0).unwrap();
+        let pts = vec![vec![1.0f64.ln(), 0.2f64.ln(), 2.0f64.ln()]];
+        let results = batch.interpolate(pts).unwrap();
+        assert_eq!(results.len(), 1);
+    }
+
+    #[test]
+    fn test_create_batch_interpolator_unsupported() {
+        let subgrid = mock_subgrid_4d_nucleons_alphas();
+        assert!(InterpolatorFactory::create_batch_interpolator(&subgrid, 0).is_err());
+    }
 }

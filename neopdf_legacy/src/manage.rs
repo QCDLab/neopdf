@@ -141,3 +141,66 @@ impl ManageData {
         &self.pdfset_path
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_get_data_path_from_env() {
+        let tmp = TempDir::new().unwrap();
+        let tmp_path = tmp.path().to_str().unwrap().to_string();
+        // SAFETY: single-threaded test; env var is restored after test scope
+        unsafe { std::env::set_var("NEOPDF_DATA_PATH", &tmp_path) };
+        let path = ManageData::get_data_path();
+        unsafe { std::env::remove_var("NEOPDF_DATA_PATH") };
+        assert_eq!(path, tmp.path());
+    }
+
+    #[test]
+    fn test_get_data_path_creates_dir() {
+        let tmp = TempDir::new().unwrap();
+        let new_dir = tmp.path().join("neopdf_test_subdir");
+        unsafe { std::env::set_var("NEOPDF_DATA_PATH", new_dir.to_str().unwrap()) };
+        let path = ManageData::get_data_path();
+        unsafe { std::env::remove_var("NEOPDF_DATA_PATH") };
+        assert!(path.exists());
+    }
+
+    #[test]
+    fn test_manage_data_with_existing_neopdf_file() {
+        let tmp = TempDir::new().unwrap();
+        let set_name = "fake_set.neopdf.lz4";
+        let fake_file = tmp.path().join(set_name);
+        fs::write(&fake_file, b"fake").unwrap();
+
+        unsafe { std::env::set_var("NEOPDF_DATA_PATH", tmp.path().to_str().unwrap()) };
+        let mgr = ManageData::new(set_name, PdfSetFormat::Neopdf);
+        unsafe { std::env::remove_var("NEOPDF_DATA_PATH") };
+
+        assert_eq!(mgr.set_name(), set_name);
+        assert_eq!(mgr.set_path(), fake_file.as_path());
+        assert!(mgr.data_path().exists());
+        assert!(mgr.is_pdf_installed());
+    }
+
+    #[test]
+    fn test_is_pdf_installed_missing() {
+        let tmp = TempDir::new().unwrap();
+        let set_name = "nonexistent_set.neopdf.lz4";
+
+        unsafe { std::env::set_var("NEOPDF_DATA_PATH", tmp.path().to_str().unwrap()) };
+        // Manually build the struct to avoid triggering a download
+        let mgr = ManageData {
+            neopdf_path: tmp.path().to_path_buf(),
+            set_name: set_name.to_string(),
+            pdfset_path: tmp.path().join(set_name),
+            pdfset_format: PdfSetFormat::Neopdf,
+        };
+        unsafe { std::env::remove_var("NEOPDF_DATA_PATH") };
+
+        assert!(!mgr.is_pdf_installed());
+    }
+}

@@ -293,10 +293,125 @@ impl SubGrid {
 mod tests {
     use super::*;
 
+    fn mock_subgrid_2d() -> SubGrid {
+        SubGrid::new(
+            vec![1.0],
+            vec![0.118],
+            vec![0.0],
+            vec![0.1, 0.2],
+            vec![1.0, 2.0],
+            1,
+            vec![1.0, 2.0, 3.0, 4.0],
+        )
+    }
+
+    fn mock_subgrid_3d_nucleons() -> SubGrid {
+        SubGrid::new(
+            vec![1.0, 2.0],
+            vec![0.118],
+            vec![0.0],
+            vec![0.1, 0.2],
+            vec![1.0, 2.0],
+            1,
+            vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+        )
+    }
+
     #[test]
     fn test_param_range() {
         let range = ParamRange::new(1.0, 10.0);
         assert!(range.contains(5.0));
+        assert!(range.contains(1.0));
+        assert!(range.contains(10.0));
         assert!(!range.contains(15.0));
+        assert!(!range.contains(0.5));
+    }
+
+    #[test]
+    fn test_range_parameters_new() {
+        let rp = RangeParameters::new(
+            ParamRange::new(1.0, 2.0),
+            ParamRange::new(0.1, 0.2),
+            ParamRange::new(0.0, 1.0),
+            ParamRange::new(1e-4, 1.0),
+            ParamRange::new(1.0, 1000.0),
+        );
+        assert_eq!(rp.nucleons.min, 1.0);
+        assert_eq!(rp.q2.max, 1000.0);
+    }
+
+    #[test]
+    fn test_subgrid_new() {
+        let sg = mock_subgrid_2d();
+        assert_eq!(sg.xs.len(), 2);
+        assert_eq!(sg.q2s.len(), 2);
+        assert_eq!(sg.grid.shape(), &[1, 1, 1, 1, 2, 2]);
+        assert_eq!(sg.x_range.min, 0.1);
+        assert_eq!(sg.x_range.max, 0.2);
+        assert_eq!(sg.q2_range.min, 1.0);
+        assert_eq!(sg.q2_range.max, 2.0);
+    }
+
+    #[test]
+    fn test_contains_point_2d() {
+        let sg = mock_subgrid_2d();
+        assert!(sg.contains_point(&[0.15, 1.5]));
+        assert!(sg.contains_point(&[0.1, 1.0]));
+        assert!(!sg.contains_point(&[0.5, 1.5]));
+        assert!(!sg.contains_point(&[0.15, 5.0]));
+        assert!(!sg.contains_point(&[0.15]));
+    }
+
+    #[test]
+    fn test_contains_point_3d_nucleons() {
+        let sg = mock_subgrid_3d_nucleons();
+        assert!(sg.contains_point(&[1.5, 0.15, 1.5]));
+        assert!(!sg.contains_point(&[5.0, 0.15, 1.5]));
+    }
+
+    #[test]
+    fn test_distance_to_point() {
+        let sg = mock_subgrid_2d();
+        assert_eq!(sg.distance_to_point(&[0.15, 1.5]), 0.0);
+        let d = sg.distance_to_point(&[0.3, 1.5]);
+        assert!(d > 0.0);
+    }
+
+    #[test]
+    fn test_ranges() {
+        let sg = mock_subgrid_2d();
+        let r = sg.ranges();
+        assert_eq!(r.x.min, 0.1);
+        assert_eq!(r.x.max, 0.2);
+        assert_eq!(r.q2.min, 1.0);
+        assert_eq!(r.q2.max, 2.0);
+    }
+
+    #[test]
+    fn test_grid_slice_2d() {
+        let sg = mock_subgrid_2d();
+        let slice = sg.grid_slice(0);
+        assert_eq!(slice.shape(), &[2, 2]);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_grid_slice_panics_for_3d() {
+        let sg = mock_subgrid_3d_nucleons();
+        sg.grid_slice(0);
+    }
+
+    #[test]
+    fn test_interpolation_config_from_subgrid() {
+        let sg_2d = mock_subgrid_2d();
+        assert!(matches!(
+            sg_2d.interpolation_config(),
+            InterpolationConfig::TwoD
+        ));
+        let sg_3d = mock_subgrid_3d_nucleons();
+        assert!(matches!(
+            sg_3d.interpolation_config(),
+            InterpolationConfig::ThreeDNucleons
+        ));
     }
 }

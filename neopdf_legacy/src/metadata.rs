@@ -219,3 +219,102 @@ impl fmt::Display for MetaData {
         writeln!(f, "Number of PDF flavors: {}", self.number_flavors)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_v1() -> MetaDataV1 {
+        MetaDataV1 {
+            set_desc: "TestSet".to_string(),
+            set_index: 42,
+            num_members: 3,
+            x_min: 1e-9,
+            x_max: 1.0,
+            q_min: 1.0,
+            q_max: 1000.0,
+            flavors: vec![21, 1, -1],
+            format: "lhapdf".to_string(),
+            alphas_q_values: vec![10.0],
+            alphas_vals: vec![0.118],
+            polarised: false,
+            set_type: SetType::SpaceLike,
+            interpolator_type: InterpolatorType::LogBicubic,
+            error_type: "replicas".to_string(),
+            hadron_pid: 2212,
+            git_version: "abc".to_string(),
+            code_version: "0.2.0".to_string(),
+            flavor_scheme: "variable".to_string(),
+            order_qcd: 2,
+            alphas_order_qcd: 2,
+            m_w: 80.4,
+            m_z: 91.2,
+            m_up: 0.0,
+            m_down: 0.0,
+            m_strange: 0.0,
+            m_charm: 1.4,
+            m_bottom: 4.75,
+            m_top: 173.0,
+            alphas_type: "analytic".to_string(),
+            number_flavors: 5,
+        }
+    }
+
+    #[test]
+    fn test_new_v1_and_deref() {
+        let meta = MetaData::new_v1(make_v1());
+        assert_eq!(meta.set_index, 42);
+        assert_eq!(meta.flavors, vec![21, 1, -1]);
+    }
+
+    #[test]
+    fn test_current_v1() {
+        let meta = MetaData::current_v1(make_v1());
+        assert_eq!(meta.set_desc, "TestSet");
+    }
+
+    #[test]
+    fn test_as_latest() {
+        let meta = MetaData::new_v1(make_v1());
+        let v1 = meta.as_latest();
+        assert_eq!(v1.num_members, 3);
+        assert_eq!(v1.q_max, 1000.0);
+    }
+
+    #[test]
+    fn test_deref_mut() {
+        let mut meta = MetaData::new_v1(make_v1());
+        meta.set_index = 99;
+        assert_eq!(meta.set_index, 99);
+    }
+
+    #[test]
+    fn test_display() {
+        let meta = MetaData::new_v1(make_v1());
+        let s = format!("{meta}");
+        assert!(s.contains("TestSet"));
+        assert!(s.contains("Set Index: 42"));
+        assert!(s.contains("Number of Members: 3"));
+    }
+
+    #[test]
+    fn test_set_type_default() {
+        assert!(matches!(SetType::default(), SetType::SpaceLike));
+    }
+
+    #[test]
+    fn test_interpolator_type_default() {
+        assert!(matches!(
+            InterpolatorType::default(),
+            InterpolatorType::LogBicubic
+        ));
+    }
+
+    #[test]
+    fn test_deserialize_roundtrip() {
+        let meta = MetaData::new_v1(make_v1());
+        let yaml = serde_yaml::to_string(&meta).unwrap();
+        let restored: MetaData = serde_yaml::from_str(&yaml).unwrap();
+        assert_eq!(restored.set_index, 42);
+    }
+}

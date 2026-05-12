@@ -415,3 +415,142 @@ impl PDF {
             .xf_from_index(i_nucleons, i_alphas, i_kt, ix, iq2, id, subgrid_id)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::gridpdf::{GridArray, GridPDF};
+    use crate::metadata::{InterpolatorType, MetaData, MetaDataV1, SetType};
+    use crate::parser::SubgridData;
+
+    fn mock_metadata() -> MetaData {
+        MetaData::new_v1(MetaDataV1 {
+            set_desc: "Test".to_string(),
+            set_index: 7,
+            num_members: 1,
+            x_min: 0.1,
+            x_max: 0.2,
+            q_min: 1.0,
+            q_max: 2.0,
+            flavors: vec![21],
+            format: "test".to_string(),
+            alphas_q_values: vec![],
+            alphas_vals: vec![],
+            polarised: false,
+            set_type: SetType::SpaceLike,
+            interpolator_type: InterpolatorType::Bilinear,
+            error_type: "".to_string(),
+            hadron_pid: 2212,
+            git_version: "".to_string(),
+            code_version: "".to_string(),
+            flavor_scheme: "variable".to_string(),
+            order_qcd: 2,
+            alphas_order_qcd: 2,
+            m_w: 80.4,
+            m_z: 91.2,
+            m_up: 0.0,
+            m_down: 0.0,
+            m_strange: 0.0,
+            m_charm: 1.4,
+            m_bottom: 4.75,
+            m_top: 173.0,
+            alphas_type: "analytic".to_string(),
+            number_flavors: 5,
+        })
+    }
+
+    fn mock_pdf() -> PDF {
+        let data = vec![SubgridData {
+            nucleons: vec![1.0],
+            alphas: vec![0.118],
+            kts: vec![0.0],
+            xs: vec![0.1, 0.2],
+            q2s: vec![1.0, 2.0],
+            grid_data: vec![1.0, 2.0, 3.0, 4.0],
+        }];
+        PDF {
+            grid_pdf: GridPDF::new(mock_metadata(), GridArray::new(data, vec![21])),
+        }
+    }
+
+    #[test]
+    fn test_xfxq2() {
+        let pdf = mock_pdf();
+        let val = pdf.xfxq2(21, &[0.15, 1.5]);
+        assert!((val - 2.5).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_xfxq2s() {
+        let pdf = mock_pdf();
+        let result = pdf.xfxq2s(vec![21], &[&[0.15, 1.5]]);
+        assert_eq!(result.shape(), &[1, 1]);
+    }
+
+    #[test]
+    fn test_alphas_q2() {
+        let pdf = mock_pdf();
+        assert!(pdf.alphas_q2(100.0) > 0.0);
+    }
+
+    #[test]
+    fn test_metadata() {
+        let pdf = mock_pdf();
+        assert_eq!(pdf.metadata().set_index, 7);
+    }
+
+    #[test]
+    fn test_num_subgrids() {
+        let pdf = mock_pdf();
+        assert_eq!(pdf.num_subgrids(), 1);
+    }
+
+    #[test]
+    fn test_subgrid_access() {
+        let pdf = mock_pdf();
+        assert_eq!(pdf.subgrid(0).xs.len(), 2);
+        assert_eq!(pdf.subgrids().len(), 1);
+    }
+
+    #[test]
+    fn test_pids() {
+        let pdf = mock_pdf();
+        assert_eq!(pdf.pids().len(), 1);
+        assert_eq!(pdf.pids()[0], 21);
+    }
+
+    #[test]
+    fn test_param_ranges() {
+        let pdf = mock_pdf();
+        let r = pdf.param_ranges();
+        assert_eq!(r.x.min, 0.1);
+        assert_eq!(r.q2.max, 2.0);
+    }
+
+    #[test]
+    fn test_force_positive() {
+        let mut pdf = mock_pdf();
+        assert!(matches!(pdf.is_force_positive(), ForcePositive::NoClipping));
+        pdf.set_force_positive(ForcePositive::ClipNegative);
+        assert!(matches!(
+            pdf.is_force_positive(),
+            ForcePositive::ClipNegative
+        ));
+    }
+
+    #[test]
+    fn test_set_force_positive_members() {
+        let mut pdfs = vec![mock_pdf(), mock_pdf()];
+        PDF::set_force_positive_members(&mut pdfs, ForcePositive::ClipSmall);
+        for pdf in &pdfs {
+            assert!(matches!(pdf.is_force_positive(), ForcePositive::ClipSmall));
+        }
+    }
+
+    #[test]
+    fn test_xf_from_index() {
+        let pdf = mock_pdf();
+        let val = pdf.xf_from_index(0, 0, 0, 0, 0, 21, 0);
+        assert_eq!(val, 1.0);
+    }
+}

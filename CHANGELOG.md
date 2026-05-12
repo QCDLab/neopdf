@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added routines to compute uncertainties from non-perturbative functions.
+
+### Changed
+
+- Separate `neopdf_legacy` to be its own crate.
+
 ## [0.3.2] - 29/03/2026
 
 ## [0.3.1] - 18/03/2026

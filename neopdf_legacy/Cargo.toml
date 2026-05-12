@@ -1,0 +1,29 @@
+[package]
+name = "neopdf_legacy"
+description = "neopdf v0.2.0 for backward-compatible file reading"
+
+categories.workspace = true
+edition.workspace = true
+keywords.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[dependencies]
+bincode.workspace = true
+flate2.workspace = true
+git-version.workspace = true
+indicatif.workspace = true
+itertools.workspace = true
+lz4_flex.workspace = true
+ndarray.workspace = true
+ninterp.workspace = true
+rayon.workspace = true
+regex.workspace = true
+serde.workspace = true
+serde_yaml.workspace = true
+tar.workspace = true
+tempfile.workspace = true
+thiserror.workspace = true
+ureq.workspace = true

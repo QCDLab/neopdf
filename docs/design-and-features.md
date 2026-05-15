@@ -127,12 +127,12 @@ below with their simplified relationships.
 ```mermaid
 graph TD
 
-A["**Generalized Tranverse Momentum Distribution** <br> GTMD(x, ξ, Δ, kT​​, Q²)"]
+A["<b>Generalized Tranverse Momentum Distributions</b> <br> GTMD(x, ξ, Δ, kT​​, Q²)"]
 
-A -->|∫ dkT| B["**Generalized Parton Distributions** <br> GPD(x, ξ, Δ, Q²)"]
-A -->|ξ → 0, Δ → 0| C["**Transverse Momentum Distributions** <br> TMD(x, kT, Q²)"]
+A -->|∫ dkT| B["<b>Generalized Parton Distributions</b> <br> GPD(x, ξ, Δ, Q²)"]
+A -->|ξ → 0, Δ → 0| C["<b>Transverse Momentum Distributions</b> <br> TMD(x, kT, Q²)"]
 
-B -->|ξ → 0, Δ → 0| D["**Collinear Parton Distribution Functions** <br> PDF(x, Q²)"]
+B -->|ξ → 0, Δ → 0| D["<b>Collinear Parton Distribution Functions</b> <br> PDF(x, Q²)"]
 C -->|∫ dkT| D
 
 style A fill:#8B4513,stroke:#D2691E,stroke-width:2px

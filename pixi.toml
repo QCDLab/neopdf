@@ -16,8 +16,10 @@ NEOPDF_DATA_PATH = "$PWD/neopdf-data"
 [feature.pyapi.dependencies]
 maturin = "*"
 numpy = "*"
+matplotlib = "*"
 pytest = "*"
 pytest-cov = "*"
+pytest-mpl = "*"
 
 [feature.capi.dependencies]
 c-compiler = "*"

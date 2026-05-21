@@ -19,6 +19,7 @@ numpy = "*"
 matplotlib = "*"
 pytest = "*"
 pytest-cov = "*"
+pytest-mpl = "*"
 
 [feature.capi.dependencies]
 c-compiler = "*"

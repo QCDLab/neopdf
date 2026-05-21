@@ -5,6 +5,7 @@ on:
 
 env:
   NEOPDF_DATA_PATH: ${{ github.workspace }}/neopdf-data
+  LHAPDF_DATA_PATH: ${{ github.workspace }}/neopdf-data
 
 jobs:
   pixi:

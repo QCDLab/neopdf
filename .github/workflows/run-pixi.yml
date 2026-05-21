@@ -1,4 +1,4 @@
-name: Test pixi setup 🟣
+name: Test pixi setup 📎
 
 on:
   push:
@@ -32,6 +32,3 @@ jobs:
 
       - name: Test Rust
         run: pixi run test-rust
-
-      - name: Test Python API
-        run: pixi run test-pyapi

@@ -19,7 +19,7 @@ flate2 = "1.1.2"
 git-version = "0.3.9"
 indicatif = { default-features = false, version = "0.18.4" }
 itertools = "0.13"
-lz4_flex = "0.11"
+lz4_flex = "0.13"
 ndarray = { version = "0.16.1", features = ["serde"] }
 ninterp = "0.7.3"
 rayon = "1.5"

@@ -27,7 +27,7 @@ regex = "1.11.1"
 ureq = { version = "2", features = ["tls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
-tar = "0.4.44"
+tar = { default-features = false, version = "0.4.45" }
 tempfile = "3.10.1"
 thiserror = "1.0.69"
 

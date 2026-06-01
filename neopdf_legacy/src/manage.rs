@@ -146,13 +146,18 @@ impl ManageData {
 mod tests {
     use super::*;
     use std::fs;
+    use std::sync::Mutex;
     use tempfile::TempDir;
+
+    // Serializes all tests that mutate NEOPDF_DATA_PATH to prevent races
+    // when cargo runs tests in parallel.
+    static ENV_MUTEX: Mutex<()> = Mutex::new(());
 
     #[test]
     fn test_get_data_path_from_env() {
+        let _guard = ENV_MUTEX.lock().unwrap();
         let tmp = TempDir::new().unwrap();
         let tmp_path = tmp.path().to_str().unwrap().to_string();
-        // SAFETY: single-threaded test; env var is restored after test scope
         unsafe { std::env::set_var("NEOPDF_DATA_PATH", &tmp_path) };
         let path = ManageData::get_data_path();
         unsafe { std::env::remove_var("NEOPDF_DATA_PATH") };
@@ -161,6 +166,7 @@ mod tests {
 
     #[test]
     fn test_get_data_path_creates_dir() {
+        let _guard = ENV_MUTEX.lock().unwrap();
         let tmp = TempDir::new().unwrap();
         let new_dir = tmp.path().join("neopdf_test_subdir");
         unsafe { std::env::set_var("NEOPDF_DATA_PATH", new_dir.to_str().unwrap()) };
@@ -171,6 +177,7 @@ mod tests {
 
     #[test]
     fn test_manage_data_with_existing_neopdf_file() {
+        let _guard = ENV_MUTEX.lock().unwrap();
         let tmp = TempDir::new().unwrap();
         let set_name = "fake_set.neopdf.lz4";
         let fake_file = tmp.path().join(set_name);
@@ -188,6 +195,7 @@ mod tests {
 
     #[test]
     fn test_is_pdf_installed_missing() {
+        let _guard = ENV_MUTEX.lock().unwrap();
         let tmp = TempDir::new().unwrap();
         let set_name = "nonexistent_set.neopdf.lz4";
 

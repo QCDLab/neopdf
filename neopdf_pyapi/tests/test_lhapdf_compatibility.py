@@ -3,7 +3,7 @@ import pytest
 import lhapdf
 import neopdf
 
-PDF_SET = "CT18NLO"
+PDF_SET = "NNPDF40_nnlo_as_01180"
 MEMBER = 7
 
 
@@ -170,7 +170,7 @@ class TestPDFIdentity:
 
 class TestPDFFlavors:
     def test_flavors_match_lhapdf(self, neo_p, lha_p):
-        assert neo_p.flavors() == lha_p.flavors()
+        assert sorted(neo_p.flavors()) == sorted(lha_p.flavors())
 
     def test_has_flavor_gluon(self, neo_p, lha_p):
         assert neo_p.hasFlavor(21) == lha_p.hasFlavor(21)

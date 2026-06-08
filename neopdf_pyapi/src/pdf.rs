@@ -3,6 +3,7 @@ use pyo3::prelude::*;
 use std::sync::Mutex;
 
 use neopdf::gridpdf::ForcePositive;
+use neopdf::metadata::MetaData;
 use neopdf::pdf::PDF;
 
 use super::gridpdf::PySubGrid;
@@ -84,6 +85,116 @@ pub enum PyGridParams {
     Q2,
 }
 
+/// LHAPDF-compatible interface to a PDF set.
+///
+/// Provides the same API as `lhapdf.PDFSet`.
+#[pyclass(name = "PDFSet")]
+pub struct PyPDFSet {
+    name: String,
+    meta: MetaData,
+}
+
+#[pymethods]
+impl PyPDFSet {
+    /// Create a new `PDFSet` for a given set name.
+    ///
+    /// Parameters
+    /// ----------
+    /// name : str
+    ///     The name of the PDF set.
+    #[new]
+    #[must_use]
+    pub fn new(name: &str) -> Self {
+        let meta = PDF::load(name, 0).metadata().clone();
+        Self {
+            name: name.to_string(),
+            meta,
+        }
+    }
+
+    /// The name of the PDF set.
+    #[getter]
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Total number of members (central value + error members).
+    #[getter]
+    #[must_use]
+    pub const fn size(&self) -> u32 {
+        self.meta.num_members
+    }
+
+    /// Human-readable description of the PDF set.
+    #[getter]
+    #[must_use]
+    pub fn description(&self) -> &str {
+        &self.meta.set_desc
+    }
+
+    /// Error type string (e.g. `replicas`, `hessian`).
+    #[getter]
+    #[must_use]
+    #[pyo3(name = "errorType")]
+    pub fn error_type(&self) -> &str {
+        &self.meta.error_type
+    }
+
+    /// LHAPDF ID for member 0 of this set.
+    #[getter]
+    #[must_use]
+    #[pyo3(name = "lhapdfID")]
+    pub const fn lhapdf_id(&self) -> u32 {
+        self.meta.set_index
+    }
+
+    /// Return the metadata for this set as a `MetaData` object.
+    #[must_use]
+    pub fn info(&self) -> PyMetaData {
+        PyMetaData {
+            meta: self.meta.clone(),
+        }
+    }
+
+    /// Load a single PDF member by index.
+    ///
+    /// Parameters
+    /// ----------
+    /// member : int
+    ///     Member index. Defaults to 0 (central value).
+    #[must_use]
+    #[pyo3(signature = (member = 0))]
+    #[pyo3(name = "mkPDF")]
+    pub fn mk_pdf(&self, member: usize) -> PyPDF {
+        PyPDF::new(&self.name, member)
+    }
+
+    /// Load all members of this PDF set.
+    ///
+    /// Parameters
+    /// ----------
+    /// method : `LoaderMethod`
+    ///     Loading strategy. Defaults to `Parallel`.
+    #[must_use]
+    #[pyo3(signature = (method = &PyLoaderMethod::Parallel))]
+    #[pyo3(name = "mkPDFs")]
+    pub fn mk_pdfs(&self, method: &PyLoaderMethod) -> Vec<PyPDF> {
+        PyPDF::mkpdfs(&self.name, method)
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "<PDFSet '{}' ({} members)>",
+            self.name, self.meta.num_members
+        )
+    }
+
+    const fn __len__(&self) -> usize {
+        self.meta.num_members as usize
+    }
+}
+
 /// Python wrapper for the `neopdf::pdf::PDF` struct.
 ///
 /// This class provides a Python-friendly interface to the core PDF
@@ -91,6 +202,8 @@ pub enum PyGridParams {
 #[pyclass(name = "LazyPDFs")]
 pub struct PyLazyPDFs {
     iter: Mutex<Box<dyn Iterator<Item = LazyType> + Send>>,
+    pdf_name: String,
+    counter: Mutex<usize>,
 }
 
 #[pymethods]
@@ -102,8 +215,18 @@ impl PyLazyPDFs {
     #[allow(clippy::needless_pass_by_value)]
     fn __next__(slf: PyRefMut<'_, Self>) -> PyResult<Option<PyPDF>> {
         let mut iter = slf.iter.lock().unwrap();
+        let mut counter = slf.counter.lock().unwrap();
+        let pdf_name = slf.pdf_name.clone();
         match iter.next() {
-            Some(Ok(pdf)) => Ok(Some(PyPDF { pdf })),
+            Some(Ok(pdf)) => {
+                let member = *counter;
+                *counter += 1;
+                Ok(Some(PyPDF {
+                    pdf,
+                    pdf_name,
+                    member,
+                }))
+            }
             Some(Err(e)) => Err(pyo3::exceptions::PyValueError::new_err(e.to_string())),
             None => Ok(None),
         }
@@ -115,9 +238,10 @@ impl PyLazyPDFs {
 /// This class provides a Python-friendly interface to the core PDF
 /// interpolation functionalities of the `neopdf` Rust library.
 #[pyclass(name = "PDF")]
-#[repr(transparent)]
 pub struct PyPDF {
     pub(crate) pdf: PDF,
+    pub(crate) pdf_name: String,
+    pub(crate) member: usize,
 }
 
 #[pymethods]
@@ -144,6 +268,8 @@ impl PyPDF {
     pub fn new(pdf_name: &str, member: usize) -> Self {
         Self {
             pdf: PDF::load(pdf_name, member),
+            pdf_name: pdf_name.to_string(),
+            member,
         }
     }
 
@@ -189,8 +315,13 @@ impl PyPDF {
     #[staticmethod]
     #[pyo3(name = "mkPDF_lhaid")]
     pub fn mkpdf_lhaid(lhaid: u32) -> Self {
+        let pdf = PDF::load_by_lhaid(lhaid);
+        let member = lhaid.saturating_sub(pdf.metadata().set_index) as usize;
+
         Self {
-            pdf: PDF::load_by_lhaid(lhaid),
+            pdf,
+            pdf_name: String::new(),
+            member,
         }
     }
 
@@ -211,6 +342,8 @@ impl PyPDF {
     pub fn mkpdf_lhapdf_file(path: &str) -> Self {
         Self {
             pdf: PDF::load_lhapdf_by_file(path),
+            pdf_name: path.to_string(),
+            member: 0,
         }
     }
 
@@ -240,7 +373,12 @@ impl PyPDF {
 
         loader_method(pdf_name)
             .into_iter()
-            .map(move |pdfobj| Self { pdf: pdfobj })
+            .enumerate()
+            .map(|(i, pdfobj)| Self {
+                pdf: pdfobj,
+                pdf_name: pdf_name.to_string(),
+                member: i,
+            })
             .collect()
     }
 
@@ -263,6 +401,8 @@ impl PyPDF {
     pub fn mkpdfs_lazy(pdf_name: &str) -> PyLazyPDFs {
         PyLazyPDFs {
             iter: Mutex::new(Box::new(PDF::load_pdfs_lazy(pdf_name))),
+            pdf_name: pdf_name.to_string(),
+            counter: Mutex::new(0),
         }
     }
 
@@ -612,6 +752,176 @@ impl PyPDF {
             meta: self.pdf.metadata().clone(),
         }
     }
+
+    // ------------------ LHAPDF-compatible API ------------------
+
+    /// Evaluate xf(x, Q) for a single flavor.
+    #[must_use]
+    #[pyo3(name = "xfxQ")]
+    pub fn xfxq(&self, id: i32, x: f64, q: f64) -> f64 {
+        self.xfxq2(id, x, q * q)
+    }
+
+    /// Evaluate alpha_s(Q).
+    #[must_use]
+    #[pyo3(name = "alphasQ")]
+    pub fn alphas_q(&self, q: f64) -> f64 {
+        self.alphas_q2(q * q)
+    }
+
+    /// Return the list of available flavor PIDs (LHAPDF name for `pids`).
+    #[must_use]
+    pub fn flavors(&self) -> Vec<i32> {
+        self.pdf.metadata().flavors.clone()
+    }
+
+    /// Return `True` if the given PID is available in this set.
+    #[must_use]
+    #[pyo3(name = "hasFlavor")]
+    pub fn has_flavor(&self, id: i32) -> bool {
+        self.pdf.metadata().flavors.contains(&id)
+    }
+
+    /// Return `True` if `x` lies within the grid x-range.
+    #[must_use]
+    #[pyo3(name = "inRangeX")]
+    pub fn in_range_x(&self, x: f64) -> bool {
+        let r = self.pdf.param_ranges().x;
+        x >= r.min && x <= r.max
+    }
+
+    /// Return `True` if `Q` (not Q²) lies within the grid Q-range.
+    #[must_use]
+    #[pyo3(name = "inRangeQ")]
+    pub fn in_range_q(&self, q: f64) -> bool {
+        let r = self.pdf.param_ranges().q2;
+        let q2 = q * q;
+        q2 >= r.min && q2 <= r.max
+    }
+
+    /// Return `True` if `Q²` lies within the grid Q²-range.
+    #[must_use]
+    #[pyo3(name = "inRangeQ2")]
+    pub fn in_range_q2(&self, q2: f64) -> bool {
+        let r = self.pdf.param_ranges().q2;
+        q2 >= r.min && q2 <= r.max
+    }
+
+    /// Return `True` if both `x` and `Q` are within their respective ranges.
+    #[must_use]
+    #[pyo3(name = "inRangeXQ")]
+    pub fn in_range_xq(&self, x: f64, q: f64) -> bool {
+        self.in_range_x(x) && self.in_range_q(q)
+    }
+
+    /// Return `True` if both `x` and `Q²` are within their respective ranges.
+    #[must_use]
+    #[pyo3(name = "inRangeXQ2")]
+    pub fn in_range_xq2(&self, x: f64, q2: f64) -> bool {
+        self.in_range_x(x) && self.in_range_q2(q2)
+    }
+
+    /// Index of this member within its PDF set (0 = central value).
+    #[getter]
+    #[must_use]
+    #[pyo3(name = "memberID")]
+    pub const fn member_id(&self) -> usize {
+        self.member
+    }
+
+    /// LHAPDF ID of this specific member (set base ID + member index).
+    #[getter]
+    #[must_use]
+    #[pyo3(name = "lhapdfID")]
+    pub fn lhapdf_id(&self) -> u32 {
+        self.pdf.metadata().set_index + self.member as u32
+    }
+
+    /// QCD perturbative order used for this PDF set.
+    #[getter]
+    #[must_use]
+    #[pyo3(name = "orderQCD")]
+    pub fn order_qcd(&self) -> u32 {
+        self.pdf.metadata().order_qcd
+    }
+
+    /// Maximum x value in the grid (camelCase LHAPDF alias).
+    #[getter]
+    #[must_use]
+    #[pyo3(name = "xMax")]
+    pub fn x_max_lhapdf(&self) -> f64 {
+        self.x_max()
+    }
+
+    /// Minimum x value in the grid (camelCase LHAPDF alias).
+    #[getter]
+    #[must_use]
+    #[pyo3(name = "xMin")]
+    pub fn x_min_lhapdf(&self) -> f64 {
+        self.x_min()
+    }
+
+    /// Maximum Q² value in the grid (camelCase LHAPDF alias).
+    #[getter]
+    #[must_use]
+    #[pyo3(name = "q2Max")]
+    pub fn q2_max_lhapdf(&self) -> f64 {
+        self.q2_max()
+    }
+
+    /// Minimum Q² value in the grid (camelCase LHAPDF alias).
+    #[getter]
+    #[must_use]
+    #[pyo3(name = "q2Min")]
+    pub fn q2_min_lhapdf(&self) -> f64 {
+        self.q2_min()
+    }
+
+    /// Pole mass of the quark with the given flavor ID.
+    ///
+    /// Returns 0.0 for unknown flavor IDs.
+    #[must_use]
+    #[pyo3(name = "quarkMass")]
+    pub fn quark_mass(&self, id: i32) -> f64 {
+        let m = self.pdf.metadata();
+        match id.abs() {
+            1 => m.m_down,
+            2 => m.m_up,
+            3 => m.m_strange,
+            4 => m.m_charm,
+            5 => m.m_bottom,
+            6 => m.m_top,
+            _ => 0.0,
+        }
+    }
+
+    /// Flavor threshold for the given quark ID (equal to the quark mass).
+    #[must_use]
+    #[pyo3(name = "quarkThreshold")]
+    pub fn quark_threshold(&self, id: i32) -> f64 {
+        self.quark_mass(id)
+    }
+
+    /// Human-readable description of this PDF set.
+    #[getter]
+    #[must_use]
+    pub fn description(&self) -> String {
+        self.pdf.metadata().set_desc.clone()
+    }
+
+    /// Return the `PDFSet` this member belongs to.
+    ///
+    /// Only available when the PDF was loaded by name; returns `None` when
+    /// loaded via LHAID or file path.
+    #[getter]
+    #[must_use]
+    pub fn set(&self) -> Option<PyPDFSet> {
+        if self.pdf_name.is_empty() {
+            None
+        } else {
+            Some(PyPDFSet::new(&self.pdf_name))
+        }
+    }
 }
 
 /// Registers the `pdf` submodule with the parent Python module.
@@ -642,9 +952,11 @@ pub fn register(parent_module: &Bound<'_, PyModule>) -> PyResult<()> {
         "import sys; sys.modules['neopdf.pdf'] = m"
     );
     m.add_class::<PyPDF>()?;
+    m.add_class::<PyPDFSet>()?;
     m.add_class::<PyLazyPDFs>()?;
     m.add_class::<PyForcePositive>()?;
     m.add_class::<PyGridParams>()?;
     m.add_class::<PyLoaderMethod>()?;
+    parent_module.add_class::<PyPDFSet>()?;
     parent_module.add_submodule(&m)
 }

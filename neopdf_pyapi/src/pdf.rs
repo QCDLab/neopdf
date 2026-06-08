@@ -14,7 +14,7 @@ type LazyType = Result<PDF, Box<dyn std::error::Error>>;
 type EnumeratedLazy = Box<dyn Iterator<Item = (usize, LazyType)> + Send>;
 
 /// Python wrapper for the `ForcePositive` enum.
-#[pyclass(name = "ForcePositive")]
+#[pyclass(from_py_object, name = "ForcePositive")]
 #[derive(Clone)]
 pub enum PyForcePositive {
     /// If the calculated PDF value is negative, it is forced to 0.
@@ -46,7 +46,7 @@ impl From<&ForcePositive> for PyForcePositive {
 }
 
 /// Methods to load all the PDF members for a given set.
-#[pyclass(name = "LoaderMethod")]
+#[pyclass(from_py_object, name = "LoaderMethod")]
 #[derive(Clone)]
 pub enum PyLoaderMethod {
     /// Load the members in parallel using multi-threads.
@@ -71,7 +71,7 @@ impl PyForcePositive {
 }
 
 /// This enum contains the different parameters that a grid can depend on.
-#[pyclass(name = "GridParams")]
+#[pyclass(from_py_object, name = "GridParams")]
 #[derive(Clone)]
 pub enum PyGridParams {
     /// The nucleon mass number A.

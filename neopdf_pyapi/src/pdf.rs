@@ -11,6 +11,7 @@ use super::metadata::PyMetaData;
 
 // Type aliases
 type LazyType = Result<PDF, Box<dyn std::error::Error>>;
+type EnumeratedLazy = Box<dyn Iterator<Item = (usize, LazyType)> + Send>;
 
 /// Python wrapper for the `ForcePositive` enum.
 #[pyclass(name = "ForcePositive")]
@@ -201,9 +202,8 @@ impl PyPDFSet {
 /// interpolation functionalities of the `neopdf` Rust library.
 #[pyclass(name = "LazyPDFs")]
 pub struct PyLazyPDFs {
-    iter: Mutex<Box<dyn Iterator<Item = LazyType> + Send>>,
+    iter: Mutex<EnumeratedLazy>,
     pdf_name: String,
-    counter: Mutex<usize>,
 }
 
 #[pymethods]
@@ -215,19 +215,14 @@ impl PyLazyPDFs {
     #[allow(clippy::needless_pass_by_value)]
     fn __next__(slf: PyRefMut<'_, Self>) -> PyResult<Option<PyPDF>> {
         let mut iter = slf.iter.lock().unwrap();
-        let mut counter = slf.counter.lock().unwrap();
         let pdf_name = slf.pdf_name.clone();
         match iter.next() {
-            Some(Ok(pdf)) => {
-                let member = *counter;
-                *counter += 1;
-                Ok(Some(PyPDF {
-                    pdf,
-                    pdf_name,
-                    member,
-                }))
-            }
-            Some(Err(e)) => Err(pyo3::exceptions::PyValueError::new_err(e.to_string())),
+            Some((member, Ok(pdf))) => Ok(Some(PyPDF {
+                pdf,
+                pdf_name,
+                member,
+            })),
+            Some((_, Err(e))) => Err(pyo3::exceptions::PyValueError::new_err(e.to_string())),
             None => Ok(None),
         }
     }
@@ -400,9 +395,8 @@ impl PyPDF {
     #[pyo3(name = "mkPDFs_lazy")]
     pub fn mkpdfs_lazy(pdf_name: &str) -> PyLazyPDFs {
         PyLazyPDFs {
-            iter: Mutex::new(Box::new(PDF::load_pdfs_lazy(pdf_name))),
+            iter: Mutex::new(Box::new(PDF::load_pdfs_lazy(pdf_name).enumerate())),
             pdf_name: pdf_name.to_string(),
-            counter: Mutex::new(0),
         }
     }
 

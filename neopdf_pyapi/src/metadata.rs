@@ -3,7 +3,7 @@ use pyo3::prelude::*;
 use neopdf::metadata::{InterpolatorType, MetaData, SetType};
 
 /// The type of the set.
-#[pyclass(eq, eq_int, name = "SetType")]
+#[pyclass(eq, eq_int, from_py_object, name = "SetType")]
 #[derive(Clone, PartialEq, Eq)]
 pub enum PySetType {
     /// Parton Distribution Function.
@@ -31,7 +31,7 @@ impl From<&PySetType> for SetType {
 }
 
 /// The interpolation method used for the grid.
-#[pyclass(eq, eq_int, name = "InterpolatorType")]
+#[pyclass(eq, eq_int, from_py_object, name = "InterpolatorType")]
 #[derive(Clone, PartialEq, Eq)]
 pub enum PyInterpolatorType {
     /// Bilinear interpolation strategy.
@@ -83,7 +83,7 @@ impl From<&PyInterpolatorType> for InterpolatorType {
 }
 
 /// Physical Parameters of the PDF set.
-#[pyclass(name = "PhysicsParameters")]
+#[pyclass(from_py_object, name = "PhysicsParameters")]
 #[derive(Debug, Clone)]
 pub struct PyPhysicsParameters {
     pub(crate) flavor_scheme: String,
@@ -198,7 +198,7 @@ impl Default for PyPhysicsParameters {
 }
 
 /// Grid metadata.
-#[pyclass(name = "MetaData")]
+#[pyclass(from_py_object, name = "MetaData")]
 #[derive(Debug, Clone)]
 #[repr(transparent)]
 pub struct PyMetaData {

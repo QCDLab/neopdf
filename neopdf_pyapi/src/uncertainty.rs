@@ -2,7 +2,7 @@ use numpy::{PyArray1, PyArrayMethods};
 use pyo3::prelude::*;
 
 /// Python wrapper for the NeoPDF `Uncertainty` struct.
-#[pyclass(name = "Uncertainty")]
+#[pyclass(from_py_object, name = "Uncertainty")]
 #[derive(Clone, Debug)]
 pub struct PyUncertainty {
     /// Central value.

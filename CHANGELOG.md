@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added further `LHAPDF` compatibility layers ([#93](https://github.com/QCDLab/neopdf/pull/93))
+
 ## [0.3.3] - 12/05/2026
 
 ### Added

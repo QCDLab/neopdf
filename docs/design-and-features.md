@@ -199,6 +199,21 @@ into diverse computational workflows:
   Key functions like `xfxQ2()`, `alphasQ2()`, and `mkPDF()` maintain the same signatures as
   LHAPDF, ensuring compatibility with existing analysis codes.
 
+The following symbols have an exact match with their LHAPDF counterparts.
+
+*Module-level:*
+`setVerbosity()`, `verbosity()`, `getPDFSet()`, `mkPDF()`, `mkPDFs()`,
+`availablePDFSets()`, `paths()`, `setPaths()`, `pathsAppend()`, `pathsPrepend()`.
+
+*`PDFSet` class:*
+`name`, `size`, `description`, `errorType`, `lhapdfID`, `mkPDF()`, `mkPDFs()`, `info()`.
+
+*`PDF` class:*
+`xfxQ()`, `xfxQ2()`, `alphasQ()`, `alphasQ2()`, `flavors()`, `hasFlavor()`,
+`inRangeX()`, `inRangeQ()`, `inRangeQ2()`, `inRangeXQ()`, `inRangeXQ2()`,
+`memberID`, `lhapdfID`, `orderQCD`, `xMin`, `xMax`, `q2Min`, `q2Max`,
+`quarkMass()`, `quarkThreshold()`, `description`, `set`.
+
 This compatibility is crucial for the physics community, as it allows for immediate adoption
 without requiring extensive code rewrites or validation efforts.
 

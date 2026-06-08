@@ -3,7 +3,7 @@ use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
 /// Python wrapper for the `PdfSetFormat` enum.
-#[pyclass(name = "PdfSetFormat")]
+#[pyclass(from_py_object, name = "PdfSetFormat")]
 #[derive(Clone)]
 pub enum PyPdfSetFormat {
     /// LHAPDF format (standard PDF set format used by LHAPDF).

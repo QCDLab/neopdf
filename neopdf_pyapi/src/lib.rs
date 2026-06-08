@@ -108,10 +108,16 @@ fn paths_append(_path: String) {}
 #[pyo3(name = "pathsPrepend")]
 fn paths_prepend(_path: String) {}
 
+/// Return the NeoPDF version string (LHAPDF-compatible callable).
+#[pyfunction]
+fn version() -> &'static str {
+    env!("CARGO_PKG_VERSION")
+}
+
 /// `PyO3` Python module that contains all exposed classes from Rust.
 #[pymodule]
 fn neopdf(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add("version", env!("CARGO_PKG_VERSION"))?;
+    m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     pdf::register(m)?;
     metadata::register(m)?;
     converter::register(m)?;
@@ -130,5 +136,6 @@ fn neopdf(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(set_paths, m)?)?;
     m.add_function(wrap_pyfunction!(paths_append, m)?)?;
     m.add_function(wrap_pyfunction!(paths_prepend, m)?)?;
+    m.add_function(wrap_pyfunction!(version, m)?)?;
     Ok(())
 }

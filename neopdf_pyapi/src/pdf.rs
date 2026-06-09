@@ -788,9 +788,7 @@ impl PyPDF {
     #[must_use]
     #[pyo3(name = "inRangeQ")]
     pub fn in_range_q(&self, q: f64) -> bool {
-        let r = self.pdf.param_ranges().q2;
-        let q2 = q * q;
-        q2 >= r.min && q2 <= r.max
+        self.in_range_q2(q * q)
     }
 
     /// Return `True` if `Q²` lies within the grid Q²-range.

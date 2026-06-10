@@ -339,7 +339,6 @@ class TestHasKeyGetEntry:
         neo_ps = neopdf.getPDFSet(pdfname)
         lha_ps = lhapdf.getPDFSet(pdfname)
         if not lha_ps.has_key("ErrorConfLevel"):
-            # neopdf returns -1.0 when the key is absent; LHAPDF may use a heuristic default
             assert neo_ps.errorConfLevel == -1.0
         else:
             assert neo_ps.errorConfLevel == lha_ps.errorConfLevel

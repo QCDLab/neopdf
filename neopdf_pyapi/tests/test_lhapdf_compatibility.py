@@ -3,6 +3,8 @@ import pytest
 import lhapdf
 import neopdf
 
+from neopdf.uncertainty import uncertainty, CL_1_SIGMA
+
 PDF_SET = "NNPDF40_nnlo_as_01180"
 MEMBER = 7
 
@@ -379,25 +381,24 @@ class TestPDFSetUncertainty:
         values = self._values(pdfname, pid, x, q)
         unc = neo_ps.uncertainty(values)
         assert isinstance(unc, Uncertainty)
-        assert unc.central > 0 or unc.central <= 0  # just check it's a float
+        assert abs(unc.central) >= 0
 
     def test_uncertainty_matches_standalone(self, pdfname, pid, x, q):
-        from neopdf.uncertainty import uncertainty, CL_1_SIGMA
-
         neo_ps = neopdf.getPDFSet(pdfname)
         values = np.array(self._values(pdfname, pid, x, q))
         ecl = neo_ps.errorConfLevel
         unc_set = neo_ps.uncertainty(list(values), CL_1_SIGMA, False)
         unc_fn = uncertainty(
-            values, neo_ps.errorType, error_conf_level=ecl, cl=CL_1_SIGMA
+            values,
+            neo_ps.errorType,
+            error_conf_level=ecl,
+            cl=CL_1_SIGMA,
         )
         np.testing.assert_allclose(unc_set.central, unc_fn.central, rtol=1e-10)
         np.testing.assert_allclose(unc_set.errminus, unc_fn.errminus, rtol=1e-10)
         np.testing.assert_allclose(unc_set.errplus, unc_fn.errplus, rtol=1e-10)
 
     def test_uncertainty_central_matches_lhapdf(self, pdfname, pid, x, q):
-        from neopdf.uncertainty import CL_1_SIGMA
-
         values = self._values(pdfname, pid, x, q)
         neo_ps = neopdf.getPDFSet(pdfname)
         lha_ps = lhapdf.getPDFSet(pdfname)
@@ -406,8 +407,6 @@ class TestPDFSetUncertainty:
         np.testing.assert_allclose(neo_unc.central, lha_unc.central, rtol=1e-10)
 
     def test_uncertainty_errminus_matches_lhapdf(self, pdfname, pid, x, q):
-        from neopdf.uncertainty import CL_1_SIGMA
-
         values = self._values(pdfname, pid, x, q)
         neo_ps = neopdf.getPDFSet(pdfname)
         lha_ps = lhapdf.getPDFSet(pdfname)
@@ -416,8 +415,6 @@ class TestPDFSetUncertainty:
         np.testing.assert_allclose(neo_unc.errminus, lha_unc.errminus, rtol=1e-2)
 
     def test_uncertainty_errplus_matches_lhapdf(self, pdfname, pid, x, q):
-        from neopdf.uncertainty import CL_1_SIGMA
-
         values = self._values(pdfname, pid, x, q)
         neo_ps = neopdf.getPDFSet(pdfname)
         lha_ps = lhapdf.getPDFSet(pdfname)

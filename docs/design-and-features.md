@@ -206,7 +206,8 @@ The following symbols have an exact match with their LHAPDF counterparts.
 `availablePDFSets()`, `paths()`, `setPaths()`, `pathsAppend()`, `pathsPrepend()`.
 
 *`PDFSet` class:*
-`name`, `size`, `description`, `errorType`, `lhapdfID`, `mkPDF()`, `mkPDFs()`, `info()`.
+`name`, `size`, `description`, `errorType`, `lhapdfID`, `mkPDF()`, `mkPDFs()`, `info()`,
+`uncertainty`, `has_key`, `get_entry`, `keys`.
 
 *`PDF` class:*
 `xfxQ()`, `xfxQ2()`, `alphasQ()`, `alphasQ2()`, `flavors()`, `hasFlavor()`,

@@ -215,7 +215,7 @@ impl PyPDFSet {
     ///     Per-member values at a given kinematic point. Element 0 is the central member;
     ///     the remaining elements are the error members.
     /// cl : float
-    ///     Output confidence level in %. Defaults to CL_1_SIGMA (≈ 68.27 %).
+    ///     Output confidence level in %. Defaults to `CL_1_SIGMA` (~ 68.27 %).
     /// alternative : bool
     ///     If `True`, replica sets use a quantile-based asymmetric interval instead of
     ///     the standard deviation. Defaults to `False`.

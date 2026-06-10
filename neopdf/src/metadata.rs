@@ -141,6 +141,11 @@ pub struct MetaDataV2 {
     /// Maximum delta-value for which the PDF is valid.
     #[serde(rename = "DeltaMax", default)]
     pub delta_max: f64,
+    /// Confidence level (in %) at which the error members were constructed.
+    /// `None` when the field is absent from the `.info` file (LHAPDF convention:
+    /// treat as CL_1_SIGMA ≈ 68.27 %, and return -1.0 from `errorConfLevel`).
+    #[serde(rename = "ErrorConfLevel", default)]
+    pub error_conf_level: Option<f64>,
 }
 
 impl MetaDataV2 {
@@ -191,7 +196,12 @@ impl std::fmt::Display for MetaDataV2 {
         writeln!(f, "XiMin: {}", self.xi_min)?;
         writeln!(f, "XiMax: {}", self.xi_max)?;
         writeln!(f, "DeltaMin: {}", self.delta_min)?;
-        write!(f, "DeltaMax: {}", self.delta_max)
+        write!(f, "DeltaMax: {}", self.delta_max)?;
+        if let Some(ecl) = self.error_conf_level {
+            writeln!(f)?;
+            write!(f, "ErrorConfLevel: {ecl}")?;
+        }
+        Ok(())
     }
 }
 
@@ -258,6 +268,7 @@ impl From<neopdf_legacy::metadata::MetaData> for MetaData {
             xi_max: 0.0,
             delta_min: 0.0,
             delta_max: 0.0,
+            error_conf_level: None,
         }
     }
 }

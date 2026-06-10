@@ -275,6 +275,7 @@ mod tests {
             xi_max: 0.0,
             delta_min: 0.0,
             delta_max: 0.0,
+            error_conf_level: None,
         }
     }
 

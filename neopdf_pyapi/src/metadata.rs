@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use pyo3::prelude::*;
 
 use neopdf::metadata::{InterpolatorType, MetaData, SetType};
@@ -197,6 +199,123 @@ impl Default for PyPhysicsParameters {
     }
 }
 
+fn format_list<T: ToString>(v: &[T]) -> String {
+    format!(
+        "[{}]",
+        v.iter()
+            .map(std::string::ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(", ")
+    )
+}
+
+fn insert_mandatory_fields(map: &mut HashMap<String, String>, meta: &MetaData) {
+    let set_type = match &meta.set_type {
+        SetType::SpaceLike => "PDF",
+        SetType::TimeLike => "FragFn",
+    };
+    let interp_type = match &meta.interpolator_type {
+        InterpolatorType::Bilinear => "Bilinear",
+        InterpolatorType::LogBilinear => "LogBilinear",
+        InterpolatorType::LogBicubic => "LogBicubic",
+        InterpolatorType::LogTricubic => "LogTricubic",
+        InterpolatorType::InterpNDLinear => "NDLinear",
+        InterpolatorType::LogChebyshev => "LogChebyshev",
+        InterpolatorType::LogFourCubic => "LogFourCubic",
+        InterpolatorType::LogFiveCubic => "LogFiveCubic",
+    };
+    map.insert("SetDesc".to_string(), meta.set_desc.clone());
+    map.insert("SetIndex".to_string(), meta.set_index.to_string());
+    map.insert("NumMembers".to_string(), meta.num_members.to_string());
+    map.insert("XMin".to_string(), meta.x_min.to_string());
+    map.insert("XMax".to_string(), meta.x_max.to_string());
+    map.insert("QMin".to_string(), meta.q_min.to_string());
+    map.insert("QMax".to_string(), meta.q_max.to_string());
+    map.insert("Flavors".to_string(), format_list(&meta.flavors));
+    map.insert("Format".to_string(), meta.format.clone());
+    map.insert("SetType".to_string(), set_type.to_string());
+    map.insert("InterpolatorType".to_string(), interp_type.to_string());
+    map.insert("Polarized".to_string(), meta.polarised.to_string());
+    map.insert("Particle".to_string(), meta.hadron_pid.to_string());
+    map.insert("OrderQCD".to_string(), meta.order_qcd.to_string());
+}
+
+fn insert_optional_fields(map: &mut HashMap<String, String>, meta: &MetaData) {
+    for (key, val) in [
+        ("ErrorType", meta.error_type.as_str()),
+        ("GitVersion", meta.git_version.as_str()),
+        ("CodeVersion", meta.code_version.as_str()),
+        ("FlavorScheme", meta.flavor_scheme.as_str()),
+        ("AlphaS_Type", meta.alphas_type.as_str()),
+    ] {
+        if !val.is_empty() {
+            map.insert(key.to_string(), val.to_string());
+        }
+    }
+    for (key, vals) in [
+        ("AlphaS_Qs", &meta.alphas_q_values),
+        ("AlphaS_Vals", &meta.alphas_vals),
+    ] {
+        if !vals.is_empty() {
+            map.insert(key.to_string(), format_list(vals));
+        }
+    }
+    for (key, val) in [
+        ("AlphaS_OrderQCD", meta.alphas_order_qcd),
+        ("NumFlavors", meta.number_flavors),
+    ] {
+        if val != 0 {
+            map.insert(key.to_string(), val.to_string());
+        }
+    }
+}
+
+fn insert_mass_fields(map: &mut HashMap<String, String>, meta: &MetaData) {
+    for (key, val) in [
+        ("MW", meta.m_w),
+        ("MZ", meta.m_z),
+        ("MUp", meta.m_up),
+        ("MDown", meta.m_down),
+        ("MStrange", meta.m_strange),
+        ("MCharm", meta.m_charm),
+        ("MBottom", meta.m_bottom),
+        ("MTop", meta.m_top),
+    ] {
+        if val != 0.0 {
+            map.insert(key.to_string(), val.to_string());
+        }
+    }
+}
+
+fn insert_tmd_fields(map: &mut HashMap<String, String>, meta: &MetaData) {
+    for (key, val) in [
+        ("XiMin", meta.xi_min),
+        ("XiMax", meta.xi_max),
+        ("DeltaMin", meta.delta_min),
+        ("DeltaMax", meta.delta_max),
+    ] {
+        if val != 0.0 {
+            map.insert(key.to_string(), val.to_string());
+        }
+    }
+    if let Some(ecl) = meta.error_conf_level {
+        map.insert("ErrorConfLevel".to_string(), ecl.to_string());
+    }
+}
+
+/// Build a map of LHAPDF-canonical key names to their string values for a `MetaData` object.
+///
+/// Keys that are absent from the original `.info` file (represented by empty strings,
+/// zero values, or `None`) are not included, mirroring LHAPDF's `has_key` semantics.
+pub(crate) fn build_lhapdf_map(meta: &MetaData) -> HashMap<String, String> {
+    let mut map = HashMap::new();
+    insert_mandatory_fields(&mut map, meta);
+    insert_optional_fields(&mut map, meta);
+    insert_mass_fields(&mut map, meta);
+    insert_tmd_fields(&mut map, meta);
+    map
+}
+
 /// Grid metadata.
 #[pyclass(from_py_object, name = "MetaData")]
 #[derive(Debug, Clone)]
@@ -296,6 +415,7 @@ impl PyMetaData {
                 xi_max: xsi_max,
                 delta_min,
                 delta_max,
+                error_conf_level: None,
             },
         }
     }
@@ -355,6 +475,34 @@ impl PyMetaData {
         dict.set_item("m_top", self.meta.m_top)?;
 
         Ok(dict.into())
+    }
+
+    /// Return `True` if the given LHAPDF-canonical key is present in the metadata.
+    #[must_use]
+    #[pyo3(name = "has_key")]
+    pub fn has_key(&self, key: &str) -> bool {
+        build_lhapdf_map(&self.meta).contains_key(key)
+    }
+
+    /// Return the string value for an LHAPDF-canonical metadata key.
+    ///
+    /// # Errors
+    ///
+    /// Raises `KeyError` if the key is not present.
+    #[pyo3(name = "get_entry")]
+    pub fn get_entry(&self, key: &str) -> PyResult<String> {
+        build_lhapdf_map(&self.meta).remove(key).ok_or_else(|| {
+            pyo3::exceptions::PyKeyError::new_err(format!("Key '{key}' not found in metadata"))
+        })
+    }
+
+    /// Return a sorted list of all available LHAPDF-canonical metadata keys.
+    #[must_use]
+    #[pyo3(name = "keys")]
+    pub fn keys(&self) -> Vec<String> {
+        let mut keys: Vec<String> = build_lhapdf_map(&self.meta).into_keys().collect();
+        keys.sort();
+        keys
     }
 
     /// The description of the set.

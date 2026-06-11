@@ -7,7 +7,8 @@ use neopdf::metadata::MetaData;
 use neopdf::pdf::PDF;
 
 use super::gridpdf::PySubGrid;
-use super::metadata::PyMetaData;
+use super::metadata::{build_lhapdf_map, PyMetaData};
+use super::uncertainty::PyUncertainty;
 
 // Type aliases
 type LazyType = Result<PDF, Box<dyn std::error::Error>>;
@@ -193,6 +194,80 @@ impl PyPDFSet {
 
     const fn __len__(&self) -> usize {
         self.meta.num_members as usize
+    }
+
+    /// Confidence level (in %) at which the set's error members were constructed.
+    ///
+    /// Returns `-1.0` when the `ErrorConfLevel` field is absent from the `.info` file,
+    /// matching the LHAPDF convention.
+    #[getter]
+    #[must_use]
+    #[pyo3(name = "errorConfLevel")]
+    pub fn error_conf_level(&self) -> f64 {
+        self.meta.error_conf_level.unwrap_or(-1.0)
+    }
+
+    /// Compute PDF uncertainty from a slice of per-member values.
+    ///
+    /// Parameters
+    /// ----------
+    /// values : list[float]
+    ///     Per-member values at a given kinematic point. Element 0 is the central member;
+    ///     the remaining elements are the error members.
+    /// cl : float
+    ///     Output confidence level in %. Defaults to `CL_1_SIGMA` (~ 68.27 %).
+    /// alternative : bool
+    ///     If `True`, replica sets use a quantile-based asymmetric interval instead of
+    ///     the standard deviation. Defaults to `False`.
+    ///
+    /// # Errors
+    ///
+    /// Raises `ValueError` if `values` is empty.
+    #[pyo3(name = "uncertainty")]
+    #[pyo3(signature = (values, cl = neopdf::uncertainty::CL_1_SIGMA, alternative = false))]
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn uncertainty(
+        &self,
+        values: Vec<f64>,
+        cl: f64,
+        alternative: bool,
+    ) -> PyResult<PyUncertainty> {
+        let ecl = self.meta.error_conf_level.unwrap_or(-1.0);
+        neopdf::uncertainty::uncertainty(&values, &self.meta.error_type, ecl, cl, alternative)
+            .map(|u| PyUncertainty {
+                central: u.central,
+                errminus: u.errminus,
+                errplus: u.errplus,
+            })
+            .map_err(pyo3::exceptions::PyValueError::new_err)
+    }
+
+    /// Return `True` if the given LHAPDF-canonical key is present in this set's metadata.
+    #[must_use]
+    #[pyo3(name = "has_key")]
+    pub fn has_key(&self, key: &str) -> bool {
+        build_lhapdf_map(&self.meta).contains_key(key)
+    }
+
+    /// Return the string value for an LHAPDF-canonical metadata key.
+    ///
+    /// # Errors
+    ///
+    /// Raises `KeyError` if the key is not present.
+    #[pyo3(name = "get_entry")]
+    pub fn get_entry(&self, key: &str) -> PyResult<String> {
+        build_lhapdf_map(&self.meta).remove(key).ok_or_else(|| {
+            pyo3::exceptions::PyKeyError::new_err(format!("Key '{key}' not found in metadata"))
+        })
+    }
+
+    /// Return a sorted list of all available LHAPDF-canonical metadata keys.
+    #[must_use]
+    #[pyo3(name = "keys")]
+    pub fn keys(&self) -> Vec<String> {
+        let mut ks: Vec<String> = build_lhapdf_map(&self.meta).into_keys().collect();
+        ks.sort();
+        ks
     }
 }
 
@@ -913,6 +988,36 @@ impl PyPDF {
         } else {
             Some(PyPDFSet::new(&self.pdf_name))
         }
+    }
+
+    /// Return `True` if the given LHAPDF-canonical key is present in this PDF's metadata.
+    #[must_use]
+    #[pyo3(name = "has_key")]
+    pub fn has_key(&self, key: &str) -> bool {
+        build_lhapdf_map(self.pdf.metadata()).contains_key(key)
+    }
+
+    /// Return the string value for an LHAPDF-canonical metadata key.
+    ///
+    /// # Errors
+    ///
+    /// Raises `KeyError` if the key is not present.
+    #[pyo3(name = "get_entry")]
+    pub fn get_entry(&self, key: &str) -> PyResult<String> {
+        build_lhapdf_map(self.pdf.metadata())
+            .remove(key)
+            .ok_or_else(|| {
+                pyo3::exceptions::PyKeyError::new_err(format!("Key '{key}' not found in metadata"))
+            })
+    }
+
+    /// Return a sorted list of all available LHAPDF-canonical metadata keys.
+    #[must_use]
+    #[pyo3(name = "keys")]
+    pub fn keys(&self) -> Vec<String> {
+        let mut ks: Vec<String> = build_lhapdf_map(self.pdf.metadata()).into_keys().collect();
+        ks.sort();
+        ks
     }
 }
 

@@ -3,6 +3,8 @@ import pytest
 import lhapdf
 import neopdf
 
+from neopdf.uncertainty import uncertainty, CL_1_SIGMA
+
 PDF_SET = "NNPDF40_nnlo_as_01180"
 MEMBER = 7
 
@@ -285,3 +287,133 @@ class TestBackendSwapMetadata:
                 x,
                 q,
             ) == _check_kinematics(lhapdf, PDF_SET, x, q)
+
+
+@pytest.mark.parametrize("pdfname", ["CT18NNLO_as_0118", "MSHT20qed_an3lo"])
+class TestHasKeyGetEntry:
+    MANDATORY_KEYS = [
+        "SetDesc",
+        "NumMembers",
+        "XMin",
+        "XMax",
+        "QMin",
+        "QMax",
+        "Flavors",
+        "Format",
+    ]
+
+    def test_has_key_mandatory(self, pdfname):
+        neo_ps = neopdf.getPDFSet(pdfname)
+        for key in self.MANDATORY_KEYS:
+            assert neo_ps.has_key(key), f"PDFSet missing mandatory key '{key}'"
+
+    def test_has_key_absent(self, pdfname):
+        neo_ps = neopdf.getPDFSet(pdfname)
+        assert not neo_ps.has_key("NonExistentKey_xyz")
+
+    def test_get_entry_num_members(self, pdfname):
+        lha_ps = lhapdf.getPDFSet(pdfname)
+        neo_ps = neopdf.getPDFSet(pdfname)
+        assert int(neo_ps.get_entry("NumMembers")) == int(
+            lha_ps.get_entry("NumMembers")
+        )
+
+    def test_get_entry_error_type(self, pdfname):
+        lha_ps = lhapdf.getPDFSet(pdfname)
+        neo_ps = neopdf.getPDFSet(pdfname)
+        assert neo_ps.get_entry("ErrorType") == lha_ps.get_entry("ErrorType")
+
+    def test_get_entry_raises_key_error(self, pdfname):
+        neo_ps = neopdf.getPDFSet(pdfname)
+        with pytest.raises(KeyError):
+            neo_ps.get_entry("NonExistentKey_xyz")
+
+    def test_keys_contains_mandatory(self, pdfname):
+        neo_ps = neopdf.getPDFSet(pdfname)
+        ks = neo_ps.keys()
+        assert isinstance(ks, list)
+        for key in self.MANDATORY_KEYS:
+            assert key in ks, f"key '{key}' missing from keys()"
+
+    def test_error_conf_level_when_key_present(self, pdfname):
+        neo_ps = neopdf.getPDFSet(pdfname)
+        lha_ps = lhapdf.getPDFSet(pdfname)
+        if not lha_ps.has_key("ErrorConfLevel"):
+            assert neo_ps.errorConfLevel == -1.0
+        else:
+            assert neo_ps.errorConfLevel == lha_ps.errorConfLevel
+
+    def test_has_key_error_conf_level(self, pdfname):
+        neo_ps = neopdf.getPDFSet(pdfname)
+        lha_ps = lhapdf.getPDFSet(pdfname)
+        assert neo_ps.has_key("ErrorConfLevel") == lha_ps.has_key("ErrorConfLevel")
+
+    def test_metadata_has_key(self, pdfname):
+        neo_p = neopdf.mkPDF(pdfname, 0)
+        for key in self.MANDATORY_KEYS:
+            assert neo_p.has_key(key), f"PDF missing mandatory key '{key}'"
+
+    def test_metadata_get_entry(self, pdfname):
+        neo_p = neopdf.mkPDF(pdfname, 0)
+        lha_ps = lhapdf.getPDFSet(pdfname)
+        assert int(neo_p.get_entry("NumMembers")) == int(lha_ps.get_entry("NumMembers"))
+
+
+@pytest.mark.parametrize("pdfname", ["CT18NNLO_as_0118", "MSHT20qed_an3lo"])
+@pytest.mark.parametrize(
+    "pid,x,q", [(21, 0.1, 100.0), (2, 0.01, 10.0), (-3, 0.3, 1000.0)]
+)
+class TestPDFSetUncertainty:
+    def _values(self, pdfname: str, pid: int, x: float, q: float):
+        pdfs = neopdf.mkPDFs(pdfname)
+        if len(pdfs) <= 1:
+            pytest.skip(f"{pdfname} has only {len(pdfs)} member(s) installed")
+        return [p.xfxQ(pid, x, q) for p in pdfs]
+
+    def test_uncertainty_returns_object(self, pdfname, pid, x, q):
+        from neopdf.uncertainty import Uncertainty
+
+        neo_ps = neopdf.getPDFSet(pdfname)
+        values = self._values(pdfname, pid, x, q)
+        unc = neo_ps.uncertainty(values)
+        assert isinstance(unc, Uncertainty)
+        assert abs(unc.central) >= 0
+
+    def test_uncertainty_matches_standalone(self, pdfname, pid, x, q):
+        neo_ps = neopdf.getPDFSet(pdfname)
+        values = np.array(self._values(pdfname, pid, x, q))
+        ecl = neo_ps.errorConfLevel
+        unc_set = neo_ps.uncertainty(list(values), CL_1_SIGMA, False)
+        unc_fn = uncertainty(
+            values,
+            neo_ps.errorType,
+            error_conf_level=ecl,
+            cl=CL_1_SIGMA,
+        )
+        np.testing.assert_allclose(unc_set.central, unc_fn.central, rtol=1e-10)
+        np.testing.assert_allclose(unc_set.errminus, unc_fn.errminus, rtol=1e-10)
+        np.testing.assert_allclose(unc_set.errplus, unc_fn.errplus, rtol=1e-10)
+
+    def test_uncertainty_central_matches_lhapdf(self, pdfname, pid, x, q):
+        values = self._values(pdfname, pid, x, q)
+        neo_ps = neopdf.getPDFSet(pdfname)
+        lha_ps = lhapdf.getPDFSet(pdfname)
+        neo_unc = neo_ps.uncertainty(values, CL_1_SIGMA, False)
+        lha_unc = lha_ps.uncertainty(values, CL_1_SIGMA, False)
+        np.testing.assert_allclose(neo_unc.central, lha_unc.central, rtol=1e-10)
+
+    def test_uncertainty_errminus_matches_lhapdf(self, pdfname, pid, x, q):
+        values = self._values(pdfname, pid, x, q)
+        neo_ps = neopdf.getPDFSet(pdfname)
+        lha_ps = lhapdf.getPDFSet(pdfname)
+        neo_unc = neo_ps.uncertainty(values, CL_1_SIGMA, False)
+        lha_unc = lha_ps.uncertainty(values, CL_1_SIGMA, False)
+        np.testing.assert_allclose(neo_unc.errminus, lha_unc.errminus, rtol=1e-2)
+
+    def test_uncertainty_errplus_matches_lhapdf(self, pdfname, pid, x, q):
+        values = self._values(pdfname, pid, x, q)
+        neo_ps = neopdf.getPDFSet(pdfname)
+        lha_ps = lhapdf.getPDFSet(pdfname)
+        neo_unc = neo_ps.uncertainty(values, CL_1_SIGMA, False)
+        lha_unc = lha_ps.uncertainty(values, CL_1_SIGMA, False)
+        np.testing.assert_allclose(neo_unc.errplus, lha_unc.errplus, rtol=1e-3)

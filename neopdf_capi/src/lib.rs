@@ -1153,6 +1153,7 @@ fn process_metadata(meta: *const NeoPDFMetaData) -> Option<MetaData> {
         xi_max: 1.0,
         delta_min: 0.0,
         delta_max: 0.0,
+        error_conf_level: None,
     };
 
     Some(metadata)
@@ -1213,6 +1214,7 @@ fn process_metadata_v2(meta: *const NeoPDFMetaDataV2) -> Option<MetaData> {
         xi_max: meta.xi_max,
         delta_min: meta.delta_min,
         delta_max: meta.delta_max,
+        error_conf_level: None,
     };
 
     Some(metadata)

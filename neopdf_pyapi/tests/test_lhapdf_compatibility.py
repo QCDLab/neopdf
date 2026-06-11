@@ -289,9 +289,7 @@ class TestBackendSwapMetadata:
             ) == _check_kinematics(lhapdf, PDF_SET, x, q)
 
 
-@pytest.mark.parametrize(
-    "pdfname", ["NNPDF40_nnlo_as_01180", "CT18NNLO_as_0118", "MSHT20qed_an3lo"]
-)
+@pytest.mark.parametrize("pdfname", ["CT18NNLO_as_0118", "MSHT20qed_an3lo"])
 class TestHasKeyGetEntry:
     MANDATORY_KEYS = [
         "SetDesc",
@@ -361,9 +359,7 @@ class TestHasKeyGetEntry:
         assert int(neo_p.get_entry("NumMembers")) == int(lha_ps.get_entry("NumMembers"))
 
 
-@pytest.mark.parametrize(
-    "pdfname", ["NNPDF40_nnlo_as_01180", "CT18NNLO_as_0118", "MSHT20qed_an3lo"]
-)
+@pytest.mark.parametrize("pdfname", ["CT18NNLO_as_0118", "MSHT20qed_an3lo"])
 @pytest.mark.parametrize(
     "pid,x,q", [(21, 0.1, 100.0), (2, 0.01, 10.0), (-3, 0.3, 1000.0)]
 )

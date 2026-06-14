@@ -1,0 +1,46 @@
+name: Regenerate MPL baseline figures 📊
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    if: github.event.label.name == 'regenerate-figures'
+    runs-on: ubuntu-22.04
+    container: ghcr.io/qcdlab/neopdf-container:latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Python package 🐍
+        run: |
+          cd neopdf_pyapi
+          python3 -m venv --system-site-packages myenv
+          . myenv/bin/activate
+          pip install maturin==1.12.4
+          maturin develop --extras test
+
+      - name: Regenerate baseline figures 🖼️
+        run: |
+          cd neopdf_pyapi
+          . myenv/bin/activate
+          export NEOPDF_DATA_PATH=/usr/share/LHAPDF
+          pytest --mpl-generate-path=tests/baseline tests/test_interpolations.py
+
+      - name: Commit and push updated baselines
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
+          git add neopdf_pyapi/tests/baseline/
+          git diff --staged --quiet || git commit -m "chore: regenerate MPL baseline figures [skip ci]"
+          git push origin HEAD:${{ github.head_ref }}

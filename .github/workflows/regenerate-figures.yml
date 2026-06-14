@@ -44,5 +44,5 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
           git add neopdf_pyapi/tests/baseline/
-          git diff --staged --quiet || git commit -m "chore: regenerate MPL baseline figures [skip ci]"
+          git diff --staged --quiet || git commit -m "Regenerate MPL baseline figures"
           git push origin HEAD:${{ github.head_ref }}

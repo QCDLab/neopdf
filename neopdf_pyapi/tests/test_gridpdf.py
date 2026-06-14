@@ -1,15 +1,20 @@
+from __future__ import annotations
+
 import numpy as np
 
-from neopdf.gridpdf import SubGrid, GridArray
+from conftest import XQ2Range, XQ2PointsFactory
+from neopdf.gridpdf import SubGrid, GridArray  # type: ignore[import-untyped]
+
+
+XQ2_RANGE = XQ2Range(xmin=1e-5, xmax=1.0, q2min=1.65, q2max=1.0e8)
 
 
 class TestGridPDF:
-    def test_subgrid(self, xq2_points):
-        xmin, xmax, q2min, q2max = (1e-5, 1.0, 1.65, 1.0e8)
-        xs, q2s = xq2_points(xmin, xmax, q2min, q2max)
+    def test_subgrid(self, xq2_points: XQ2PointsFactory) -> None:
+        xs, q2s = xq2_points(XQ2_RANGE)
         kts = [0.5, 1.0]
-        xis = [0.0]  # dummy values
-        deltas = [0.0]  # dummy values
+        xis = [0.0]
+        deltas = [0.0]
         nucleons = [1.0, 2.0]
         alphas = [0.118, 0.120]
         grid = np.random.rand(
@@ -22,7 +27,6 @@ class TestGridPDF:
             len(q2s),
             1,
         )
-
         subgrid = SubGrid(xs, q2s, kts, xis, deltas, nucleons, alphas, grid)
 
         assert subgrid.alphas_range() == (0.118, 0.120)
@@ -39,12 +43,11 @@ class TestGridPDF:
             1,
         ]
 
-    def test_gridarray(self, xq2_points):
-        xmin, xmax, q2min, q2max = (1e-5, 1.0, 1.65, 1.0e8)
-        xs, q2s = xq2_points(xmin, xmax, q2min, q2max)
+    def test_gridarray(self, xq2_points: XQ2PointsFactory) -> None:
+        xs, q2s = xq2_points(XQ2_RANGE)
         kts = [0.5, 1.0]
-        xis = [0.0]  # dummy values
-        deltas = [0.0]  # dummy values
+        xis = [0.0]
+        deltas = [0.0]
         nucleons = [1.0, 2.0]
         alphas = [0.118, 0.120]
         grid = np.random.rand(
@@ -57,25 +60,21 @@ class TestGridPDF:
             len(q2s),
             1,
         )
-
-        subgrid1 = SubGrid(xs, q2s, kts, xis, deltas, nucleons, alphas, grid)
-        subgrid2 = SubGrid(xs, q2s, kts, xis, deltas, nucleons, alphas, grid)
+        subgrid = SubGrid(xs, q2s, kts, xis, deltas, nucleons, alphas, grid)
 
         pids = [21, -2, -1, 1, 2]
-        grid_array = GridArray(pids, [subgrid1, subgrid2])
+        grid_array = GridArray(pids, [subgrid, subgrid])
 
         assert grid_array.pids() == pids
         assert len(grid_array.subgrids()) == 2
 
-    def test_subgrid_extra_ranges(self, xq2_points):
-        xmin, xmax, q2min, q2max = (1e-5, 1.0, 1.65, 1.0e8)
-        xs, q2s = xq2_points(xmin, xmax, q2min, q2max)
+    def test_subgrid_extra_ranges(self, xq2_points: XQ2PointsFactory) -> None:
+        xs, q2s = xq2_points(XQ2_RANGE)
         kts = [0.5, 1.0]
         xis = [0.1, 0.2]
         deltas = [0.3, 0.4]
         nucleons = [1.0, 2.0]
         alphas = [0.118, 0.120]
-
         grid = np.random.rand(2, 2, 2, 2, 2, len(xs), len(q2s), 1)
         subgrid = SubGrid(xs, q2s, kts, xis, deltas, nucleons, alphas, grid)
 

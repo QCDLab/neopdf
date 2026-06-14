@@ -18,6 +18,11 @@ repos:
         args: [--fix]
       - id: ruff-format
         args: []
+  - repo: https://github.com/astral-sh/ty-pre-commit
+    rev: v0.0.49
+    hooks:
+      - id: ty
+        args: [--no-python-downloads, --no-cache, --project, neopdf_pyapi]
   - repo: local
     hooks:
     - id: fmt

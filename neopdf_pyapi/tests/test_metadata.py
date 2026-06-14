@@ -1,23 +1,26 @@
-from math import sqrt
-import neopdf.metadata as metadata
+from __future__ import annotations
+
 import numpy as np
 import pytest
+
+from math import sqrt
+import neopdf.metadata as metadata  # type: ignore[import-untyped]
+from typing import Any
 
 
 class TestMetaData:
     @pytest.mark.parametrize("pdfname", ["NNPDF40_nnlo_as_01180", "MSHT20qed_an3lo"])
-    def test_metadata_fields(self, neo_pdf, lha_pdf, pdfname):
-        neopdf = neo_pdf(pdfname)
-        lhapdf = lha_pdf(pdfname)
+    def test_metadata_fields(self, neo_pdf: Any, lha_pdf: Any, pdfname: str) -> None:
+        neopdf_obj = neo_pdf(pdfname)
+        lhapdf_obj = lha_pdf(pdfname)
+        meta = neopdf_obj.metadata()
+        np.testing.assert_equal(meta.x_min(), lhapdf_obj.xMin)
+        np.testing.assert_equal(meta.x_max(), lhapdf_obj.xMax)
+        np.testing.assert_equal(meta.q_min(), sqrt(lhapdf_obj.q2Min))
+        np.testing.assert_equal(meta.q_max(), sqrt(lhapdf_obj.q2Max))
+        np.testing.assert_equal(meta.set_index(), lhapdf_obj.lhapdfID)
 
-        neopdf_meta = neopdf.metadata()
-        np.testing.assert_equal(neopdf_meta.x_min(), lhapdf.xMin)
-        np.testing.assert_equal(neopdf_meta.x_max(), lhapdf.xMax)
-        np.testing.assert_equal(neopdf_meta.q_min(), sqrt(lhapdf.q2Min))
-        np.testing.assert_equal(neopdf_meta.q_max(), sqrt(lhapdf.q2Max))
-        np.testing.assert_equal(neopdf_meta.set_index(), lhapdf.lhapdfID)
-
-    def test_metadata_creation(self):
+    def test_metadata_creation(self) -> None:
         phys_params = metadata.PhysicsParameters(
             flavor_scheme="test_scheme",
             order_qcd=2,
@@ -31,7 +34,6 @@ class TestMetaData:
             m_bottom=4.18,
             m_top=172.9,
         )
-
         meta = metadata.MetaData(
             set_desc="test_desc",
             set_index=1,
@@ -55,7 +57,6 @@ class TestMetaData:
             hadron_pid=2212,
             phys_params=phys_params,
         )
-
         assert meta.set_desc() == "test_desc"
         assert meta.set_index() == 1
         assert meta.number_sets() == 1
@@ -77,11 +78,8 @@ class TestMetaData:
         assert meta.error_type() == "replicas"
         assert meta.hadron_pid() == 2212
 
-    def test_metadata_to_dict(self):
-        phys_params = metadata.PhysicsParameters(
-            flavor_scheme="variable",
-            order_qcd=2,
-        )
+    def test_metadata_to_dict(self) -> None:
+        phys_params = metadata.PhysicsParameters(flavor_scheme="variable", order_qcd=2)
         meta = metadata.MetaData(
             set_desc="test_desc",
             set_index=1,
@@ -98,13 +96,12 @@ class TestMetaData:
             format="test_format",
             phys_params=phys_params,
         )
-
-        d = meta.to_dict()
+        d: dict[str, Any] = meta.to_dict()
         assert d["set_desc"] == "test_desc"
         assert d["set_index"] == 1
         assert d["flavor_scheme"] == "variable"
         assert d["order_qcd"] == 2
 
-        pd = phys_params.to_dict()
+        pd: dict[str, Any] = phys_params.to_dict()
         assert pd["flavor_scheme"] == "variable"
         assert pd["order_qcd"] == 2

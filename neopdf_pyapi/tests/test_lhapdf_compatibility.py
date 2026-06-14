@@ -355,9 +355,7 @@ class TestPDFSetUncertainty:
     def _values(self, pdfname: str, pid: int, x: float, q: float) -> list[float]:
         pdfs: list[Any] = neopdf.mkPDFs(pdfname)
         if len(pdfs) <= 1:
-            pytest.skip(
-                f"{pdfname} has only {len(pdfs)} member(s) installed"
-            )  # ty: ignore[too-many-positional-arguments]
+            pytest.skip(f"{pdfname} has only {len(pdfs)} member(s) installed")
         return [p.xfxQ(pid, x, q) for p in pdfs]
 
     def test_uncertainty_returns_object(

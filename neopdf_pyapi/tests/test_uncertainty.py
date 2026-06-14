@@ -137,9 +137,7 @@ class TestAgainstLhapdf:
         pdfset = lhapdf.getPDFSet(pdfname)  # type: ignore[attr-defined]
         values = lha_values(pdfname, pid, x, q)
         if len(values) <= 1:
-            pytest.skip(
-                f"{pdfname} has only {len(values)} member(s) installed"
-            )  # ty: ignore[too-many-positional-arguments]
+            pytest.skip(f"{pdfname} has only {len(values)} member(s) installed")
         pdf0 = NeoPDF(pdfname, 0)
         return _UncertaintyContext(
             pdfset=pdfset,
@@ -186,9 +184,7 @@ class TestAgainstLhapdf:
         self, pdfname: str, pid: int, x: float, q: float
     ) -> None:
         if pdfname != "NNPDF40_nnlo_as_01180":
-            pytest.skip(
-                "alternative prescription only applies to replica sets"
-            )  # ty: ignore[too-many-positional-arguments]
+            pytest.skip("alternative prescription only applies to replica sets")
         ctx = self._setup(pdfname, pid, x, q)
         neo_alt = uncertainty(
             ctx.values,

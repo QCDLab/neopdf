@@ -183,9 +183,8 @@ class TestLoadFromFile:
 
         neopdf_data_path = os.environ.get("NEOPDF_DATA_PATH")
         if not neopdf_data_path:
-            pytest.skip(
-                "NEOPDF_DATA_PATH environment variable not set."
-            )  # ty: ignore[too-many-positional-arguments]
+            pytest.skip("NEOPDF_DATA_PATH environment variable not set.")
+        assert neopdf_data_path
 
         path = (
             Path(neopdf_data_path)
@@ -193,9 +192,7 @@ class TestLoadFromFile:
             / "NNPDF40_nnlo_as_01180_0000.dat"
         )
         if not path.exists():
-            pytest.skip(
-                f"Data file not found at {path}"
-            )  # ty: ignore[too-many-positional-arguments]
+            pytest.skip(f"Data file not found at {path}")
 
         xf = PDF.mkPDF_lhapdf_file(str(path)).xfxQ2(21, 1e-9, 1.65 * 1.65)
         np.testing.assert_allclose(xf, 0.14844111, rtol=1e-8)

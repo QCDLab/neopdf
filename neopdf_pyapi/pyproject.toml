@@ -22,7 +22,7 @@ dynamic = ["version"]
 readme = "README.md"
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-cov", "pytest-mpl", "matplotlib"]
+test = ["pytest", "pytest-cov", "pytest-mpl", "matplotlib", "pydantic>=2.0"]
 
 [project.urls]
 homepage = "https://github.com/Radonirinaunimi/neopdf"
@@ -42,3 +42,12 @@ addopts = [
   '--strict-markers',
 ]
 markers = ["multipleversions: test Python API with multiple versions"]
+
+[tool.ty.environment]
+python-version = "3.13"
+
+[tool.ty.rules]
+# neopdf and lhapdf are PyO3/C extensions without stubs; surface real
+# annotation issues without blocking on unresolvable module paths.
+unresolved-import = "warn"
+unresolved-attribute = "warn"

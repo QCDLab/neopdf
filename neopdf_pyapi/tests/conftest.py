@@ -1,79 +1,110 @@
-import lhapdf
-import pytest
+from __future__ import annotations
+
+import lhapdf  # type: ignore[import-untyped]
 import numpy as np
+import pytest
 
-from neopdf.pdf import PDF as NeoPDF
-from neopdf.pdf import LazyPDFs
-from typing import List, Dict, Iterator
-
-
-@pytest.fixture(scope="session")
-def neo_pdf():
-    cached_pdf = {}
-
-    def _init_pdf(pdfname: str) -> Dict[str, NeoPDF]:
-        if pdfname not in cached_pdf:
-            cached_pdf[pdfname] = NeoPDF(pdfname)
-        return cached_pdf[pdfname]
-
-    return _init_pdf
+from neopdf.pdf import PDF as NeoPDF  # type: ignore[import-untyped]
+from pydantic import BaseModel, Field
+from typing import Any, Iterator, Protocol
 
 
-@pytest.fixture(scope="session")
-def neo_pdfs():
-    cached_pdf = {}
-
-    def _init_pdf(pdfname: str) -> Dict[str, List[NeoPDF]]:
-        if pdfname not in cached_pdf:
-            cached_pdf[pdfname] = NeoPDF.mkPDFs(pdfname)
-        return cached_pdf[pdfname]
-
-    return _init_pdf
+class XQ2Range(BaseModel):
+    xmin: float = Field(gt=0)
+    xmax: float = Field(gt=0, le=1)
+    q2min: float = Field(gt=0)
+    q2max: float = Field(gt=0)
 
 
-@pytest.fixture(scope="session")
-def neo_pdfs_lazy():
-    cached_pdf = {}
+class PDFFactory(Protocol):
+    """Factory that loads (and caches) a single PDF member by set name."""
 
-    def _init_pdf(pdfname: str) -> Dict[str, Iterator[LazyPDFs]]:
-        if pdfname not in cached_pdf:
-            cached_pdf[pdfname] = NeoPDF.mkPDFs_lazy(pdfname)
-        return cached_pdf[pdfname]
+    def __call__(self, pdfname: str) -> Any: ...
 
-    return _init_pdf
+
+class PDFsFactory(Protocol):
+    """Factory that loads (and caches) all PDF members by set name."""
+
+    def __call__(self, pdfname: str) -> list[Any]: ...
+
+
+class LazyPDFsFactory(Protocol):
+    """Factory that lazily streams PDF members from a compressed archive."""
+
+    def __call__(self, pdfname: str) -> Iterator[Any]: ...
+
+
+class XQ2PointsFactory(Protocol):
+    """Factory that produces log-spaced (x, Q²) grid points from a range."""
+
+    def __call__(self, r: XQ2Range) -> tuple[np.ndarray, np.ndarray]: ...
 
 
 @pytest.fixture(scope="session")
-def lha_pdf():
-    cached_pdf = {}
+def neo_pdf() -> PDFFactory:
+    cached: dict[str, Any] = {}
 
-    def _init_pdf(pdfname: str) -> Dict[str, lhapdf.PDF]:
-        if pdfname not in cached_pdf:
-            cached_pdf[pdfname] = lhapdf.mkPDF(pdfname)
-        return cached_pdf[pdfname]
+    def _init(pdfname: str) -> Any:
+        if pdfname not in cached:
+            cached[pdfname] = NeoPDF(pdfname)
+        return cached[pdfname]
 
-    return _init_pdf
-
-
-@pytest.fixture(scope="session")
-def lha_pdfs():
-    cached_pdf = {}
-
-    def _init_pdf(pdfname: str) -> Dict[str, List[lhapdf.PDF]]:
-        if pdfname not in cached_pdf:
-            cached_pdf[pdfname] = lhapdf.mkPDFs(pdfname)
-        return cached_pdf[pdfname]
-
-    return _init_pdf
+    return _init
 
 
 @pytest.fixture(scope="session")
-def xq2_points():
-    def _xq2_points(
-        xmin: float, xmax: float, q2min: float, q2max: float
-    ) -> tuple[np.ndarray, np.ndarray]:
-        xs = np.geomspace(xmin, xmax, num=200)
-        q2s = np.geomspace(q2min, q2max, num=200)
+def neo_pdfs() -> PDFsFactory:
+    cached: dict[str, list[Any]] = {}
+
+    def _init(pdfname: str) -> list[Any]:
+        if pdfname not in cached:
+            cached[pdfname] = NeoPDF.mkPDFs(pdfname)
+        return cached[pdfname]
+
+    return _init
+
+
+@pytest.fixture(scope="session")
+def neo_pdfs_lazy() -> LazyPDFsFactory:
+    cached: dict[str, Iterator[Any]] = {}
+
+    def _init(pdfname: str) -> Iterator[Any]:
+        if pdfname not in cached:
+            cached[pdfname] = NeoPDF.mkPDFs_lazy(pdfname)
+        return cached[pdfname]
+
+    return _init
+
+
+@pytest.fixture(scope="session")
+def lha_pdf() -> PDFFactory:
+    cached: dict[str, Any] = {}
+
+    def _init(pdfname: str) -> Any:
+        if pdfname not in cached:
+            cached[pdfname] = lhapdf.mkPDF(pdfname)  # type: ignore[attr-defined]
+        return cached[pdfname]
+
+    return _init
+
+
+@pytest.fixture(scope="session")
+def lha_pdfs() -> PDFsFactory:
+    cached: dict[str, list[Any]] = {}
+
+    def _init(pdfname: str) -> list[Any]:
+        if pdfname not in cached:
+            cached[pdfname] = lhapdf.mkPDFs(pdfname)  # type: ignore[attr-defined]
+        return cached[pdfname]
+
+    return _init
+
+
+@pytest.fixture(scope="session")
+def xq2_points() -> XQ2PointsFactory:
+    def _xq2_points(r: XQ2Range) -> tuple[np.ndarray, np.ndarray]:
+        xs = np.geomspace(r.xmin, r.xmax, num=200)
+        q2s = np.geomspace(r.q2min, r.q2max, num=200)
         return xs, q2s
 
     return _xq2_points

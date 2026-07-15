@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added further `LHAPDF` compatibility layers ([#93](https://github.com/QCDLab/neopdf/pull/93))
+- Test `pixi` setup in the CI ([#91](https://github.com/QCDLab/neopdf/pull/91))
+
+### Fixed
+
+- Improve Python ecosystem tests by relying on `pydantic` and `ty` ([#95](https://github.com/QCDLab/neopdf/pull/95))
+
+### Changed
+
+- Maximize dependency overlap with PineAPPL ([#92](https://github.com/QCDLab/neopdf/pull/92))
 
 ## [0.3.3] - 12/05/2026
 

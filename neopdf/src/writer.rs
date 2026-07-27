@@ -32,7 +32,7 @@ use lz4_flex::frame::{FrameDecoder, FrameEncoder};
 use tempfile::NamedTempFile;
 
 use super::gridpdf::GridArray;
-use super::metadata::MetaData;
+use super::metadata::{MetaData, MetaDataV2PreU64Index};
 
 const GIT_VERSION: &str = git_version!(
     args = ["--always", "--dirty", "--long", "--tags"],
@@ -40,6 +40,39 @@ const GIT_VERSION: &str = git_version!(
     fallback = "unknown"
 );
 const CODE_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// Sentinel guarding the metadata schema-version header (see [`read_metadata_blob`]).
+const METADATA_SCHEMA_MAGIC: u64 = u64::MAX;
+
+/// Current metadata sub-blob schema version.
+const METADATA_SCHEMA_VERSION: u32 = 2;
+
+/// Reads the metadata sub-blob from a `.neopdf.lz4` container, transparently handling files
+/// written before `set_index` was widened from `u32` to `u64`.
+///
+/// Files written by this version (or later) are prefixed with [`METADATA_SCHEMA_MAGIC`],
+/// followed by an explicit schema version and the blob size.
+fn read_metadata_blob<R: Read>(cursor: &mut R) -> Result<MetaData, Box<dyn std::error::Error>> {
+    let first: u64 = bincode::deserialize_from(&mut *cursor)?;
+
+    if first == METADATA_SCHEMA_MAGIC {
+        let version: u32 = bincode::deserialize_from(&mut *cursor)?;
+        let metadata_size: u64 = bincode::deserialize_from(&mut *cursor)?;
+        let mut bytes = vec![0u8; metadata_size as usize];
+        cursor.read_exact(&mut bytes)?;
+
+        return match version {
+            2 => Ok(bincode::deserialize::<MetaData>(&bytes)?),
+            v => Err(format!("Unsupported metadata schema version: {v}").into()),
+        };
+    }
+
+    let mut bytes = vec![0u8; first as usize];
+    cursor.read_exact(&mut bytes)?;
+    Ok(MetaData::from(
+        bincode::deserialize::<MetaDataV2PreU64Index>(&bytes)?,
+    ))
+}
 
 /// Container for a [`GridArray`] with a shared reference to its associated metadata.
 ///
@@ -87,8 +120,9 @@ impl GridArrayCollection {
         let metadata_serialized = bincode::serialize(&metadata_mut)?;
         let metadata_size = metadata_serialized.len() as u64;
 
-        let metadata_size_bytes = bincode::serialize(&metadata_size)?;
-        encoder.write_all(&metadata_size_bytes)?;
+        encoder.write_all(&bincode::serialize(&METADATA_SCHEMA_MAGIC)?)?;
+        encoder.write_all(&bincode::serialize(&METADATA_SCHEMA_VERSION)?)?;
+        encoder.write_all(&bincode::serialize(&metadata_size)?)?;
         encoder.write_all(&metadata_serialized)?;
 
         // Write number of grids
@@ -162,14 +196,8 @@ impl GridArrayCollection {
 
         let mut cursor = std::io::Cursor::new(decompressed);
 
-        // Read versioned metadata
-        let metadata_size: u64 = bincode::deserialize_from(&mut cursor)?;
-        let mut metadata_bytes = vec![0u8; metadata_size as usize];
-        cursor.read_exact(&mut metadata_bytes)?;
-
-        // Deserialize versioned metadata and convert to latest
-        let versioned_metadata: MetaData = bincode::deserialize(&metadata_bytes)?;
-        let shared_metadata = Arc::new(versioned_metadata);
+        // Read versioned metadata, transparently handling pre-u64-set_index files
+        let shared_metadata = Arc::new(read_metadata_blob(&mut cursor)?);
         let count: u64 = bincode::deserialize_from(&mut cursor)?;
 
         // Read offset table size (but don't skip it!)
@@ -220,12 +248,7 @@ impl GridArrayCollection {
 
         let mut cursor = std::io::Cursor::new(decompressed);
 
-        let metadata_size: u64 = bincode::deserialize_from(&mut cursor)?;
-        let mut metadata_bytes = vec![0u8; metadata_size as usize];
-        cursor.read_exact(&mut metadata_bytes)?;
-        let metadata: MetaData = bincode::deserialize(&metadata_bytes)?;
-
-        Ok(metadata)
+        read_metadata_blob(&mut cursor)
     }
 }
 
@@ -290,11 +313,7 @@ impl GridArrayReader {
 
         let mut cursor = std::io::Cursor::new(&data);
 
-        let metadata_size: u64 = bincode::deserialize_from(&mut cursor)?;
-        let mut metadata_bytes = vec![0u8; metadata_size as usize];
-        cursor.read_exact(&mut metadata_bytes)?;
-        let metadata: MetaData = bincode::deserialize(&metadata_bytes)?;
-        let shared_metadata = Arc::new(metadata);
+        let shared_metadata = Arc::new(read_metadata_blob(&mut cursor)?);
         let count: u64 = bincode::deserialize_from(&mut cursor)?;
 
         let _offset_table_size: u64 = bincode::deserialize_from(&mut cursor)?;
@@ -466,11 +485,7 @@ impl LazyGridArrayIterator {
 
         let mut cursor = std::io::Cursor::new(decompressed);
 
-        let metadata_size: u64 = bincode::deserialize_from(&mut cursor)?;
-        let mut metadata_bytes = vec![0u8; metadata_size as usize];
-        cursor.read_exact(&mut metadata_bytes)?;
-        let metadata: MetaData = bincode::deserialize(&metadata_bytes)?;
-        let shared_metadata = Arc::new(metadata);
+        let shared_metadata = Arc::new(read_metadata_blob(&mut cursor)?);
 
         let count: u64 = bincode::deserialize_from(&mut cursor)?;
 
@@ -664,6 +679,132 @@ mod tests {
         let g_iter = LazyGridArrayIterator::from_file(path).unwrap();
         assert_eq!(g_iter.metadata().set_index, 1);
         assert_eq!(g_iter.count(), 2);
+    }
+
+    #[test]
+    fn test_collection_with_large_set_index() {
+        const HUGE_SET_INDEX: u64 = 18_000_000_000_000_000_000;
+        assert!(HUGE_SET_INDEX > u64::from(u32::MAX));
+
+        let metadata = MetaDataV2 {
+            set_desc: "Huge SetIndex Test".into(),
+            set_index: HUGE_SET_INDEX,
+            num_members: 1,
+            x_min: 1e-5,
+            x_max: 1.0,
+            q_min: 1.0,
+            q_max: 1000.0,
+            flavors: vec![1, 2, 3],
+            format: "NeoPDF".into(),
+            alphas_q_values: vec![],
+            alphas_vals: vec![],
+            polarised: false,
+            set_type: SetType::SpaceLike,
+            interpolator_type: InterpolatorType::LogBicubic,
+            error_type: "replicas".into(),
+            hadron_pid: 2212,
+            git_version: String::new(),
+            code_version: String::new(),
+            flavor_scheme: String::new(),
+            order_qcd: 0,
+            alphas_order_qcd: 0,
+            m_w: 0.0,
+            m_z: 0.0,
+            m_up: 0.0,
+            m_down: 0.0,
+            m_strange: 0.0,
+            m_charm: 0.0,
+            m_bottom: 0.0,
+            m_top: 0.0,
+            alphas_type: String::new(),
+            number_flavors: 0,
+            xi_min: 0.0,
+            xi_max: 0.0,
+            delta_min: 0.0,
+            delta_max: 0.0,
+            error_conf_level: None,
+        };
+
+        let test_grid = test_grid();
+        let grids = vec![&test_grid];
+        let temp_file = NamedTempFile::new().unwrap();
+        let path = temp_file.path();
+
+        GridArrayCollection::compress(&grids, &metadata, path).unwrap();
+
+        assert_eq!(
+            GridArrayCollection::extract_metadata(path)
+                .unwrap()
+                .set_index,
+            HUGE_SET_INDEX
+        );
+        assert_eq!(
+            GridArrayCollection::decompress(path).unwrap()[0]
+                .metadata
+                .set_index,
+            HUGE_SET_INDEX
+        );
+        assert_eq!(
+            LazyGridArrayIterator::from_file(path)
+                .unwrap()
+                .metadata()
+                .set_index,
+            HUGE_SET_INDEX
+        );
+    }
+
+    #[test]
+    fn test_read_metadata_blob_backward_compat_u32_set_index() {
+        use crate::metadata::MetaDataV2PreU64Index;
+
+        let old_metadata = MetaDataV2PreU64Index {
+            set_desc: "Old PDF".into(),
+            set_index: 331_100,
+            num_members: 1,
+            x_min: 1e-5,
+            x_max: 1.0,
+            q_min: 1.0,
+            q_max: 1000.0,
+            flavors: vec![1, 2, 3],
+            format: "NeoPDF".into(),
+            alphas_q_values: vec![],
+            alphas_vals: vec![],
+            polarised: false,
+            set_type: SetType::SpaceLike,
+            interpolator_type: InterpolatorType::LogBicubic,
+            error_type: "replicas".into(),
+            hadron_pid: 2212,
+            git_version: String::new(),
+            code_version: String::new(),
+            flavor_scheme: String::new(),
+            order_qcd: 0,
+            alphas_order_qcd: 0,
+            m_w: 0.0,
+            m_z: 0.0,
+            m_up: 0.0,
+            m_down: 0.0,
+            m_strange: 0.0,
+            m_charm: 0.0,
+            m_bottom: 0.0,
+            m_top: 0.0,
+            alphas_type: String::new(),
+            number_flavors: 0,
+            xi_min: 0.0,
+            xi_max: 0.0,
+            delta_min: 0.0,
+            delta_max: 0.0,
+            error_conf_level: None,
+        };
+
+        let serialized = bincode::serialize(&old_metadata).unwrap();
+        let mut bytes = bincode::serialize(&(serialized.len() as u64)).unwrap();
+        bytes.extend_from_slice(&serialized);
+
+        let mut cursor = std::io::Cursor::new(bytes);
+        let decoded = read_metadata_blob(&mut cursor).unwrap();
+
+        assert_eq!(decoded.set_desc, "Old PDF");
+        assert_eq!(decoded.set_index, 331_100u64);
     }
 
     fn test_grid() -> GridArray {

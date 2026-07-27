@@ -1030,7 +1030,7 @@ pub struct NeoPDFPhysicsParameters {
 #[repr(C)]
 pub struct NeoPDFMetaData {
     set_desc: *const c_char,
-    set_index: u32,
+    set_index: u64,
     num_members: u32,
     x_min: c_double,
     x_max: c_double,
@@ -1055,7 +1055,7 @@ pub struct NeoPDFMetaData {
 #[repr(C)]
 pub struct NeoPDFMetaDataV2 {
     set_desc: *const c_char,
-    set_index: u32,
+    set_index: u64,
     num_members: u32,
     x_min: c_double,
     x_max: c_double,

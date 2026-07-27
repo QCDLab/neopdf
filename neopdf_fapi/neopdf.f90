@@ -40,7 +40,7 @@ module neopdf
 
     type, bind(c) :: neopdf_metadata
         type (c_ptr) :: set_desc = c_null_ptr
-        integer(c_int32_t) :: set_index
+        integer(c_int64_t) :: set_index
         integer(c_int32_t) :: num_members
         real(c_double) :: x_min
         real(c_double) :: x_max
@@ -63,7 +63,7 @@ module neopdf
 
     type, bind(c) :: neopdf_metadata_v2
         type (c_ptr) :: set_desc = c_null_ptr
-        integer(c_int32_t) :: set_index
+        integer(c_int64_t) :: set_index
         integer(c_int32_t) :: num_members
         real(c_double) :: x_min
         real(c_double) :: x_max

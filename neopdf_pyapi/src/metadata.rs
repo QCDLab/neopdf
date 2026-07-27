@@ -356,7 +356,7 @@ impl PyMetaData {
     ))]
     pub fn new(
         set_desc: String,
-        set_index: u32,
+        set_index: u64,
         num_members: u32,
         x_min: f64,
         x_max: f64,
@@ -513,7 +513,7 @@ impl PyMetaData {
 
     /// The index of the grid.
     #[must_use]
-    pub const fn set_index(&self) -> u32 {
+    pub const fn set_index(&self) -> u64 {
         self.meta.set_index
     }
 

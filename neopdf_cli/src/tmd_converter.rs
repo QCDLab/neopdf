@@ -176,10 +176,7 @@ fn create_member_grid(
         }
     }
 
-    GridArray {
-        pids: config.pids.clone().into(),
-        subgrids,
-    }
+    GridArray::from_parts(config.pids.clone().into(), subgrids)
 }
 
 /// TODO

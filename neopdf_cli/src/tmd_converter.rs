@@ -15,7 +15,7 @@ use neopdf_tmdlib::Tmd;
 struct TmdConfig {
     set_name: String,
     set_desc: String,
-    set_index: u32,
+    set_index: u64,
     n_members: Option<usize>,
     n_x: Vec<usize>,
     n_q: Vec<usize>,
@@ -176,10 +176,7 @@ fn create_member_grid(
         }
     }
 
-    GridArray {
-        pids: config.pids.clone().into(),
-        subgrids,
-    }
+    GridArray::from_parts(config.pids.clone().into(), subgrids)
 }
 
 /// TODO

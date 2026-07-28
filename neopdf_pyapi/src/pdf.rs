@@ -147,7 +147,7 @@ impl PyPDFSet {
     #[getter]
     #[must_use]
     #[pyo3(name = "lhapdfID")]
-    pub const fn lhapdf_id(&self) -> u32 {
+    pub const fn lhapdf_id(&self) -> u64 {
         self.meta.set_index
     }
 
@@ -386,7 +386,7 @@ impl PyPDF {
     #[pyo3(name = "mkPDF_lhaid")]
     pub fn mkpdf_lhaid(lhaid: u32) -> Self {
         let pdf = PDF::load_by_lhaid(lhaid);
-        let member = lhaid.saturating_sub(pdf.metadata().set_index) as usize;
+        let member = u64::from(lhaid).saturating_sub(pdf.metadata().set_index) as usize;
 
         Self {
             pdf,
@@ -900,8 +900,8 @@ impl PyPDF {
     #[getter]
     #[must_use]
     #[pyo3(name = "lhapdfID")]
-    pub fn lhapdf_id(&self) -> u32 {
-        self.pdf.metadata().set_index + self.member as u32
+    pub fn lhapdf_id(&self) -> u64 {
+        self.pdf.metadata().set_index + self.member as u64
     }
 
     /// QCD perturbative order used for this PDF set.

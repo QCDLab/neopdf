@@ -41,7 +41,7 @@ pub struct MetaDataV2 {
     pub set_desc: String,
     /// Index of the PDF set.
     #[serde(rename = "SetIndex")]
-    pub set_index: u32,
+    pub set_index: u64,
     /// Number of members in the PDF set (e.g., for error analysis).
     #[serde(rename = "NumMembers")]
     pub num_members: u32,
@@ -208,12 +208,98 @@ impl std::fmt::Display for MetaDataV2 {
 /// The following represent the main metadata type for v0.2.1+.
 pub type MetaData = MetaDataV2;
 
+/// Frozen wire-format snapshot of [`MetaDataV2`] as it existed while `set_index` was a `u32`
+/// (neopdf <= 0.4.0). Used only to decode the metadata sub-blob of `.neopdf.lz4` files written
+/// before `set_index` was widened to `u64`.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub(crate) struct MetaDataV2PreU64Index {
+    pub set_desc: String,
+    pub set_index: u32,
+    pub num_members: u32,
+    pub x_min: f64,
+    pub x_max: f64,
+    pub q_min: f64,
+    pub q_max: f64,
+    pub flavors: Vec<i32>,
+    pub format: String,
+    pub alphas_q_values: Vec<f64>,
+    pub alphas_vals: Vec<f64>,
+    pub polarised: bool,
+    pub set_type: SetType,
+    pub interpolator_type: InterpolatorType,
+    pub error_type: String,
+    pub hadron_pid: i32,
+    pub git_version: String,
+    pub code_version: String,
+    pub flavor_scheme: String,
+    pub order_qcd: u32,
+    pub alphas_order_qcd: u32,
+    pub m_w: f64,
+    pub m_z: f64,
+    pub m_up: f64,
+    pub m_down: f64,
+    pub m_strange: f64,
+    pub m_charm: f64,
+    pub m_bottom: f64,
+    pub m_top: f64,
+    pub alphas_type: String,
+    pub number_flavors: u32,
+    pub xi_min: f64,
+    pub xi_max: f64,
+    pub delta_min: f64,
+    pub delta_max: f64,
+    pub error_conf_level: Option<f64>,
+}
+
+impl From<MetaDataV2PreU64Index> for MetaDataV2 {
+    fn from(old: MetaDataV2PreU64Index) -> Self {
+        Self {
+            set_desc: old.set_desc,
+            set_index: u64::from(old.set_index),
+            num_members: old.num_members,
+            x_min: old.x_min,
+            x_max: old.x_max,
+            q_min: old.q_min,
+            q_max: old.q_max,
+            flavors: old.flavors,
+            format: old.format,
+            alphas_q_values: old.alphas_q_values,
+            alphas_vals: old.alphas_vals,
+            polarised: old.polarised,
+            set_type: old.set_type,
+            interpolator_type: old.interpolator_type,
+            error_type: old.error_type,
+            hadron_pid: old.hadron_pid,
+            git_version: old.git_version,
+            code_version: old.code_version,
+            flavor_scheme: old.flavor_scheme,
+            order_qcd: old.order_qcd,
+            alphas_order_qcd: old.alphas_order_qcd,
+            m_w: old.m_w,
+            m_z: old.m_z,
+            m_up: old.m_up,
+            m_down: old.m_down,
+            m_strange: old.m_strange,
+            m_charm: old.m_charm,
+            m_bottom: old.m_bottom,
+            m_top: old.m_top,
+            alphas_type: old.alphas_type,
+            number_flavors: old.number_flavors,
+            xi_min: old.xi_min,
+            xi_max: old.xi_max,
+            delta_min: old.delta_min,
+            delta_max: old.delta_max,
+            error_conf_level: old.error_conf_level,
+        }
+    }
+}
+
 /// Converts from legacy v0.2.0 MetaData to new v0.2.1 format
 impl From<neopdf_legacy::metadata::MetaData> for MetaData {
     fn from(legacy: neopdf_legacy::metadata::MetaData) -> Self {
         Self {
             set_desc: legacy.set_desc.clone(),
-            set_index: legacy.set_index,
+            set_index: u64::from(legacy.set_index),
             num_members: legacy.num_members,
             x_min: legacy.x_min,
             x_max: legacy.x_max,

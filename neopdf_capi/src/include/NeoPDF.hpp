@@ -51,7 +51,7 @@ struct PhysicsParameters {
 /** @brief C++ representation of NeoPDFMetaData. */
 struct MetaData {
     std::string set_desc;
-    uint32_t set_index;
+    uint64_t set_index;
     uint32_t num_members;
     double x_min;
     double x_max;

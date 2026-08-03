@@ -5,6 +5,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
+use thiserror::Error;
 
 use super::gridpdf::GridArray;
 use super::manage::{ManageData, PdfSetFormat};
@@ -33,6 +34,71 @@ pub struct PdfData {
     pub alphas_vals: Option<Vec<f64>>,
 }
 
+/// Errors that can occur while reading an LHAPDF `.info` file.
+#[derive(Debug, Error)]
+pub enum Error {
+    /// The `.info` file could not be read from disk.
+    #[error("failed to read '{}': {source}", path.display())]
+    Io {
+        path: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+    /// The `SetType` key is set to something other than `spacelike` or `timelike`.
+    #[error(
+        "invalid `.info` file at '{}': `SetType` must be either `spacelike` or `timelike`; \
+         please edit the `.info` file accordingly ({source})",
+        path.display()
+    )]
+    InvalidSetType {
+        path: PathBuf,
+        #[source]
+        source: serde_yaml::Error,
+    },
+    /// The `.info` file contains a duplicate key.
+    #[error(
+        "invalid `.info` file at '{}': duplicate key found; please edit the `.info` file and \
+         remove the duplicate entry ({source})",
+        path.display()
+    )]
+    DuplicateKey {
+        path: PathBuf,
+        #[source]
+        source: serde_yaml::Error,
+    },
+    /// Any other failure to parse the `.info` file.
+    #[error("invalid `.info` file at '{}': {source}", path.display())]
+    Parse {
+        path: PathBuf,
+        #[source]
+        source: serde_yaml::Error,
+    },
+}
+
+/// Classifies a `serde_yaml` parse failure into the appropriate [`Error`] variant.
+///
+/// `serde_yaml` does not expose a structured error kind for "duplicate key" or "unknown enum
+/// variant", only a formatted message, so the classification is done by matching on it.
+fn classify_parse_error(path: &Path, source: serde_yaml::Error) -> Error {
+    let msg = source.to_string();
+    if msg.contains("duplicate field") {
+        Error::DuplicateKey {
+            path: path.to_path_buf(),
+            source,
+        }
+    } else if msg.contains("SetType") {
+        Error::InvalidSetType {
+            path: path.to_path_buf(),
+            source,
+        }
+    } else {
+        Error::Parse {
+            path: path.to_path_buf(),
+            source,
+        }
+    }
+}
+
 /// Manages the loading and parsing of LHAPDF data sets.
 ///
 /// This struct provides methods to read metadata and member data files
@@ -58,7 +124,7 @@ impl LhapdfSet {
             "{}.info",
             pdfset_path.file_name().unwrap().to_str().unwrap()
         ));
-        let info: MetaData = Self::read_metadata(&info_path).unwrap();
+        let info: MetaData = Self::read_metadata(&info_path).unwrap_or_else(|e| panic!("{e}"));
 
         Self { manager, info }
     }
@@ -115,10 +181,33 @@ impl LhapdfSet {
     ///
     /// # Returns
     ///
-    /// A `Result` containing the `Info` struct if successful, or a `serde_yaml::Error` otherwise.
-    pub fn read_metadata(path: &Path) -> Result<MetaData, serde_yaml::Error> {
-        let content = fs::read_to_string(path).unwrap();
-        serde_yaml::from_str(&content)
+    /// A `Result` containing the `Info` struct if successful, or an [`Error`] otherwise.
+    pub fn read_metadata(path: &Path) -> Result<MetaData, Error> {
+        let content = fs::read_to_string(path).map_err(|source| Error::Io {
+            path: path.to_path_buf(),
+            source,
+        })?;
+        serde_yaml::from_str(&content).map_err(|source| classify_parse_error(path, source))
+    }
+
+    /// Reads the `.info` file for a PDF set, panicking with an actionable message if the file
+    /// cannot be parsed.
+    ///
+    /// This is a convenience wrapper around [`Self::read_metadata`] for callers that cannot
+    /// propagate a `Result`. Prefer [`Self::read_metadata`] when the caller can handle the error
+    /// itself.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to the `.info` file.
+    ///
+    /// # Panics
+    ///
+    /// Panics with a message pointing at the offending `.info` file and, for the two most common
+    /// authoring mistakes (an invalid `SetType` value or a duplicate key), a hint on how to fix
+    /// it, if the file cannot be parsed.
+    pub fn read_metadata_or_panic(path: &Path) -> MetaData {
+        Self::read_metadata(path).unwrap_or_else(|e| panic!("{e}"))
     }
 
     /// Reads an LHAPDF `.dat` file for a PDF set and parses its content.
@@ -301,6 +390,54 @@ mod tests {
         assert_eq!(info.q_max, 10000.0);
         assert_eq!(info.flavors, vec![21, 1, 2, 3, 4, 5, -1, -2, -3, -4, -5]);
         assert_eq!(info.format, "LHAPDF");
+    }
+
+    #[test]
+    fn test_read_info_invalid_set_type() {
+        let yaml_content = r#"
+        SetDesc: "NNPDF40_nnlo_as_01180"
+        SetIndex: 4000
+        NumMembers: 101
+        XMin: 1.0e-9
+        XMax: 1.0
+        QMin: 1.0
+        QMax: 10000.0
+        Flavors: [21, 1, 2, 3, 4, 5, -1, -2, -3, -4, -5]
+        Format: "LHAPDF"
+        SetType: "quarklike"
+        "#;
+        let mut temp_file = NamedTempFile::new().unwrap();
+        write!(temp_file, "{}", yaml_content).unwrap();
+
+        let err = LhapdfSet::read_metadata(temp_file.path()).unwrap_err();
+        assert!(matches!(err, Error::InvalidSetType { .. }));
+        let message = err.to_string();
+        assert!(message.contains("SetType"));
+        assert!(message.contains("spacelike"));
+        assert!(message.contains("timelike"));
+    }
+
+    #[test]
+    fn test_read_info_duplicate_key() {
+        let yaml_content = r#"
+        SetDesc: "NNPDF40_nnlo_as_01180"
+        SetDesc: "duplicate"
+        SetIndex: 4000
+        NumMembers: 101
+        XMin: 1.0e-9
+        XMax: 1.0
+        QMin: 1.0
+        QMax: 10000.0
+        Flavors: [21, 1, 2, 3, 4, 5, -1, -2, -3, -4, -5]
+        Format: "LHAPDF"
+        "#;
+        let mut temp_file = NamedTempFile::new().unwrap();
+        write!(temp_file, "{}", yaml_content).unwrap();
+
+        let err = LhapdfSet::read_metadata(temp_file.path()).unwrap_err();
+        assert!(matches!(err, Error::DuplicateKey { .. }));
+        let message = err.to_string();
+        assert!(message.contains("duplicate key"));
     }
 
     #[test]

@@ -247,7 +247,7 @@ impl PDF {
             let set_name = &file_name[..last_underscore];
             let info_path = parent.join(format!("{}.info", set_name));
 
-            let info = LhapdfSet::read_metadata(&info_path).expect("Failed to read metadata");
+            let info = LhapdfSet::read_metadata_or_panic(&info_path);
             let pdf_data = LhapdfSet::read_data(path);
             let knot_array = GridArray::new(pdf_data.subgrid_data, pdf_data.pids);
 

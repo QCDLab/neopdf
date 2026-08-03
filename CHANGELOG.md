@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added meaningful error messages when failing to read metadata.
+
+### Changed
+
+- Promote `SetIndex` from `u32` to `u64` ([#96](https://github.com/QCDLab/neopdf/pull/96))
+
 ## [0.4.0] - 15/07/2026
 
 ### Added

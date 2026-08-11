@@ -1,0 +1,864 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<link href="../development-with-pixi/" rel="prev"/>
+<link href="../design/" rel="next"/>
+<link href="../assets/neopdf.svg" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.7" name="generator"/>
+<title>Features - NeoPDF</title>
+<link href="../assets/stylesheets/main.ec1eaa64.min.css" rel="stylesheet"/>
+<link href="../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<link href="../custom.css" rel="stylesheet"/>
+<link href="../assets/stylesheets/notebooks.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css" rel="stylesheet"/>
+<script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+</head>
+<body data-md-color-accent="custom" data-md-color-primary="custom" data-md-color-scheme="slate" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#features">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header md-header--shadow" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="NeoPDF" class="md-header__button md-logo" data-md-component="logo" href=".." title="NeoPDF">
+<img alt="logo" src="../assets/neopdf.svg"/>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            NeoPDF
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              Features
+            
+          </span>
+</div>
+</div>
+</div>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+<div class="md-search__suggest" data-md-component="search-suggest"></div>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="NeoPDF" class="md-nav__button md-logo" data-md-component="logo" href=".." title="NeoPDF">
+<img alt="logo" src="../assets/neopdf.svg"/>
+</a>
+    NeoPDF
+  </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="..">
+<span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../installation/">
+<span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../development-with-pixi/">
+<span class="md-ellipsis">
+    
+  
+    Development with Pixi
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#summary-of-the-current-supported-features">
+<span class="md-ellipsis">
+      
+        Summary of the Current Supported Features
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#physics-features">
+<span class="md-ellipsis">
+      
+        Physics Features
+      
+    </span>
+</a>
+<nav aria-label="Physics Features" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#hadron-types-and-pdf-classification">
+<span class="md-ellipsis">
+      
+        Hadron Types and PDF Classification
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#supported-distributions">
+<span class="md-ellipsis">
+      
+        Supported distributions
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#multi-flavor-grids-planned">
+<span class="md-ellipsis">
+      
+        Multi-Flavor Grids (Planned)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#analytical-interpolation-planned">
+<span class="md-ellipsis">
+      
+        Analytical Interpolation (Planned)
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#technical-features">
+<span class="md-ellipsis">
+      
+        Technical Features
+      
+    </span>
+</a>
+<nav aria-label="Technical Features" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#language-interoperability">
+<span class="md-ellipsis">
+      
+        Language Interoperability
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#no-code-migration">
+<span class="md-ellipsis">
+      
+        No-Code Migration
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#extensible-interpolation">
+<span class="md-ellipsis">
+      
+        Extensible Interpolation
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#performance-optimization">
+<span class="md-ellipsis">
+      
+        Performance Optimization
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#thread-and-memory-safety">
+<span class="md-ellipsis">
+      
+        Thread and Memory Safety
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../design/">
+<span class="md-ellipsis">
+    
+  
+    Design Rationale
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../custom-interpolation/">
+<span class="md-ellipsis">
+    
+  
+    Custom Interpolation
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../cli-tutorials/">
+<span class="md-ellipsis">
+    
+  
+    CLI Tutorials
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../gui/">
+<span class="md-ellipsis">
+    
+  
+    GUI Interface
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../tmdlib/">
+<span class="md-ellipsis">
+    
+  
+    TMDlib Interface
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../lhapdf_benchmark/pdfs/">
+<span class="md-ellipsis">
+    
+  
+    LHAPDF Sets Benchmark
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_11" type="checkbox"/>
+<label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_11_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_11">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Examples
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../examples/rust/">
+<span class="md-ellipsis">
+<i class="devicon-rust-plain colored"></i> Rust API
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../examples/neopdf-pyapi/">
+<span class="md-ellipsis">
+<i class="devicon-python-plain colored"></i> Python API
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../examples/c-oop/">
+<span class="md-ellipsis">
+<i class="devicon-cplusplus-plain colored"></i> C++ OOP API
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../examples/c/">
+<span class="md-ellipsis">
+<i class="devicon-c-plain colored"></i> C/C++ API
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../examples/fortran/">
+<span class="md-ellipsis">
+<i class="devicon-fortran-original colored"></i> Fortran API
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../examples/mathematica/">
+<span class="md-ellipsis">
+<img alt="Wolfram" src="https://cdn.simpleicons.org/wolfram/c83737" style="height: 1em; vertical-align: -0.125em; margin-right: 0.25em;"/> Mathematica
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#summary-of-the-current-supported-features">
+<span class="md-ellipsis">
+      
+        Summary of the Current Supported Features
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#physics-features">
+<span class="md-ellipsis">
+      
+        Physics Features
+      
+    </span>
+</a>
+<nav aria-label="Physics Features" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#hadron-types-and-pdf-classification">
+<span class="md-ellipsis">
+      
+        Hadron Types and PDF Classification
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#supported-distributions">
+<span class="md-ellipsis">
+      
+        Supported distributions
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#multi-flavor-grids-planned">
+<span class="md-ellipsis">
+      
+        Multi-Flavor Grids (Planned)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#analytical-interpolation-planned">
+<span class="md-ellipsis">
+      
+        Analytical Interpolation (Planned)
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#technical-features">
+<span class="md-ellipsis">
+      
+        Technical Features
+      
+    </span>
+</a>
+<nav aria-label="Technical Features" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#language-interoperability">
+<span class="md-ellipsis">
+      
+        Language Interoperability
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#no-code-migration">
+<span class="md-ellipsis">
+      
+        No-Code Migration
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#extensible-interpolation">
+<span class="md-ellipsis">
+      
+        Extensible Interpolation
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#performance-optimization">
+<span class="md-ellipsis">
+      
+        Performance Optimization
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#thread-and-memory-safety">
+<span class="md-ellipsis">
+      
+        Thread and Memory Safety
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="features">Features</h1>
+<p><code>NeoPDF</code> is designed to be a modern, extensible, and high-performance library for
+<strong>generic non-perturbative functions</strong>. This page details the physics and technical
+features, <a href="../design/">design rationale</a>, and future plans.</p>
+<h2 id="summary-of-the-current-supported-features">Summary of the Current Supported Features</h2>
+<div align="center">
+<table style="border-collapse: collapse; width: 100%; border: 1px solid #888;">
+<tr>
+<th style="border: 1px solid #888;"></th>
+<th style="border: 1px solid #888;">Feature</th>
+<th style="border: 1px solid #888;">Status</th>
+<th style="border: 1px solid #888;">Notes</th>
+</tr>
+<tr>
+<td rowspan="5" style="text-align: center; vertical-align: middle; border: 1px solid #888;">APIs &amp; FFIs</td>
+<td style="border: 1px solid #888;">Rust API</td>
+<td style="border: 1px solid #888;">✅</td>
+<td style="border: 1px solid #888;">Fully supported</td>
+</tr>
+<tr>
+<td style="border: 1px solid #888;">Python API</td>
+<td style="border: 1px solid #888;">✅</td>
+<td style="border: 1px solid #888;">Fully supported</td>
+</tr>
+<tr>
+<td style="border: 1px solid #888;">C/C++ API</td>
+<td style="border: 1px solid #888;">✅</td>
+<td style="border: 1px solid #888;">Fully supported</td>
+</tr>
+<tr>
+<td style="border: 1px solid #888;">Fortran API</td>
+<td style="border: 1px solid #888;">✅</td>
+<td style="border: 1px solid #888;">Fully supported</td>
+</tr>
+<tr>
+<td style="border: 1px solid #888;">Mathematica Interface</td>
+<td style="border: 1px solid #888;">✅</td>
+<td style="border: 1px solid #888;">Fully supported</td>
+</tr>
+<tr>
+<td rowspan="9" style="text-align: center; vertical-align: middle; border: 1px solid #888;">Features</td>
+<td style="border: 1px solid #888;">Nuclear PDFs interpolation</td>
+<td style="border: 1px solid #888;">✅</td>
+<td style="border: 1px solid #888;">Fully supported</td>
+</tr>
+<tr>
+<td style="border: 1px solid #888;">Strong Coupling interpolation</td>
+<td style="border: 1px solid #888;">✅</td>
+<td style="border: 1px solid #888;">Fully supported</td>
+</tr>
+<tr>
+<td style="border: 1px solid #888;">Momentum kT interpolation</td>
+<td style="border: 1px solid #888;">✅</td>
+<td style="border: 1px solid #888;">Fully supported</td>
+</tr>
+<tr>
+<td style="border: 1px solid #888;">Skeweness ξ interpolation</td>
+<td style="border: 1px solid #888;">✅</td>
+<td style="border: 1px solid #888;">Fully supported</td>
+</tr>
+<tr>
+<td style="border: 1px solid #888;">Momentum Δ interpolation</td>
+<td style="border: 1px solid #888;">✅</td>
+<td style="border: 1px solid #888;">Fully supported</td>
+</tr>
+<tr>
+<td style="border: 1px solid #888;">Different Hadronic states</td>
+<td style="border: 1px solid #888;">✅</td>
+<td style="border: 1px solid #888;">Fully supported</td>
+</tr>
+<tr>
+<td style="border: 1px solid #888;">Custom interpolation</td>
+<td style="border: 1px solid #888;">✅</td>
+<td style="border: 1px solid #888;">Supported (user-defined strategies)</td>
+</tr>
+<tr>
+<td style="border: 1px solid #888;">Multi-flavor grids</td>
+<td style="border: 1px solid #888;">❌</td>
+<td style="border: 1px solid #888;">Planned</td>
+</tr>
+<tr>
+<td style="border: 1px solid #888;">Analytical DGLAP interpolation</td>
+<td style="border: 1px solid #888;">❌</td>
+<td style="border: 1px solid #888;">Planned</td>
+</tr>
+</table>
+</div>
+<h2 id="physics-features">Physics Features</h2>
+<h3 id="hadron-types-and-pdf-classification">Hadron Types and PDF Classification</h3>
+<div class="admonition danger">
+<p class="admonition-title">Multiple types of Convolutions</p>
+<p>PDF interpolations are mainly used to convolve with partonic cross-sections in order to
+get theoretical predictions. For various technical reasons, these theory predictions are
+stored in some fast interpolating grids. Mondern interpolating libraries such as
+<a href="https://github.com/NNPDF/pineappl">PineAPPL</a> supports grids with arbitrarily many
+convolutions. For instance, it support processes such as:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a>Proton<span class="w"> </span>+<span class="w"> </span>Proton<span class="w"> </span>-&gt;<span class="w"> </span>π<span class="w"> </span>+<span class="w"> </span>π<span class="w"> </span>+<span class="w"> </span>X
+</span></code></pre></div>
+<p>An interpolation grid of this kind needs two different convolution functions: a (polarised) PDF for the
+protons and a fragmentation function for the pions. When users convolve this grid with the two functions,
+they must either pass the functions in the right order to avoid calculating wrong predictions
+(see this <a href="https://gitlab.com/hepcedar/lhapdf/-/issues/79">issue</a> for more details). <code>NeoPDF</code> circumvents
+this issue by adding the following keys to the metadata:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-1-1"><a href="#__codelineno-1-1" id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="nt">Particle</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2212/212/...</span><span class="w"> </span><span class="c1"># Hadron PID</span>
+</span><span id="__span-1-2"><a href="#__codelineno-1-2" id="__codelineno-1-2" name="__codelineno-1-2"></a><span class="nt">Polarized</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true/false</span>
+</span><span id="__span-1-3"><a href="#__codelineno-1-3" id="__codelineno-1-3" name="__codelineno-1-3"></a><span class="nt">SetType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SpaceLike/TimeLike</span>
+</span></code></pre></div>
+</div>
+<h3 id="supported-distributions">Supported distributions</h3>
+<p><code>NeoPDF</code> supports generic classes of distributions that are functions of different combinations
+of the kinematic variables. Examples of known distribution functions are given in the diagram
+below with their simplified relationships.</p>
+<div align="center" markdown="1">
+<pre class="mermaid"><code>graph TD
+
+A["&lt;b&gt;Generalized Tranverse Momentum Distributions&lt;/b&gt; &lt;br&gt; GTMD(x, ξ, Δ, kT​​, Q²)"]
+
+A --&gt;|∫ dkT| B["&lt;b&gt;Generalized Parton Distributions&lt;/b&gt; &lt;br&gt; GPD(x, ξ, Δ, Q²)"]
+A --&gt;|ξ → 0, Δ → 0| C["&lt;b&gt;Transverse Momentum Distributions&lt;/b&gt; &lt;br&gt; TMD(x, kT, Q²)"]
+
+B --&gt;|ξ → 0, Δ → 0| D["&lt;b&gt;Collinear Parton Distribution Functions&lt;/b&gt; &lt;br&gt; PDF(x, Q²)"]
+C --&gt;|∫ dkT| D
+
+style A fill:#8B4513,stroke:#D2691E,stroke-width:2px
+style B fill:#1E3A5F,stroke:#4169E1,stroke-width:2px
+style C fill:#2F4F2F,stroke:#3CB371,stroke-width:2px
+style D fill:#8B2F2F,stroke:#CD5C5C,stroke-width:2px
+</code></pre>
+</div>
+<p>In order to support these distributions, <code>NeoPDF</code> provides Hermite Cubic Spline and Chebyshev
+interpolation strategies for up to 6D data.</p>
+<h3 id="multi-flavor-grids-planned">Multi-Flavor Grids (Planned)</h3>
+<p><code>NeoPDF</code> will support grids with varying numbers of active flavors <span class="arithmatex">\(n_f\)</span>, providing a consistent
+treatment of heavy quark effects across all scales. Advanced schemes like FONLL and ACOT require
+careful handling of flavor thresholds and mass effects. <code>NeoPDF</code>'s multi-flavor support will enable:</p>
+<ul>
+<li>Precision predictions for heavy flavor production</li>
+<li>Proper matching across flavor thresholds</li>
+<li>Consistent treatment of charm and bottom quark effects</li>
+</ul>
+<h3 id="analytical-interpolation-planned">Analytical Interpolation (Planned)</h3>
+<p>Future versions will support <strong>DGLAP</strong>-based analytical interpolation. Such an analytical-based
+interpolation will provide:</p>
+<ul>
+<li>Consistent treatment of scale evolution</li>
+<li>Reduced interpolation artifacts</li>
+<li>More accurate extrapolation beyond the grid boundaries</li>
+</ul>
+<h2 id="technical-features">Technical Features</h2>
+<h3 id="language-interoperability">Language Interoperability</h3>
+<p><code>NeoPDF</code> provides native APIs across multiple programming languages, enabling seamless integration
+into diverse computational workflows:</p>
+<ul>
+<li>
+<p><strong>Native Rust API</strong>:
+  The core library is written in Rust, providing zero-cost abstractions, memory safety, and high
+  performance. Rust's ownership system ensures thread safety and prevents common programming errors
+  that could lead to incorrect physics results.</p>
+</li>
+<li>
+<p><strong>Python Bindings</strong>:
+  Comprehensive Python interface using PyO3, enabling integration with the rich ecosystem of
+  scientific Python libraries (NumPy, etc.). This is crucial for data analysis, visualization,
+  and integration with existing physics analysis frameworks.</p>
+</li>
+<li>
+<p><strong>C/C++ Bindings</strong>:
+  Direct C and C++ interfaces for integration with legacy codes and high-performance computing
+  applications. The C API provides a stable ABI for long-term compatibility, while the C++ API
+  offers object-oriented convenience.</p>
+</li>
+</ul>
+<h3 id="no-code-migration">No-Code Migration</h3>
+<p><code>NeoPDF</code> maintains API compatibility with LHAPDF, enabling seamless migration:</p>
+<ul>
+<li>
+<p><strong>Drop-in Replacement</strong>:
+  Existing LHAPDF code can often be migrated by simply changing import statements, with no
+  modifications to the core physics logic required.</p>
+</li>
+<li>
+<p><strong>Preserved Function Signatures</strong>:
+  Key functions like <code>xfxQ2()</code>, <code>alphasQ2()</code>, and <code>mkPDF()</code> maintain the same signatures as
+  LHAPDF, ensuring compatibility with existing analysis codes.</p>
+</li>
+</ul>
+<p>The following symbols have an exact match with their LHAPDF counterparts.</p>
+<p><em>Module-level:</em>
+<code>setVerbosity()</code>, <code>verbosity()</code>, <code>getPDFSet()</code>, <code>mkPDF()</code>, <code>mkPDFs()</code>,
+<code>availablePDFSets()</code>, <code>paths()</code>, <code>setPaths()</code>, <code>pathsAppend()</code>, <code>pathsPrepend()</code>.</p>
+<p><em><code>PDFSet</code> class:</em>
+<code>name</code>, <code>size</code>, <code>description</code>, <code>errorType</code>, <code>lhapdfID</code>, <code>mkPDF()</code>, <code>mkPDFs()</code>, <code>info()</code>,
+<code>uncertainty</code>, <code>has_key</code>, <code>get_entry</code>, <code>keys</code>.</p>
+<p><em><code>PDF</code> class:</em>
+<code>xfxQ()</code>, <code>xfxQ2()</code>, <code>alphasQ()</code>, <code>alphasQ2()</code>, <code>flavors()</code>, <code>hasFlavor()</code>,
+<code>inRangeX()</code>, <code>inRangeQ()</code>, <code>inRangeQ2()</code>, <code>inRangeXQ()</code>, <code>inRangeXQ2()</code>,
+<code>memberID</code>, <code>lhapdfID</code>, <code>orderQCD</code>, <code>xMin</code>, <code>xMax</code>, <code>q2Min</code>, <code>q2Max</code>,
+<code>quarkMass()</code>, <code>quarkThreshold()</code>, <code>description</code>, <code>set</code>.</p>
+<p>This compatibility is crucial for the physics community, as it allows for immediate adoption
+without requiring extensive code rewrites or validation efforts.</p>
+<h3 id="extensible-interpolation">Extensible Interpolation</h3>
+<p><code>NeoPDF</code>'s modular architecture enables easy extension and customization:</p>
+<ul>
+<li>
+<p><strong>Pluggable Interpolation Strategies</strong>:
+  The library supports multiple interpolation algorithms (linear, cubic, Chebyshev)
+  for up to 6D data and can be extended with custom interpolation schemes.</p>
+</li>
+<li>
+<p><strong>Custom Grid Types</strong>:
+  The framework can accommodate new grid formats and data structures, enabling support for emerging
+  PDF sets and specialized applications.</p>
+</li>
+<li>
+<p><strong>Performance Tuning</strong>:
+  Different interpolation strategies can be selected based on the specific requirements of accuracy
+  vs. speed, allowing optimization for different use cases.</p>
+</li>
+</ul>
+<h3 id="performance-optimization">Performance Optimization</h3>
+<p><code>NeoPDF</code> is designed for high-performance computing environments:</p>
+<ul>
+<li>
+<p><strong>Zero-Cost Abstractions</strong>:
+  Rust's compilation model ensures that high-level abstractions don't incur runtime overhead, providing
+  both safety and performance.</p>
+</li>
+<li>
+<p><strong>Cache-Friendly Design</strong>:
+  Data structures are optimized for modern CPU cache hierarchies, reducing memory access latency and
+  improving performance for large-scale calculations.</p>
+</li>
+<li>
+<p><strong>SIMD Optimization</strong>:
+  The library can leverage CPU vector instructions for parallel evaluation of multiple points, crucial
+  for Monte Carlo event generation and large-scale simulations.</p>
+</li>
+<li>
+<p><strong>Benchmarking</strong>:
+  Comprehensive benchmarking against LHAPDF ensures that performance improvements don't come at the
+  cost of accuracy, maintaining the precision required for physics calculations.</p>
+</li>
+</ul>
+<h3 id="thread-and-memory-safety">Thread and Memory Safety</h3>
+<p><code>NeoPDF</code> leverages Rust's safety guarantees for robust multi-threaded applications:</p>
+<ul>
+<li>
+<p><strong>Memory Safety</strong>:
+  Rust's ownership system prevents common memory errors (use-after-free, double-free, data races)
+  that could lead to incorrect physics results or program crashes.</p>
+</li>
+<li>
+<p><strong>Thread Safety</strong>:
+  Built-in support for safe concurrent access to PDF objects, essential for parallel event
+  generation and Monte Carlo simulations.</p>
+</li>
+<li>
+<p><strong>FFI Safety</strong>:
+  Careful design of the foreign function interface ensures that safety guarantees extend to Python,
+  C, and C++ code, preventing crashes and undefined behavior.</p>
+</li>
+</ul>
+</article>
+</div>
+<script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+<button class="md-top md-icon" data-md-component="top" hidden="" type="button">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  Back to top
+</button>
+</main>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+<script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</body>
+</html>

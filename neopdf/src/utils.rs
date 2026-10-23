@@ -107,15 +107,7 @@ pub fn find_interval_index(
 /// extrapolated value changes from the product of dx and the discrete low-
 /// and high-edge derivative estimates.
 pub fn hermite_cubic_interpolate(t: f64, vl: f64, vdl: f64, vh: f64, vdh: f64) -> f64 {
-    let t2 = t * t;
-    let t3 = t2 * t;
-
-    let p0 = (2.0 * t3 - 3.0 * t2 + 1.0) * vl;
-    let m0 = (t3 - 2.0 * t2 + t) * vdl;
-    let p1 = (-2.0 * t3 + 3.0 * t2) * vh;
-    let m1 = (t3 - t2) * vdh;
-
-    p0 + m0 + p1 + m1
+    crate::precision::hermite(&crate::precision::Binary64, &t, &vl, &vdl, &vh, &vdh)
 }
 
 #[cfg(test)]

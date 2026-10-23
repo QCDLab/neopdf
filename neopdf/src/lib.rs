@@ -226,6 +226,7 @@ pub mod manage;
 pub mod metadata;
 pub mod parser;
 pub mod pdf;
+pub mod precision;
 pub mod strategy;
 pub mod subgrid;
 pub mod uncertainty;

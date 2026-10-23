@@ -18,8 +18,9 @@ use thiserror::Error;
 ///
 /// The context controls precision and rounding. `lift` must convert the *exact*
 /// binary64 input to that arithmetic; it must not round through a decimal string.
-/// All operations must preserve the context's chosen working precision, including
-/// when an operand is an exact constant. Query scalars must use that precision.
+/// Operations must use the context's arithmetic, including constants, and
+/// propagate any backend accuracy tracking. Results may carry fewer reliable
+/// bits after cancellation; these must not be silently restored by promotion.
 pub trait Arithmetic {
     /// A finite real scalar; it need not implement `Copy`.
     type Scalar: Clone;

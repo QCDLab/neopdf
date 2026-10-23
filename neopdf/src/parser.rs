@@ -37,6 +37,14 @@ pub struct PdfData {
 /// Errors that can occur while reading an LHAPDF `.info` file.
 #[derive(Debug, Error)]
 pub enum Error {
+    /// The data file has missing or inconsistent arrays or invalid tokens.
+    #[error("invalid data file '{}': {reason}", path.display())]
+    InvalidData {
+        /// Input file path.
+        path: PathBuf,
+        /// Structural parsing failure.
+        reason: String,
+    },
     /// The `.info` file could not be read from disk.
     #[error("failed to read '{}': {source}", path.display())]
     Io {
@@ -224,8 +232,52 @@ impl LhapdfSet {
     ///
     /// A `PdfData` struct containing the parsed subgrid data and flavor IDs.
     pub fn read_data(path: &Path) -> PdfData {
-        let content = fs::read_to_string(path).unwrap();
+        Self::read_data_with_q_knots(path).0
+    }
+
+    /// Read a data file while retaining each subgrid's original unsquared Q knots.
+    ///
+    /// The first tuple element is identical to [`Self::read_data`]. The second
+    /// contains one Q vector per subgrid, before the legacy binary64 Q²
+    /// conversion. Precision-generic clients can square these fixed input data
+    /// in their active arithmetic, consistently with tabulated αs thresholds.
+    /// Existing serialized grid representations are unchanged.
+    ///
+    /// # Panics
+    /// Like [`Self::read_data`], this legacy parser panics on unreadable or
+    /// structurally malformed files. Numerical and capability validation remains
+    /// the caller's responsibility.
+    pub fn read_data_with_q_knots(path: &Path) -> (PdfData, Vec<Vec<f64>>) {
+        Self::try_read_data_with_q_knots(path).unwrap_or_else(|e| panic!("{e}"))
+    }
+
+    /// Fallible counterpart of [`Self::read_data_with_q_knots`].
+    ///
+    /// Flavour ordering must agree across subgrids. Invalid numbers, missing
+    /// lines and inconsistent row/array sizes are reported rather than dropped.
+    pub fn try_read_data_with_q_knots(path: &Path) -> Result<(PdfData, Vec<Vec<f64>>), Error> {
+        let content = fs::read_to_string(path).map_err(|source| Error::Io {
+            path: path.to_path_buf(),
+            source,
+        })?;
+        let invalid = |reason: &str| Error::InvalidData {
+            path: path.to_path_buf(),
+            reason: reason.into(),
+        };
+        let floats = |line: Option<&str>| -> Result<Vec<f64>, Error> {
+            let line = line.ok_or_else(|| invalid("missing axis or data row"))?;
+            let values = line
+                .split_whitespace()
+                .map(str::parse::<f64>)
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|_| invalid("invalid numeric token"))?;
+            if values.is_empty() {
+                return Err(invalid("empty numeric row"));
+            }
+            Ok(values)
+        };
         let mut subgrid_data = Vec::new();
+        let mut original_q_knots = Vec::new();
         let mut flavors = Vec::new();
         let mut alphas_q_values: Option<Vec<f64>> = None;
         let mut alphas_vals: Option<Vec<f64>> = None;
@@ -258,40 +310,44 @@ impl LhapdfSet {
                 continue;
             }
 
-            let mut lines = block.lines();
+            let mut lines = block
+                .lines()
+                .filter(|line| !line.trim().is_empty() && !line.trim_start().starts_with('#'));
+            let xs = floats(lines.next())?;
+            let qs = floats(lines.next())?;
+            let q2s = qs.iter().map(|q| q * q).collect();
+            let count = xs
+                .len()
+                .checked_mul(qs.len())
+                .ok_or_else(|| invalid("grid shape overflow"))?;
+            original_q_knots.push(qs);
 
-            let x_knots_line = lines.next().unwrap();
-            let xs: Vec<f64> = x_knots_line
+            let block_flavors = lines
+                .next()
+                .ok_or_else(|| invalid("missing flavour row"))?
                 .split_whitespace()
-                .filter_map(|s| s.parse().ok())
-                .collect();
-
-            let q2_knots_line = lines.next().unwrap();
-            let q2s: Vec<f64> = q2_knots_line
-                .split_whitespace()
-                .filter_map(|s| s.parse().ok())
-                .map(|q: f64| q * q)
-                .collect();
-
-            // Read the flavors (only once from the first subgrid)
+                .map(str::parse::<i32>)
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|_| invalid("invalid flavour token"))?;
+            if block_flavors.is_empty() {
+                return Err(invalid("empty flavour row"));
+            }
             if flavors.is_empty() {
-                let flavors_line = lines.next().unwrap();
-                flavors = flavors_line
-                    .split_whitespace()
-                    .filter_map(|s| s.parse().ok())
-                    .collect();
-            } else {
-                // Skip the flavors line in subsequent subgrids
-                lines.next();
+                flavors = block_flavors;
+            } else if flavors != block_flavors {
+                return Err(invalid("flavour ordering differs across subgrids"));
             }
 
             let mut grid_data = Vec::new();
             for line in lines {
-                let values: Vec<f64> = line
-                    .split_whitespace()
-                    .filter_map(|s| s.parse().ok())
-                    .collect();
+                let values = floats(Some(line))?;
+                if values.len() != flavors.len() {
+                    return Err(invalid("data row has wrong flavour count"));
+                }
                 grid_data.extend(values);
+            }
+            if Some(grid_data.len()) != count.checked_mul(flavors.len()) {
+                return Err(invalid("data row count does not match knot axes"));
             }
 
             // NOTE: given that there isn't really a proper way to extract the
@@ -314,12 +370,18 @@ impl LhapdfSet {
             });
         }
 
-        PdfData {
-            subgrid_data,
-            pids: flavors,
-            alphas_q_values,
-            alphas_vals,
+        if subgrid_data.is_empty() {
+            return Err(invalid("no subgrids"));
         }
+        Ok((
+            PdfData {
+                subgrid_data,
+                pids: flavors,
+                alphas_q_values,
+                alphas_vals,
+            },
+            original_q_knots,
+        ))
     }
 }
 
@@ -451,17 +513,35 @@ mod tests {
         1.0 2.0 3.0
         4.0 5.0 6.0
         7.0 8.0 9.0
+        10.0 11.0 12.0
+        13.0 14.0 15.0
+        16.0 17.0 18.0
+        19.0 20.0 21.0
+        22.0 23.0 24.0
+        25.0 26.0 27.0
         ---
         1.0e-7 1.0e-6 1.0e-5
         100.0 1000.0 10000.0
         21 1 2
-        10.0 11.0 12.0
-        13.0 14.0 15.0
-        16.0 17.0 18.0
+        28.0 29.0 30.0
+        31.0 32.0 33.0
+        34.0 35.0 36.0
+        37.0 38.0 39.0
+        40.0 41.0 42.0
+        43.0 44.0 45.0
+        46.0 47.0 48.0
+        49.0 50.0 51.0
+        52.0 53.0 54.0
         "#;
         let mut temp_file = NamedTempFile::new().unwrap();
         write!(temp_file, "{}", data_content).unwrap();
         let pdf_data = LhapdfSet::read_data(temp_file.path());
+        let (retained, qs) = LhapdfSet::try_read_data_with_q_knots(temp_file.path()).unwrap();
+        assert_eq!(
+            qs,
+            vec![vec![1.0, 10.0, 100.0], vec![100.0, 1000.0, 10000.0]]
+        );
+        assert_eq!(retained.subgrid_data[0].q2s, pdf_data.subgrid_data[0].q2s);
 
         assert_eq!(pdf_data.pids, vec![21, 1, 2]);
         assert_eq!(pdf_data.subgrid_data.len(), 2);
@@ -471,7 +551,7 @@ mod tests {
         assert_eq!(pdf_data.subgrid_data[0].q2s, vec![1.0, 100.0, 10000.0]); // Q values are squared
         assert_eq!(
             pdf_data.subgrid_data[0].grid_data,
-            vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]
+            (1..=27).map(f64::from).collect::<Vec<_>>()
         );
 
         // Check the second subgrid
@@ -482,7 +562,28 @@ mod tests {
         ); // Q values are squared
         assert_eq!(
             pdf_data.subgrid_data[1].grid_data,
-            vec![10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0]
+            (28..=54).map(f64::from).collect::<Vec<_>>()
         );
+    }
+
+    #[test]
+    fn checked_data_retains_q_before_squaring_and_rejects_bad_rows() {
+        let input = "---\n0.25 1\n1.4 2\n21\n1\n2\n3\n4\n---\n";
+        let mut file = NamedTempFile::new().unwrap();
+        write!(file, "{input}").unwrap();
+        let (data, qs) = LhapdfSet::try_read_data_with_q_knots(file.path()).unwrap();
+        assert_eq!(qs, vec![vec![1.4, 2.0]]);
+        assert_eq!(data.subgrid_data[0].q2s[0], 1.4_f64 * 1.4);
+        for bad in [
+            input.replace("\n4\n", "\n"),
+            input.replace("\n3\n", "\nnot-a-number\n"),
+            input.replace("\n3\n", "\n3 4\n"),
+        ] {
+            std::fs::write(file.path(), bad).unwrap();
+            assert!(matches!(
+                LhapdfSet::try_read_data_with_q_knots(file.path()),
+                Err(Error::InvalidData { .. })
+            ));
+        }
     }
 }

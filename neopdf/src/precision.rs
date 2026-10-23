@@ -300,6 +300,36 @@ pub struct LogBicubicGrid<A: Arithmetic> {
     coefficients: Vec<[A::Scalar; 4]>,
 }
 
+/// Representation of fixed scale knots before preparation.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ScaleAxis {
+    /// Already-squared fixed Q² data.
+    #[default]
+    QSquared,
+    /// Original Q data, squared in the selected arithmetic.
+    Q,
+}
+
+/// Interpolation rule when a Q segment has exactly two knots.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum TwoPointQ {
+    /// Keep cubic x interpolation and use a linear Q dependence.
+    #[default]
+    CubicX,
+    /// Use linear interpolation in both logarithmic coordinates, as LHAPDF's
+    /// log-cubic interpolator does for two-Q-knot threshold segments.
+    LogBilinear,
+}
+
+/// Explicit input-coordinate and short-segment interpolation policies.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct GridOptions {
+    /// Whether the input scale data are Q or Q².
+    pub scale_axis: ScaleAxis,
+    /// Rule for a Q segment containing only two knots.
+    pub two_point_q: TwoPointQ,
+}
+
 impl<A: Arithmetic> LogBicubicGrid<A> {
     /// Rebuild from fixed raw grid values in the requested arithmetic.
     ///
@@ -312,11 +342,48 @@ impl<A: Arithmetic> LogBicubicGrid<A> {
         flavors: usize,
         value_at: F,
     ) -> Result<Self, InterpolationError> {
+        Self::with_options(a, xs, q2s, flavors, value_at, GridOptions::default())
+    }
+
+    /// Rebuild from unsquared Q knots retained from the original input file.
+    ///
+    /// This avoids rounding Q² in binary64 before selecting the arithmetic.
+    /// In particular PDF and αs thresholds specified by the same Q then remain
+    /// identical at arbitrary precision.
+    pub fn from_q_knots<F: Fn(usize, usize, usize) -> f64>(
+        a: A,
+        xs: &[f64],
+        qs: &[f64],
+        flavors: usize,
+        value_at: F,
+    ) -> Result<Self, InterpolationError> {
+        Self::with_options(
+            a,
+            xs,
+            qs,
+            flavors,
+            value_at,
+            GridOptions {
+                scale_axis: ScaleAxis::Q,
+                ..GridOptions::default()
+            },
+        )
+    }
+
+    /// Build with explicit coordinate and two-knot policies.
+    pub fn with_options<F: Fn(usize, usize, usize) -> f64>(
+        a: A,
+        xs: &[f64],
+        q2s: &[f64],
+        flavors: usize,
+        value_at: F,
+        options: GridOptions,
+    ) -> Result<Self, InterpolationError> {
         if flavors == 0 {
             return Err(InterpolationError::InvalidShape);
         }
         let x = Axis::new(&a, xs, false)?;
-        let q2 = Axis::new(&a, q2s, false)?;
+        let q2 = Axis::new(&a, q2s, options.scale_axis == ScaleAxis::Q)?;
         let count = (xs.len() - 1)
             .checked_mul(flavors)
             .and_then(|n| n.checked_mul(q2s.len()))
@@ -330,6 +397,15 @@ impl<A: Arithmetic> LogBicubicGrid<A> {
                 }
                 let values: Vec<_> = raw.into_iter().map(|v| a.lift(v)).collect();
                 for ix in 0..xs.len() - 1 {
+                    if q2s.len() == 2 && options.two_point_q == TwoPointQ::LogBilinear {
+                        coefficients[(ix * flavors + flavor) * q2s.len() + iq] = [
+                            a.lift(0.0),
+                            a.lift(0.0),
+                            a.sub(&values[ix + 1], &values[ix]),
+                            values[ix].clone(),
+                        ];
+                        continue;
+                    }
                     let dx = a.sub(&x.logs[ix + 1], &x.logs[ix]);
                     let dl = a.mul(&derivative(&a, &x.logs, &values, ix), &dx);
                     let dh = a.mul(&derivative(&a, &x.logs, &values, ix + 1), &dx);
@@ -491,5 +567,27 @@ mod tests {
             Err(InterpolationError::InvalidFlavor)
         );
         assert_eq!(grid.evaluate(0, &0.5, &2.0), Ok(0.0));
+    }
+
+    #[test]
+    fn explicit_two_q_knot_policy_uses_log_bilinear_fallback() {
+        let xs = [0.125, 0.25, 0.5, 1.0];
+        let qs = [1.4, 4.0];
+        let grid = LogBicubicGrid::with_options(
+            Binary64,
+            &xs,
+            &qs,
+            1,
+            |_, ix, iq| (ix * ix + iq) as f64,
+            GridOptions {
+                scale_axis: ScaleAxis::Q,
+                two_point_q: TwoPointQ::LogBilinear,
+            },
+        )
+        .unwrap();
+        // Both query coordinates lie midway in log space between two knots.
+        let x = (xs[1] * xs[2]).sqrt();
+        let q2 = qs[0] * qs[1];
+        assert!((grid.evaluate(0, &x, &q2).unwrap() - 3.0).abs() < 1e-14);
     }
 }

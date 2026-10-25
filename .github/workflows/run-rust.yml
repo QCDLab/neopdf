@@ -66,3 +66,33 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: rust
+
+  tmdlib:
+    runs-on: ubuntu-latest
+    container: ghcr.io/qcdlab/neopdf-container:latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache MAP22 TMDlib grid
+        id: tmd-grid
+        uses: actions/cache@v4
+        with:
+          path: tmd-grids
+          key: tmdlib-map22-ff-km-n3ll-v1
+
+      - name: Download MAP22 TMDlib grid
+        if: steps.tmd-grid.outputs.cache-hit != 'true'
+        run: |
+          TMDlib-getdata MAP22_grids_FF_Km_N3LL
+          mkdir -p tmd-grids
+          cp -a /usr/share/tmdlib/. tmd-grids/
+          find tmd-grids -name 'MAP22_grids_FF_Km_N3LL.info' | grep -q .
+
+      - name: Test the tmdlib feature
+        env:
+          NEOPDF_DATA_PATH: /usr/share/LHAPDF
+          TMDLIBPATH: ${{ github.workspace }}/tmd-grids
+        run: |
+          cargo test -p neopdf_tmdlib --locked -- --include-ignored
+          cargo test -p neopdf_cli --locked --features tmdlib --test pdf xfxq2_kt
+          cargo test -p neopdf_cli --locked --features tmdlib --test converter convert_tmd

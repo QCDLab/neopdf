@@ -189,25 +189,10 @@ impl<T: Clone> Axis<T> {
         if !a.is_finite(x) {
             return Err(InterpolationError::NonFinite);
         }
-        if a.compare(x, &self.knots[0]) == Some(Ordering::Less)
-            || a.compare(x, self.knots.last().unwrap()) == Some(Ordering::Greater)
-        {
-            return Err(InterpolationError::OutOfRange);
-        }
-        let mut lo = 0;
-        let mut hi = self.knots.len();
-        while lo < hi {
-            let mid = lo + (hi - lo) / 2;
-            match a.compare(&self.knots[mid], x) {
-                Some(Ordering::Less | Ordering::Equal) => lo = mid + 1,
-                Some(Ordering::Greater) => hi = mid,
-                None => return Err(InterpolationError::NonFinite),
-            }
-        }
-        if lo == 0 {
-            return Err(InterpolationError::OutOfRange);
-        }
-        let i = (lo - 1).min(self.knots.len() - 2);
+        // The knots are finite (checked on construction) and so is `x`, so every comparison is
+        // ordered and `None` means out of range.
+        let i = crate::utils::find_interval_index_by(&self.knots, x, |k, v| a.compare(k, v))
+            .ok_or(InterpolationError::OutOfRange)?;
         let t = a.div(
             &a.sub(&a.ln(x), &self.logs[i]),
             &a.sub(&self.logs[i + 1], &self.logs[i]),
@@ -466,12 +451,21 @@ impl<A: Arithmetic> LogBicubicGrid<A> {
         };
         let lo = iq.saturating_sub(1);
         let hi = (iq + 2).min(nq - 1);
-        let values: Vec<_> = (lo..=hi).map(eval_x).collect();
+        // At most four Q rows enter the averaged-secant derivatives: keep them on the stack.
+        // Slots beyond `hi` (only at the ends of the Q axis) are never read.
+        let values: [A::Scalar; 4] = std::array::from_fn(|k| {
+            if lo + k <= hi {
+                eval_x(lo + k)
+            } else {
+                a.lift(0.0)
+            }
+        });
+        let values = &values[..=hi - lo];
         let knots = &self.q2.logs[lo..=hi];
         let j = iq - lo;
         let dq = a.sub(&self.q2.logs[iq + 1], &self.q2.logs[iq]);
-        let dl = a.mul(&derivative(a, knots, &values, j), &dq);
-        let dh = a.mul(&derivative(a, knots, &values, j + 1), &dq);
+        let dl = a.mul(&derivative(a, knots, values, j), &dq);
+        let dh = a.mul(&derivative(a, knots, values, j + 1), &dq);
         let result = hermite(a, &v, &values[j], &dl, &values[j + 1], &dh);
         if a.is_finite(&result) {
             Ok(result)

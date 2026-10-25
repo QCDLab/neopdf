@@ -43,6 +43,7 @@ pdf_sets=(
 
 neopdf_sets=(
     NNPDF40_nnlo_as_01180
+    MAP22_grids_FF_Km_N3LL
 )
 
 apt update
@@ -84,13 +85,28 @@ python3 -c "import lhapdf; print('LHAPDF imported successfully')"
 cd ..
 
 # ==== install TMDlib ====
+# configure requires an explicit LHAPDF prefix; without it the build errors
+# on an empty ${LHAPDF_DIR}. It only looks in $prefix/lib and $prefix/lib64.
+if ! ls /usr/lib/libLHAPDF.* >/dev/null 2>&1 && ! ls /usr/lib64/libLHAPDF.* >/dev/null 2>&1; then
+    lhapdf_lib=$(find /usr -name 'libLHAPDF.so' -print -quit || true)
+    if [ -z "${lhapdf_lib}" ]; then
+        echo "LHAPDF libraries were not installed under /usr" >&2
+        exit 1
+    fi
+    ln -s "$(dirname "${lhapdf_lib}")"/libLHAPDF.* /usr/lib/
+fi
 curl -L "https://tmdlib.hepforge.org/downloads/?f=tmdlib-${TMDLIB_V}.tar.gz" | tar xzf -
 cd "tmdlib-${TMDLIB_V}"
-./configure --prefix=/usr
+./configure --prefix=/usr --with-lhapdf=/usr
 make -j V=1
 make install
-# Verify that it is properly installed
-bash -c "TMDlib-config --libdir"
+cd ..
+ldconfig
+TMDlib-config --version
+TMDlib-config --libdir
+TMDlib-config --ldflags
+test -e "$(TMDlib-config --libdir)/libTMDlib.so"
+test -e "$(TMDlib-config --libdir)/libapfelxx.so"
 
 # install PDF sets
 for pdf in "${pdf_sets[@]}"; do

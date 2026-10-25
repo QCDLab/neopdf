@@ -15,6 +15,8 @@ ENV RUSTUP_HOME="/usr/local/rustup"
 ENV PYTHONPATH="/usr/lib/python3.11/site-packages"
 ENV LD_LIBRARY_PATH="/usr/lib:${LD_LIBRARY_PATH}"
 ENV LHAPDF_DATA_PATH="/usr/share/LHAPDF"
+ENV NEOPDF_DATA_PATH="/usr/share/LHAPDF"
+ENV TMDLIBPATH="/usr/share/tmdlib"
 
 COPY script.sh /tmp/
 

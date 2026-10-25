@@ -27,6 +27,8 @@
 //! - [`metadata`]: Metadata structures and types for describing PDF sets.
 //! - [`parser`]: Parsing utilities for reading and interpreting PDF set data files.
 //! - [`pdf`]: High-level interface for working with PDF sets and interpolation.
+//! - [`precision`]: Arithmetic-generic log-Hermite interpolation of collinear grids and αs tables,
+//!   for evaluating the binary64 grids in higher-precision (e.g. multiprecision) arithmetic.
 //! - [`strategy`]: Interpolation strategy implementations (bilinear, log-bicubic, etc.).
 //! - [`subgrid`]: Subgrid data structures and parameter range logic.
 //! - [`utils`]: Utility functions for interpolation and grid operations.
@@ -226,6 +228,7 @@ pub mod manage;
 pub mod metadata;
 pub mod parser;
 pub mod pdf;
+pub mod precision;
 pub mod strategy;
 pub mod subgrid;
 pub mod uncertainty;

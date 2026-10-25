@@ -47,28 +47,7 @@ pub(crate) struct InterleavedHermite {
 /// - Interior knots: average of left and right finite differences
 /// - Boundary knots: one-sided finite difference
 fn compute_x_derivative(log_xs: &[f64], values: &[f64], ix: usize) -> f64 {
-    let n = log_xs.len();
-    let del1 = if ix > 0 {
-        log_xs[ix] - log_xs[ix - 1]
-    } else {
-        0.0
-    };
-    let del2 = if ix < n - 1 {
-        log_xs[ix + 1] - log_xs[ix]
-    } else {
-        0.0
-    };
-
-    if ix > 0 && ix < n - 1 {
-        let lddx = (values[ix] - values[ix - 1]) / del1;
-        let rddx = (values[ix + 1] - values[ix]) / del2;
-        (lddx + rddx) / 2.0
-    } else if ix == 0 {
-        (values[ix + 1] - values[ix]) / del2
-    } else {
-        // ix == n - 1
-        (values[ix] - values[ix - 1]) / del1
-    }
+    crate::precision::derivative(&crate::precision::Binary64, log_xs, values, ix)
 }
 
 impl InterleavedHermite {

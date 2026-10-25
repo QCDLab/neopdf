@@ -71,32 +71,52 @@ pub fn find_interval_index(
     coords: &[f64],
     value: f64,
 ) -> Result<usize, ninterp::error::InterpolateError> {
-    // Check bounds
-    if value < coords[0] || value > coords[coords.len() - 1] {
-        return Err(ninterp::error::InterpolateError::ExtrapolateError(
-            "Out of Bounds!".to_string(),
-        ));
-    }
+    find_interval_index_by(coords, &value, f64::partial_cmp).ok_or_else(|| {
+        ninterp::error::InterpolateError::ExtrapolateError("Out of Bounds!".to_string())
+    })
+}
 
-    // Handle exact match with last coordinate
-    if value == coords[coords.len() - 1] {
-        return Ok(coords.len() - 2);
+/// Arithmetic-generic form of [`find_interval_index`].
+///
+/// `compare(coordinate, value)` orders a coordinate against the value in the caller's own
+/// arithmetic, so no conversion to `f64` is involved. The coordinates must be sorted and contain
+/// at least two entries. Returns `None` if the value lies outside `[coords[0], coords[last]]` or
+/// cannot be ordered.
+pub(crate) fn find_interval_index_by<T>(
+    coords: &[T],
+    value: &T,
+    compare: impl Fn(&T, &T) -> Option<std::cmp::Ordering>,
+) -> Option<usize> {
+    use std::cmp::Ordering;
+
+    if coords.len() < 2 {
+        return None;
+    }
+    let last = coords.len() - 1;
+    // Check bounds
+    if compare(&coords[0], value)? == Ordering::Greater {
+        return None;
+    }
+    match compare(&coords[last], value)? {
+        Ordering::Less => return None,
+        // Handle exact match with last coordinate
+        Ordering::Equal => return Some(last - 1),
+        Ordering::Greater => {}
     }
 
     // Binary search for the interval
     let mut left = 0;
-    let mut right = coords.len() - 1;
-
+    let mut right = last;
     while left < right {
         let mid = (left + right) / 2;
-        if coords[mid] <= value {
+        if compare(&coords[mid], value)? != Ordering::Greater {
             left = mid + 1;
         } else {
             right = mid;
         }
     }
 
-    Ok(left - 1)
+    Some(left - 1)
 }
 
 /// One-dimensional cubic interpolation using Hermite basis functions.
@@ -107,15 +127,7 @@ pub fn find_interval_index(
 /// extrapolated value changes from the product of dx and the discrete low-
 /// and high-edge derivative estimates.
 pub fn hermite_cubic_interpolate(t: f64, vl: f64, vdl: f64, vh: f64, vdh: f64) -> f64 {
-    let t2 = t * t;
-    let t3 = t2 * t;
-
-    let p0 = (2.0 * t3 - 3.0 * t2 + 1.0) * vl;
-    let m0 = (t3 - 2.0 * t2 + t) * vdl;
-    let p1 = (-2.0 * t3 + 3.0 * t2) * vh;
-    let m1 = (t3 - t2) * vdh;
-
-    p0 + m0 + p1 + m1
+    crate::precision::hermite(&crate::precision::Binary64, &t, &vl, &vdl, &vh, &vdh)
 }
 
 #[cfg(test)]
@@ -139,5 +151,8 @@ mod tests {
         // Test out of bounds
         assert!(find_interval_index(&coords, -0.1).is_err());
         assert!(find_interval_index(&coords, 4.1).is_err());
+
+        // An unordered query is out of range rather than a panic.
+        assert!(find_interval_index(&coords, f64::NAN).is_err());
     }
 }

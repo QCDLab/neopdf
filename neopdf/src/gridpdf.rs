@@ -33,6 +33,9 @@ pub enum Error {
     /// Error indicating invalid interpolation parameters, with a descriptive message.
     #[error("Invalid interpolation parameters: {0}")]
     InterpolationError(String),
+    /// Error indicating that original Q knots do not square to the subgrids' stored Q² knots.
+    #[error("Q knots do not match the Q² knots of the subgrids")]
+    InconsistentQKnots,
 }
 
 /// Direct-indexed PID lookup table. PIDs in range `[PID_MIN, PID_MAX]` are
@@ -95,6 +98,10 @@ pub struct GridArray {
     /// Direct-indexed PID lookup with complexity O(1).
     #[serde(skip)]
     pid_lookup: PidLookup,
+    /// Original unsquared Q knots per subgrid, when the input file provided them (LHAPDF `.dat`
+    /// files). They are not serialized: `.neopdf` files store Q² only.
+    #[serde(skip)]
+    q_knots: Option<Vec<Vec<f64>>>,
 }
 
 impl<'de> Deserialize<'de> for GridArray {
@@ -113,6 +120,7 @@ impl<'de> Deserialize<'de> for GridArray {
             pids: h.pids,
             subgrids: h.subgrids,
             pid_lookup,
+            q_knots: None,
         })
     }
 }
@@ -125,7 +133,37 @@ impl GridArray {
             pids,
             subgrids,
             pid_lookup,
+            q_knots: None,
         }
+    }
+
+    /// Attaches each subgrid's original unsquared Q knots, as returned by
+    /// [`crate::parser::LhapdfSet::read_data_with_q_knots`].
+    ///
+    /// Every knot must square, in binary64, to the subgrid's stored Q² knot. The
+    /// precision-generic path ([`crate::precision_pdf`]) then squares them in its own
+    /// arithmetic, so that PDF and αs thresholds given by the same Q stay identical.
+    pub fn with_q_knots(mut self, q_knots: Vec<Vec<f64>>) -> Result<Self, Error> {
+        let consistent = q_knots.len() == self.subgrids.len()
+            && q_knots.iter().zip(&self.subgrids).all(|(qs, subgrid)| {
+                qs.len() == subgrid.q2s.len()
+                    && qs
+                        .iter()
+                        .zip(subgrid.q2s.iter())
+                        .all(|(q, q2)| q * q == *q2)
+            });
+        if !consistent {
+            return Err(Error::InconsistentQKnots);
+        }
+        self.q_knots = Some(q_knots);
+        Ok(self)
+    }
+
+    /// The original unsquared Q knots of subgrid `index`, if they were attached.
+    pub fn q_knots(&self, index: usize) -> Option<&[f64]> {
+        self.q_knots
+            .as_ref()
+            .map(|q_knots| q_knots[index].as_slice())
     }
 
     /// Creates a new `GridArray` from a vector of `SubgridData`.
@@ -172,6 +210,7 @@ impl GridArray {
             pids,
             subgrids,
             pid_lookup,
+            q_knots: None,
         }
     }
 
@@ -242,7 +281,7 @@ impl GridArray {
 
     /// Gets the index corresponding to a given flavor ID.
     #[inline(always)]
-    fn pid_index(&self, flavor_id: i32) -> Option<usize> {
+    pub(crate) fn pid_index(&self, flavor_id: i32) -> Option<usize> {
         self.pid_lookup.get(flavor_id)
     }
 
@@ -1069,6 +1108,16 @@ impl GridPDF {
     /// # Returns
     ///
     /// The interpolated alpha_s value.
+    /// Prepares this grid's collinear `xfxq2` and `alphas_q2` path in the arithmetic `a`
+    /// (see [`crate::precision_pdf`]).
+    pub fn with_arithmetic<A: crate::precision::Arithmetic + Clone>(
+        &self,
+        a: A,
+    ) -> Result<crate::precision_pdf::PrecisionPDF<'_, A>, crate::precision_pdf::PrecisionError>
+    {
+        crate::precision_pdf::PrecisionPDF::new(self, a)
+    }
+
     pub fn alphas_q2(&self, q2: f64) -> f64 {
         self.alphas.alphas_q2(q2)
     }

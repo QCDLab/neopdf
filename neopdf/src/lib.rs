@@ -229,6 +229,7 @@ pub mod metadata;
 pub mod parser;
 pub mod pdf;
 pub mod precision;
+pub mod precision_pdf;
 pub mod strategy;
 pub mod subgrid;
 pub mod uncertainty;

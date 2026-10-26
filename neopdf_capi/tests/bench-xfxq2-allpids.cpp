@@ -63,7 +63,7 @@ int main() {
     std::cout << "Repeats:    " << N << "\n\n";
     std::cout << std::fixed << std::setprecision(1);
 
-    // Allow up to 40% tolerance for noisy VM CI environments
+    // Allow up to 50% tolerance for noisy VM CI environments
     if (neopdf_ns > 1.50 * lhapdf_ns) {
         std::cerr << "Assertion failed: neopdf_ns <= 1.50 * lhapdf_ns\n"
                   << "neopdf_ns = " << neopdf_ns << "\n"

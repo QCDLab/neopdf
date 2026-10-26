@@ -1,9 +1,29 @@
 #include "neopdf_tmdlib/src/tmdlib.hpp"
 #include "tmdlib/TMDlib.h"
+#include <iostream>
 #include <string>
+#include <utility>
 #include <vector>
 #include <iterator>
 #include <cmath>
+
+namespace {
+
+// TMDlib writes grid-lookup diagnostics with `std::cout`. The CLI stdout is
+// only the numeric result, so keep that chatter on stderr for the call.
+template <typename F>
+void quiet_tmdlib(F&& call) {
+    struct Redirect {
+        std::streambuf* previous;
+
+        Redirect() : previous(std::cout.rdbuf(std::cerr.rdbuf())) {}
+        ~Redirect() { std::cout.rdbuf(previous); }
+    } redirect;
+
+    std::forward<F>(call)();
+}
+
+} // namespace
 
 template <typename T>
 rust::Vec<T> std_vector_to_rust_vec(std::vector<T> vector)
@@ -19,11 +39,11 @@ std::unique_ptr<TMDlib::TMD> make_tmd() {
 }
 
 void tmd_init(TMDlib::TMD& tmd, rust::Str setname, int member) {
-    tmd.TMDinit(std::string(setname), member);
+    quiet_tmdlib([&] { tmd.TMDinit(std::string(setname), member); });
 }
 
 void tmd_init_set(TMDlib::TMD& tmd, rust::Str setname) {
-    tmd.TMDinit(std::string(setname));
+    quiet_tmdlib([&] { tmd.TMDinit(std::string(setname)); });
 }
 
 size_t tmd_get_num_members(TMDlib::TMD& tmd) {
@@ -55,10 +75,11 @@ double tmd_get_ktmax(TMDlib::TMD& tmd) {
 }
 
 rust::Vec<double> tmd_pdf(TMDlib::TMD& tmd, double x, double kt, double q) {
-    std::vector<double> pdfs = tmd.TMDpdf(x, 0.0, kt, q);
-    return std_vector_to_rust_vec(pdfs);
+    std::vector<double> pdfs;
+    quiet_tmdlib([&] { pdfs = tmd.TMDpdf(x, 0.0, kt, q); });
+    return std_vector_to_rust_vec(std::move(pdfs));
 }
 
 void tmd_set_verbosity(TMDlib::TMD& tmd, int verbosity) {
-    tmd.setVerbosity(verbosity);
+    quiet_tmdlib([&] { tmd.setVerbosity(verbosity); });
 }

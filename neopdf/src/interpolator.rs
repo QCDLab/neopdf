@@ -16,9 +16,7 @@ use std::any::Any;
 use ndarray::{s, IxDyn, OwnedRepr};
 use ninterp::data::{InterpData2D, InterpData3D};
 use ninterp::error::InterpolateError;
-use ninterp::interpolator::{
-    Extrapolate, Interp2D, Interp2DOwned, Interp3D, Interp3DOwned, InterpND, InterpNDOwned,
-};
+use ninterp::interpolator::{Extrapolate, Interp2D, Interp3D, InterpND};
 use ninterp::prelude::*;
 use ninterp::strategy::traits::{Strategy2D, Strategy3D, StrategyND};
 use ninterp::strategy::Linear;
@@ -126,7 +124,7 @@ pub trait DynInterpolator: Send + Sync {
 }
 
 // Implement `DynInterpolator` for 2D interpolators.
-impl<S> DynInterpolator for Interp2DOwned<f64, S>
+impl<S> DynInterpolator for Interp2D<f64, S>
 where
     S: Strategy2D<OwnedRepr<f64>> + 'static + Clone + Send + Sync,
 {
@@ -143,7 +141,7 @@ where
 }
 
 // Implement `DynInterpolator` for 3D interpolators.
-impl<S> DynInterpolator for Interp3DOwned<f64, S>
+impl<S> DynInterpolator for Interp3D<f64, S>
 where
     S: Strategy3D<OwnedRepr<f64>> + 'static + Clone + Send + Sync,
 {
@@ -160,7 +158,7 @@ where
 }
 
 // Implement `DynInterpolator` for N-dimensional interpolators.
-impl<S> DynInterpolator for InterpNDOwned<f64, S>
+impl<S> DynInterpolator for InterpND<f64, S>
 where
     S: StrategyND<OwnedRepr<f64>> + 'static + Clone + Send + Sync,
 {
@@ -175,14 +173,8 @@ where
 
 /// An enum to dispatch batch interpolation to the correct Chebyshev interpolator.
 pub enum BatchInterpolator {
-    Chebyshev2D(
-        LogChebyshevBatchInterpolation<2>,
-        InterpData2D<OwnedRepr<f64>>,
-    ),
-    Chebyshev3D(
-        LogChebyshevBatchInterpolation<3>,
-        InterpData3D<OwnedRepr<f64>>,
-    ),
+    Chebyshev2D(LogChebyshevBatchInterpolation<2>, InterpData2D<f64>),
+    Chebyshev3D(LogChebyshevBatchInterpolation<3>, InterpData3D<f64>),
 }
 
 impl BatchInterpolator {

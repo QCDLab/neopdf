@@ -32,6 +32,7 @@ nav:
   - CLI Tutorials: cli-tutorials.md
   - GUI Interface: gui.md
   - TMDlib Interface: tmdlib.md
+  - GPU API: gpu.md
   - LHAPDF Sets Benchmark: 'lhapdf_benchmark/pdfs.md'
   - Examples:
       - '<i class="devicon-rust-plain colored"></i> Rust API': 'examples/rust.md'

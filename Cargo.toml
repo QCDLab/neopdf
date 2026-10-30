@@ -21,7 +21,7 @@ indicatif = { default-features = false, version = "0.18.4" }
 itertools = "0.13"
 lz4_flex = "0.13"
 ndarray = { version = "0.17.2", features = ["serde"] }
-ninterp = "0.8.2"
+ninterp = "0.11.2"
 rayon = "1.5"
 regex = "1.11.1"
 ureq = { version = "2", features = ["tls"] }

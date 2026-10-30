@@ -2257,6 +2257,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "libm"
+version = "0.2.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
+
+[[package]]
 name = "libredox"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2488,7 +2494,7 @@ dependencies = [
  "lz4_flex",
  "ndarray",
  "neopdf_legacy",
- "ninterp",
+ "ninterp 0.11.2",
  "rayon",
  "regex",
  "serde",
@@ -2550,7 +2556,7 @@ dependencies = [
  "itertools 0.13.0",
  "lz4_flex",
  "ndarray",
- "ninterp",
+ "ninterp 0.8.2",
  "rayon",
  "regex",
  "serde",
@@ -2612,6 +2618,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "ninterp"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c6780f69675b83423d329bf7c15bd33ab8ef4585fb72bb0cadfdbf39d9cb203"
+dependencies = [
+ "dyn-clone",
+ "ndarray",
+ "num-traits",
+ "serde",
+ "serde-ndim",
+ "thiserror 2.0.12",
+]
+
+[[package]]
 name = "nodrop"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2654,6 +2674,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
+ "libm",
 ]
 
 [[package]]
@@ -3905,6 +3926,16 @@ checksum = "9a8e94ea7f378bd32cbbd37198a4a91436180c5bb472411e48b5ec2e2124ae9e"
 dependencies = [
  "serde_core",
  "serde_derive",
+]
+
+[[package]]
+name = "serde-ndim"
+version = "2.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19193fe14318bc26cf4cd6b8a78f83ad29fab24fb4a8f876edbf4420d7243f06"
+dependencies = [
+ "ndarray",
+ "serde",
 ]
 
 [[package]]

@@ -3,7 +3,7 @@ C++ OOP API Examples
 
 This example briefly demonstrates how to use the `NeoPDF` C++ Object Oriented (OOP) API to load
 and evaluate parton distributions. More examples can be found in
-`neopdf_capi/tests <https://github.com/Radonirinaunimi/neopdf/tree/master/neopdf_capi/tests>`_.
+`neopdf_capi/tests <https://github.com/QCDLab/neopdf/tree/master/neopdf_capi/tests>`_.
 
 Prerequisites
 *************

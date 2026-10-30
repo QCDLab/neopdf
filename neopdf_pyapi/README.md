@@ -1,9 +1,9 @@
 # NeoPDF-HEP
 
 ![Static Badge](https://img.shields.io/badge/Python-3.7--3.13-00A800?style=flat-square&logo=python&logoColor=yellow)
-![GitHub Tag](https://img.shields.io/github/v/tag/Radonirinaunimi/neopdf?include_prereleases&style=flat-square&logo=github&color=blue)
+![GitHub Tag](https://img.shields.io/github/v/tag/QCDLab/neopdf?include_prereleases&style=flat-square&logo=github&color=blue)
 ![Crates.io Version](https://img.shields.io/crates/v/neopdf?style=flat-square&logo=rust&color=blue)
-![GitHub License](https://img.shields.io/github/license/Radonirinaunimi/neopdf?style=flat-square&color=red)
+![GitHub License](https://img.shields.io/github/license/QCDLab/neopdf?style=flat-square&color=red)
 
 This crate uses [PyO3](https://pyo3.rs/v0.25.1/) to provide Python bindings to the
 [NeoPDF](https://crates.io/crates/neopdf) Rust's [APIs](https://docs.rs/neopdf/0.1.0/neopdf/index.html).

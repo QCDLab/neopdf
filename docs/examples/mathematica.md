@@ -2,7 +2,7 @@
 
 The following provides a short example on how to use the `Mathematica` interface
 of `NeoPDF`. More examples can be found in
-[neopdf_wolfram](https://github.com/Radonirinaunimi/neopdf/tree/master/neopdf_wolfram).
+[neopdf_wolfram](https://github.com/QCDLab/neopdf/tree/master/neopdf_wolfram).
 
 ## Prerequisites
 

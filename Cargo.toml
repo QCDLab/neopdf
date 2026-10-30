@@ -23,7 +23,7 @@ categories = ["science"]
 edition = "2021"
 keywords = ["high-energy-physics", "physics"]
 license = "GPL-3.0-or-later"
-repository = "https://github.com/Radonirinaunimi/neopdf"
+repository = "https://github.com/QCDLab/neopdf"
 rust-version = "1.83.0"
 version = "0.4.0"
 

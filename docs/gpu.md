@@ -336,7 +336,7 @@ API: an opaque handle released by a `_free` function, and status codes.
 The fallible calls return a `NeopdfCudaResult`: `NEOPDF_CUDA_RESULT_SUCCESS`,
 `NEOPDF_CUDA_RESULT_ERROR_NULL_POINTER`, `NEOPDF_CUDA_RESULT_ERROR_INVALID_LENGTH` or
 `NEOPDF_CUDA_RESULT_ERROR_DEVICE`. See
-[check-capi.c](https://github.com/Radonirinaunimi/neopdf/tree/master/neopdf_cuda/tests/capi/check-capi.c)
+[check-capi.c](https://github.com/QCDLab/neopdf/tree/master/neopdf_cuda/tests/capi/check-capi.c)
 for a complete C example.
 
 ---
@@ -439,7 +439,7 @@ for `NNPDF40_nnlo_as_01180` (101 members, 11 flavors plus $\alpha_s$).
 | 100 000 | 49 M pairs/s | 200 M pairs/s | 4.1× |
 
 The benchmark and the plotting script are in
-[neopdf_cuda/benches](https://github.com/Radonirinaunimi/neopdf/tree/master/neopdf_cuda/benches).
+[neopdf_cuda/benches](https://github.com/QCDLab/neopdf/tree/master/neopdf_cuda/benches).
 
 ---
 

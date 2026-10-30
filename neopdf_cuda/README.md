@@ -21,6 +21,8 @@ cargo test                                   # host-only layout/evaluation, any 
 cargo oxide test -- --features cuda          # + device kernel against the host evaluation
 cargo oxide build -- --features capi --release
 make -C tests/capi test-examples             # C and C++ interfaces
+cargo oxide build -- --features python --release --target-dir target/python
+make -C tests/python test test-examples      # Python interface
 ```
 
 ## C ABI and C++ Interface
@@ -50,6 +52,33 @@ std::vector<double> out = grid.xfxQ2_batch(xs, q2s);
 grid.xfxQ2_batch_device(xs_dev, q2s_dev, n_events, out_dev, stream);
 ```
 
-See `tests/capi/check-oop.cpp` and `tests/capi/check-generator.cu`
-for complete examples, `examples/` for Rust ones, and the "GPU API"
-page of the documentation for a walkthrough.
+## Python Interface
+
+In the `neopdf_cuda` directory, running:
+
+```bash
+cargo oxide build -- --features python --release --target-dir target/python
+```
+
+produces a `target/python/release/libneopdf_cuda.so`, which Python
+imports as the `neopdf_cuda` module once copied onto the Python path
+as `neopdf_cuda.so`. It is built in its own target directory because
+the `python` and `capi` features don't mix: the extension module
+leaves the Python symbols to the interpreter.
+
+```python
+from neopdf_cuda import DeviceGrid
+
+grid = DeviceGrid("NNPDF40_nnlo_as_01180")  # all members, uploaded once
+
+# NumPy arrays in, an (n_events, n_members, n_pids + 1) array out:
+out = grid.xfxQ2_batch(xs, q2s)
+
+# Or device arrays (CuPy, PyTorch, ...) in and out, ordered on the
+# caller's stream, without synchronizing the host.
+grid.xfxQ2_batch_device(xs_dev, q2s_dev, out_dev, stream.ptr)
+```
+
+See `tests/capi/check-oop.cpp`, `tests/capi/check-generator.cu` and
+`tests/python/` for complete examples, `examples/` for Rust ones, and
+the "GPU API" page of the documentation for a walkthrough.

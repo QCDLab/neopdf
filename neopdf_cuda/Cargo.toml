@@ -11,11 +11,16 @@ version = "0.4.0"
 readme = "README.md"
 build = "build.rs"
 
-# Standalone, outside the main workspace: `cuda-oxide` pins its own toolchain (see
-# `rust-toolchain.toml`) and is only available from git, neither of which should
-# leak into ordinary NeoPDF builds. Build the device layer with
-# `cargo oxide test -- --features cuda` (and the C interface with
-# `cargo oxide build -- --features capi --release`); the host-only layout runs under `cargo test`.
+# Standalone, outside the main workspace: `cuda-oxide` pins its own
+# toolchain (see `rust-toolchain.toml`) and is only available from
+# git, neither of which should leak into ordinary NeoPDF builds.
+# Build the device layer with:
+#
+# `cargo oxide test -- --features cuda`
+#
+# and the C or Python interface with
+#
+# `cargo oxide build -- --features capi|python --release`
 [workspace]
 
 [lib]
@@ -23,15 +28,21 @@ crate-type = ["rlib", "cdylib"]
 
 [features]
 cuda = ["dep:cuda-core", "dep:cuda-device", "dep:cuda-host"]
-# C interface: `libneopdf_cuda` + `include/neopdf_cuda.h` (generated) + `include/NeoPDFCuda.hpp`.
 capi = ["cuda", "dep:cbindgen"]
+# Python interface: `libneopdf_cuda` is the `neopdf_cuda` extension
+# module. Build it separately from `capi`: it expects the Python
+# interpreter to provide the `Py*` symbols, so it can't be linked
+# into C programs.
+python = ["cuda", "dep:numpy", "dep:pyo3"]
 
 [dependencies]
 neopdf = { path = "../neopdf", version = "0.4.0" }
+numpy = { version = "0.28", optional = true }
+pyo3 = { version = "0.28", features = ["extension-module"], optional = true }
 thiserror = "1.0.69"
 
-# `cuda-oxide` is alpha and breaks its API between commits, so it is pinned to the
-# revision this crate was written against.
+# `cuda-oxide` is alpha and breaks its API between commits, so it
+# is pinned to the revision this crate was written against.
 cuda-core = { git = "https://github.com/NVIDIA/cuda-rust.git", rev = "76ac1021660b0324c579d7cb57e847e7ffa3b9e1", optional = true }
 cuda-device = { git = "https://github.com/NVIDIA/cuda-rust.git", rev = "76ac1021660b0324c579d7cb57e847e7ffa3b9e1", optional = true }
 cuda-host = { git = "https://github.com/NVIDIA/cuda-rust.git", rev = "76ac1021660b0324c579d7cb57e847e7ffa3b9e1", optional = true }

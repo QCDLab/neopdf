@@ -6,18 +6,10 @@
 //! library is self-contained and can be used next to `neopdf_capi`.
 
 use std::ffi::{c_char, c_void, CStr};
-use std::ops::{Deref, DerefMut};
 use std::slice;
-use std::sync::Arc;
 
-use cuda_core::sys::{
-    cuEventRecord, cuStreamWaitEvent, CUevent_wait_flags_enum_CU_EVENT_WAIT_DEFAULT, CUstream,
-};
-use cuda_core::{CudaContext, CudaStream, DeviceBuffer, IntoResult};
-use neopdf::pdf::PDF;
-
-use crate::device::{DeviceError, DeviceGrid};
-use crate::grid_prep::DeviceGridLayout;
+use crate::device::DeviceError;
+pub use crate::foreign::NeoPDFDeviceGrid;
 
 /// Result codes for `neopdf_cuda` operations.
 #[repr(C)]
@@ -39,92 +31,6 @@ impl From<Result<(), DeviceError>> for NeopdfCudaResult {
             Ok(()) => Self::Success,
             Err(DeviceError::Shape { .. } | DeviceError::TooLarge(_)) => Self::ErrorInvalidLength,
             Err(_) => Self::ErrorDevice,
-        }
-    }
-}
-
-/// Opaque pointer to every member of a PDF set, resident on a GPU.
-pub struct NeoPDFDeviceGrid {
-    grid: DeviceGrid,
-    stream: Arc<CudaStream>,
-    pids: Vec<i32>,
-}
-
-impl NeoPDFDeviceGrid {
-    fn new(pdf_name: &str, device: usize) -> Option<Self> {
-        let layout = DeviceGridLayout::build(&PDF::load_pdfs(pdf_name)).ok()?;
-        let stream = CudaContext::new(device).ok()?.new_stream().ok()?;
-        let grid = DeviceGrid::upload(&stream, &layout).ok()?;
-        Some(Self {
-            grid,
-            stream,
-            pids: layout.pids,
-        })
-    }
-
-    /// Runs the batch on the caller's `stream`: the kernel is enqueued on this
-    /// grid's own stream, fenced by events so it starts after, and finishes before,
-    /// whatever the caller enqueues on `stream` around this call.
-    fn xfxq2_batch_on(
-        &self,
-        stream: CUstream,
-        xs: &DeviceBuffer<f64>,
-        q2s: &DeviceBuffer<f64>,
-        out: &mut DeviceBuffer<f64>,
-    ) -> Result<(), DeviceError> {
-        let ctx = self.stream.context();
-        let ready = ctx.new_event(None)?;
-        // SAFETY: `stream` is a valid stream of this context, as required by the caller.
-        unsafe { cuEventRecord(ready.cu_event(), stream).result()? };
-        self.stream.wait(&ready)?;
-        self.grid.xfxq2_batch_device(&self.stream, xs, q2s, out)?;
-        let done = self.stream.record_event(None)?;
-        // SAFETY: as above.
-        unsafe {
-            cuStreamWaitEvent(
-                stream,
-                done.cu_event(),
-                CUevent_wait_flags_enum_CU_EVENT_WAIT_DEFAULT,
-            )
-            .result()?;
-        };
-        Ok(())
-    }
-}
-
-/// A caller-owned device allocation viewed as a [`DeviceBuffer`], never freed here.
-struct Borrowed(Option<DeviceBuffer<f64>>);
-
-impl Borrowed {
-    /// # Safety
-    ///
-    /// `ptr` must be a device allocation of `ctx` holding at least `len` values.
-    unsafe fn new(ptr: *const f64, len: usize, ctx: &Arc<CudaContext>) -> Self {
-        // SAFETY: upheld by the caller; `Drop` hands the allocation back unfreed.
-        Self(Some(unsafe {
-            DeviceBuffer::from_raw_parts(ptr as u64, len, ctx.clone())
-        }))
-    }
-}
-
-impl Deref for Borrowed {
-    type Target = DeviceBuffer<f64>;
-
-    fn deref(&self) -> &Self::Target {
-        self.0.as_ref().expect("present until dropped")
-    }
-}
-
-impl DerefMut for Borrowed {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.0.as_mut().expect("present until dropped")
-    }
-}
-
-impl Drop for Borrowed {
-    fn drop(&mut self) {
-        if let Some(buffer) = self.0.take() {
-            let _ = buffer.into_raw_parts();
         }
     }
 }
@@ -175,7 +81,7 @@ pub unsafe extern "C" fn neopdf_device_grid_free(grid: *mut NeoPDFDeviceGrid) {
 pub const unsafe extern "C" fn neopdf_device_grid_num_members(
     grid: *const NeoPDFDeviceGrid,
 ) -> usize {
-    unsafe { &*grid }.grid.n_members()
+    unsafe { &*grid }.n_members()
 }
 
 /// Returns the number of flavors per member.
@@ -185,7 +91,7 @@ pub const unsafe extern "C" fn neopdf_device_grid_num_members(
 /// `grid` must be a valid device grid.
 #[no_mangle]
 pub const unsafe extern "C" fn neopdf_device_grid_num_pids(grid: *const NeoPDFDeviceGrid) -> usize {
-    unsafe { &*grid }.pids.len()
+    unsafe { &*grid }.pids().len()
 }
 
 /// Writes the flavor PIDs, in output column order, into `pids`.
@@ -195,7 +101,7 @@ pub const unsafe extern "C" fn neopdf_device_grid_num_pids(grid: *const NeoPDFDe
 /// `grid` must be a valid device grid and `pids` must hold `num_pids` values, with
 /// `num_pids` equal to `neopdf_device_grid_num_pids(grid)`.
 #[no_mangle]
-pub unsafe extern "C" fn neopdf_device_grid_pids(
+pub const unsafe extern "C" fn neopdf_device_grid_pids(
     grid: *const NeoPDFDeviceGrid,
     pids: *mut i32,
     num_pids: usize,
@@ -204,10 +110,10 @@ pub unsafe extern "C" fn neopdf_device_grid_pids(
         return NeopdfCudaResult::ErrorNullPointer;
     }
     let grid = unsafe { &*grid };
-    if num_pids != grid.pids.len() {
+    if num_pids != grid.pids().len() {
         return NeopdfCudaResult::ErrorInvalidLength;
     }
-    unsafe { slice::from_raw_parts_mut(pids, num_pids) }.copy_from_slice(&grid.pids);
+    unsafe { slice::from_raw_parts_mut(pids, num_pids) }.copy_from_slice(grid.pids());
     NeopdfCudaResult::Success
 }
 
@@ -222,7 +128,7 @@ pub const unsafe extern "C" fn neopdf_device_grid_output_len(
     grid: *const NeoPDFDeviceGrid,
     n_events: usize,
 ) -> usize {
-    unsafe { &*grid }.grid.output_len(n_events)
+    unsafe { &*grid }.output_len(n_events)
 }
 
 /// Evaluates every member and flavor, plus `alpha_s`, at `n_events` host-resident
@@ -255,9 +161,7 @@ pub unsafe extern "C" fn neopdf_device_grid_xfxq2_batch_host(
         )
     };
     let out = unsafe { slice::from_raw_parts_mut(out, out_len) };
-    grid.grid
-        .xfxq2_batch_host(&grid.stream, xs, q2s, out)
-        .into()
+    grid.xfxq2_batch_host(xs, q2s, out).into()
 }
 
 /// Enqueues the same evaluation as `neopdf_device_grid_xfxq2_batch_host` on
@@ -286,15 +190,5 @@ pub unsafe extern "C" fn neopdf_device_grid_xfxq2_batch_device(
         return NeopdfCudaResult::ErrorNullPointer;
     }
     let grid = unsafe { &*grid };
-    let ctx = grid.stream.context();
-    let out_len = grid.grid.output_len(n_events);
-    let (xs, q2s, mut out) = unsafe {
-        (
-            Borrowed::new(xs, n_events, ctx),
-            Borrowed::new(q2s, n_events, ctx),
-            Borrowed::new(out, out_len, ctx),
-        )
-    };
-    grid.xfxq2_batch_on(stream.cast(), &xs, &q2s, &mut out)
-        .into()
+    unsafe { grid.xfxq2_batch_raw(xs, q2s, n_events, out, stream.cast()) }.into()
 }

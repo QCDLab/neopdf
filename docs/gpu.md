@@ -5,9 +5,9 @@ title: "GPU API"
 # GPU API
 
 `NeoPDF` can evaluate PDFs on NVIDIA GPUs through the `neopdf_cuda` crate. It is designed
-for GPU-resident event generators (e.g. MadGraph-style matrix-element codes) that evaluate
-millions of independent $(x, Q^2)$ points per integration step, and that propagate PDF
-uncertainties by re-evaluating the same points for every member of a set:
+for batch interpolations (in MC event generators) that evaluate millions of independent
+$(x, Q^2)$ points per integration step, and that propagate PDF uncertainties by re-evaluating
+the same points for every member of a set:
 
 - every member of a set is uploaded to the GPU **once** and stays resident for a whole run;
 - a single call evaluates **all members and all flavors, plus $\alpha_s(Q^2)$**, at a batch
@@ -15,14 +15,14 @@ uncertainties by re-evaluating the same points for every member of a set:
 - inputs and outputs can stay on the device, on the caller's CUDA stream, with **no host
   round-trip**.
 
-The interface is available natively in Rust and as a C library with a C++ object oriented
-wrapper.
+The interface is available natively in Rust, as a C library with a C++ object oriented
+wrapper, and as a Python module.
 
 !!! warning "Experimental"
 
     The GPU backend is built with [cuda-oxide](https://github.com/NVIDIA/cuda-rust), which
-    NVIDIA describes as an early-stage project. It requires an Ampere or newer GPU
-    (compute capability **sm_80+**) and a CUDA 13 driver (**R580+**).
+    NVIDIA describes as an early-stage project. It requires an Ampere or newer GPU (compute
+    capability **sm_80+**) and a CUDA 13 driver (**R580+**) or newer.
 
 ---
 
@@ -83,8 +83,8 @@ where the columns follow the order of the set's flavor PIDs, and the last column
 | | |
 |---|---|
 | **Supported sets** | Collinear $(x, Q^2)$ sets with `LogBicubic` or `LogChebyshev` interpolation, including sets split into several $Q^2$ subgrids (e.g. at flavor thresholds), and a tabulated or constant $\alpha_s$ |
-| **Not supported (yet)** | `LogBilinear`, nuclear/TMD/$\xi$/$\delta$ axes, analytic $\alpha_s$ |
-| **Precision** | f64 |
+| **Not supported (yet)** | `LogBilinear`, nuclear/TMD/$\xi$/$\Delta$ axes, analytic $\alpha_s$ |
+| **Precision** | Double precision f64 |
 | **Accuracy** | The host evaluation of the GPU code is bit-for-bit identical to `PDF::xfxq2_allpids`/`alphas_q2`; on the device, fused multiply-adds give agreement at the $10^{-12}$ relative level |
 | **Out of range** | Same as the CPU: `LogBicubic` returns 0 outside the grid, `LogChebyshev` clamps to it, $\alpha_s$ returns 0 outside its table |
 | **Positivity clipping** | The members' `ForcePositive` setting is applied (all members must share it) |
@@ -95,14 +95,14 @@ where the columns follow the order of the set's flavor PIDs, and the last column
 
 | Requirement | Version |
 |---|---|
-| GPU | NVIDIA, compute capability sm_80 or newer (Ampere, Ada, Hopper, Blackwell) |
+| GPU | NVIDIA, compute capability `sm_80` or newer (Ampere, Ada, Hopper, Blackwell) |
 | Driver | R580 or newer (CUDA 13) |
 | CUDA toolkit | 13.0 or newer, with `nvcc`, `cuda.h` and libNVVM |
-| Rust | 1.99.1, pinned by `neopdf_cuda/rust-toolchain.toml` |
-| `cargo-oxide` | the cuda-oxide build driver |
-| Clang | with libclang development headers |
+| Rust | 1.99.1, Pinned by `neopdf_cuda/rust-toolchain.toml` |
+| `cargo-oxide` | The cuda-oxide build driver |
+| Clang | With `libclang` development headers |
 
-Install the pinned toolchain and `cargo-oxide`, then check the environment:
+First, install the pinned toolchain and `cargo-oxide`, then check the environment:
 
 ```bash
 rustup toolchain install 1.99.1 --profile minimal -c rust-src,rustc-dev,llvm-tools,clippy,rustfmt
@@ -114,37 +114,34 @@ cargo oxide doctor
 ```
 
 `neopdf_cuda` is a standalone crate, outside the main `NeoPDF` workspace, so that the
-pinned toolchain and the GPU dependencies never affect the other crates. GPU code is built
-with `cargo oxide`, which passes regular Cargo arguments after `--`:
+pinned toolchain and the GPU dependencies never affect the other crates. The GPU code
+is built with `cargo oxide`, which passes regular Cargo arguments after `--`:
 
 ```bash
 cargo test                                      # CPU-only parts, works without a GPU
 cargo oxide test -- --features cuda             # + GPU tests
 cargo oxide build -- --features capi --release  # C/C++ library
+cargo oxide build -- --features python --release --target-dir target/python  # Python module
 ```
-
-!!! tip "NOTE"
-
-    The tests and examples below read `NNPDF40_nnlo_as_01180` from `NEOPDF_DATA_PATH` and
-    download it if it is missing.
 
 ---
 
 ## Rust API
 
-Add the dependencies to your `Cargo.toml`. Until `neopdf_cuda` is released, depend on the
-repository directly; `neopdf` must come from the same source so that both crates share the
-same `PDF` type:
+To use `neopdf_cuda` as an API, add the dependencies to your `Cargo.toml`. Until
+`neopdf_cuda` is released, depend on the repository directly. `neopdf` must come from
+the same source so that both crates share the same `PDF` type:
 
 ```toml
 [dependencies]
-neopdf = { git = "https://github.com/Radonirinaunimi/neopdf" }
-neopdf_cuda = { git = "https://github.com/Radonirinaunimi/neopdf", features = ["cuda"] }
+neopdf = { git = "https://github.com/QCDLab/neopdf" }
+neopdf_cuda = { git = "https://github.com/QCDLab/neopdf", features = ["cuda"] }
 cuda-core = { git = "https://github.com/NVIDIA/cuda-rust.git", rev = "76ac1021660b0324c579d7cb57e847e7ffa3b9e1" }
 ```
 
-and pin the toolchain with a `rust-toolchain.toml` containing `channel = "1.99.1"` (see
-`neopdf_cuda/rust-toolchain.toml`). Build and run your program with `cargo oxide run`.
+and pin the toolchain with a `rust-toolchain.toml` containing `channel = "1.99.1"`
+(see `neopdf_cuda/rust-toolchain.toml`). Finally, build and run your program with
+`cargo oxide run`.
 
 The examples below live in `neopdf_cuda/examples`; build them all and run one with
 
@@ -153,7 +150,7 @@ cargo oxide build -- --features cuda --release --examples
 ./target/release/examples/replica_uncertainty
 ```
 
-The main types are:
+The main Rust API types are:
 
 | Type | Role |
 |---|---|
@@ -236,8 +233,8 @@ cargo oxide build -- --features capi --release
 ```
 
 This produces `target/release/libneopdf_cuda.so` and generates the C header
-`include/neopdf_cuda.h`; the C++ wrapper is `include/NeoPDFCuda.hpp`. Compile against them
-with, for example,
+`include/neopdf_cuda.h`; the C++ wrapper is `include/NeoPDFCuda.hpp`. Compile against
+them with, for example,
 
 ```bash
 c++ -std=c++17 main.cpp -I neopdf_cuda/include -L neopdf_cuda/target/release -lneopdf_cuda \
@@ -289,10 +286,10 @@ Output:
 
 ### Example 2: A Fully GPU-Resident Workflow
 
-This example computes the gluon-gluon luminosity
+This example computes the toy gluon-gluon luminosity
 
 $$
-\frac{d\mathcal{L}_{gg}}{d\tau} = \frac{1}{\tau} \int dy \; x_1 g(x_1, Q^2) \, x_2 g(x_2, Q^2),
+\frac{d\mathcal{L}_{gg}}{d\tau} = \frac{1}{\tau} \int dy \; x_1 \, g(x_1, Q^2) \, x_2 \, g(x_2, Q^2),
 \qquad x_{1,2} = \sqrt{\tau}\, e^{\pm y}, \quad Q^2 = \tau s,
 $$
 
@@ -346,28 +343,102 @@ for a complete C example.
 
 ---
 
+## Python API
+
+### Building and Installing
+
+The Python module is the library built with the `python` feature, in its own target
+directory so that it does not overwrite the C library:
+
+```bash
+cd neopdf_cuda
+cargo oxide build -- --features python --release --target-dir target/python
+```
+
+Python loads it as the `neopdf_cuda` module once it is copied, under the platform's
+extension name, into a directory on the Python path, e.g. into the active environment:
+
+```bash
+cp target/python/release/libneopdf_cuda.so \
+    "$(python -c 'import sysconfig as s; print(s.get_path("platlib") + "/neopdf_cuda" + s.get_config_var("EXT_SUFFIX"))')"
+```
+
+The module only needs NumPy. Its device interface accepts any array exposing the
+[CUDA Array Interface](https://numba.readthedocs.io/en/stable/cuda/cuda_array_interface.html)
+(CuPy, PyTorch, Numba, ...), and works in place on the arrays' memory. It is independent of
+the `neopdf` Python package, and both can be used in the same program.
+
+The `neopdf_cuda.DeviceGrid` class mirrors its C++ counterpart:
+
+| Method | Description |
+|---|---|
+| `DeviceGrid(pdf_name, device=0)` | Loads every member of a set and uploads it to GPU `device`; raises `ValueError` if the set is not supported, `RuntimeError` if the device cannot be used |
+| `num_members()`, `pids()` | Number of members, and flavor PIDs in output column order |
+| `output_len(n_events)` | `n_events * num_members() * (len(pids()) + 1)` |
+| `xfxQ2_batch(xs, q2s)` | Host arrays in, a NumPy array of shape `(n_events, num_members(), len(pids()) + 1)` out |
+| `xfxQ2_batch_device(xs, q2s, out, stream=0)` | Device arrays in, written into the device array `out`, ordered on a raw `cudaStream_t` handle, without synchronizing |
+
+---
+
+### Example 1: Host Arrays with NumPy
+
+The Python version of the first Rust example: the replica uncertainty of the gluon, and
+$\alpha_s$, for all members in a single call.
+
+```python linenums="1"
+--8<-- "neopdf_cuda/tests/python/check-host.py"
+```
+
+Output:
+
+```
+--8<-- "neopdf_cuda/tests/python/check-host.output"
+```
+
+---
+
+### Example 2: A Fully GPU-Resident Workflow with CuPy
+
+The Python version of the C++ luminosity example: CuPy generates the rapidity points and
+reduces the products per member, while `NeoPDF` evaluates the PDFs in between, all on one
+CuPy stream. Only the final values, one per member, are copied back to the host.
+
+```python linenums="1"
+--8<-- "neopdf_cuda/tests/python/check-cupy.py"
+```
+
+Output:
+
+```
+--8<-- "neopdf_cuda/tests/python/check-cupy.output"
+```
+
+**Key points:**
+
+- The output array can have any shape holding `output_len(n_events)` values; a 3D array
+  gives direct access to `pdfs[event, member, column]`.
+- The stream handle is `stream.ptr` for CuPy and `torch.cuda.current_stream().cuda_stream`
+  for PyTorch; the default `0` uses the default stream.
+- The arrays must be C-contiguous `float64` arrays on the grid's GPU; anything else raises
+  `TypeError` or `ValueError` instead of being copied.
+
+These examples, together with tests against the `neopdf` package, run with
+`make -C neopdf_cuda/tests/python test test-examples`; the tests skip the checks needing
+CuPy or `neopdf` if they are not installed, while the second example needs CuPy.
+
+---
+
 ## Performance
 
-The figure compares the device-resident GPU evaluation (Rust example 2 above) with a
-`rayon`-parallel CPU evaluation of `xfxq2_allpids` and `alphas_q2` over all members, for
-`NNPDF40_nnlo_as_01180` (101 members, 11 flavors plus $\alpha_s$).
-
-![GPU vs CPU throughput](assets/gpu-benchmark-rtx4090.png)
+The table compares the device-resident GPU evaluation (Rust example 2 above) with a
+`rayon`-parallel CPU evaluation of `xfxq2_allpids` and `alphas_q2` over all members,
+for `NNPDF40_nnlo_as_01180` (101 members, 11 flavors plus $\alpha_s$).
 
 | Events per batch | CPU (96 threads) | GPU (device-resident) | Speedup |
 |---|---|---|---|
 | 1 000 | 20 M pairs/s | 195 M pairs/s | 9.7× |
 | 10 000 | 36 M pairs/s | 199 M pairs/s | 5.5× |
 | 100 000 | 49 M pairs/s | 200 M pairs/s | 4.1× |
-
-Throughput is counted in (event, member) pairs, each giving all flavors and $\alpha_s$.
-
-- The GPU throughput is already flat at 1 000 events: the kernel is limited by
-  double-precision arithmetic, which consumer GPUs like the RTX 4090 run at 1/64 of their
-  single-precision rate. Data-center GPUs (A100, H100) have full-rate f64.
-- Including the transfers from and to host memory (`xfxq2_batch_host`), the time for large
-  batches is dominated by copying the output back, so keep the data on the device whenever
-  possible.
 
 The benchmark and the plotting script are in
 [neopdf_cuda/benches](https://github.com/Radonirinaunimi/neopdf/tree/master/neopdf_cuda/benches).
@@ -376,10 +447,11 @@ The benchmark and the plotting script are in
 
 ## Limitations and Roadmap
 
-- Only collinear `LogBicubic`/`LogChebyshev` sets, in f64; f32 and the other interpolation
-  types are possible follow-ups.
+- Only collinear `LogBicubic`/`LogChebyshev` sets, in f64 are currently supported. f32
+  and the other interpolation types are possible follow-ups.
 - `ForcePositive` is taken from the members and is not yet settable through the C API.
 - The C library is not yet installable through `cargo-c`/pkg-config like `neopdf_capi`,
   because `cargo-c` cannot drive the cuda-oxide compiler; link against
-  `neopdf_cuda/target/release` for now.
+  `neopdf_cuda/target/release` for now, and the Python module is not packaged as a wheel
+  for the same reason.
 - A Fortran interface is not available yet.

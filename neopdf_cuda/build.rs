@@ -4,6 +4,7 @@ fn main() {
     #[cfg(feature = "capi")]
     {
         println!("cargo:rerun-if-changed=src/capi.rs");
+        println!("cargo:rerun-if-changed=src/foreign.rs");
         println!("cargo:rerun-if-changed=cbindgen.toml");
         let crate_dir = std::env::var("CARGO_MANIFEST_DIR").expect("set by cargo");
         cbindgen::generate(crate_dir)

@@ -30,9 +30,9 @@ nav:
   - Design Rationale: design.md
   - Custom Interpolation: custom-interpolation.md
   - CLI Tutorials: cli-tutorials.md
+  - GPU API: gpu.md
   - GUI Interface: gui.md
   - TMDlib Interface: tmdlib.md
-  - GPU API: gpu.md
   - LHAPDF Sets Benchmark: 'lhapdf_benchmark/pdfs.md'
   - Examples:
       - '<i class="devicon-rust-plain colored"></i> Rust API': 'examples/rust.md'

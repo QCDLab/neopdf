@@ -22,12 +22,13 @@ fn assert_device_matches_host(members: &[PDF]) {
     let ctx = CudaContext::new(0).unwrap();
     let stream = ctx.default_stream();
     let grid = DeviceGrid::upload(&stream, &layout).unwrap();
-    let out = grid.xfxq2_batch_host(&stream, &xs, &q2s).unwrap();
+    let mut out = vec![0.0; grid.output_len(xs.len())];
+    grid.xfxq2_batch_host(&stream, &xs, &q2s, &mut out).unwrap();
 
     assert_eq!(out.len(), expected.len());
     for (i, (&got, &want)) in out.iter().zip(&expected).enumerate() {
         assert!(
-            (got - want).abs() <= 1e-12 * want.abs() + 1e-15,
+            (got - want).abs() <= want.abs().mul_add(1e-12, 1e-15),
             "entry {i}: device {got}, host {want}"
         );
     }
@@ -50,7 +51,8 @@ fn rejects_mismatched_batch_shapes() {
     let ctx = CudaContext::new(0).unwrap();
     let stream = ctx.default_stream();
     let grid = DeviceGrid::upload(&stream, &layout).unwrap();
+    let mut out = vec![0.0; grid.output_len(2)];
     assert!(grid
-        .xfxq2_batch_host(&stream, &[0.1, 0.2], &[10.0])
+        .xfxq2_batch_host(&stream, &[0.1, 0.2], &[10.0], &mut out)
         .is_err());
 }

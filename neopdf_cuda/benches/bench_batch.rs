@@ -15,7 +15,10 @@ fn events(n: usize) -> (Vec<f64>, Vec<f64>) {
     (0..n)
         .map(|i| {
             let (u, v) = (i as f64 / n as f64, ((i * 7919) % n) as f64 / n as f64);
-            (10f64.powf(-6.0 + 5.9 * u), 10f64.powf(0.5 + 7.0 * v))
+            (
+                10f64.powf(5.9f64.mul_add(u, -6.0)),
+                10f64.powf(7.0f64.mul_add(v, 0.5)),
+            )
         })
         .unzip()
 }
@@ -30,7 +33,7 @@ fn xfxq2_batch(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("xfxq2_batch");
     group.sample_size(10);
-    // 100k events x 101 members x 15 columns is already ~1.2 GB of output.
+    // 100k events x 101 members x 12 columns is already ~1 GB of output.
     for n_events in [1_000, 10_000, 100_000] {
         let (xs, q2s) = events(n_events);
         group.throughput(Throughput::Elements((n_events * members.len()) as u64));
@@ -60,7 +63,7 @@ fn xfxq2_batch(c: &mut Criterion) {
             });
         });
         group.bench_function(BenchmarkId::new("gpu_host", n_events), |b| {
-            b.iter(|| grid.xfxq2_batch_host(&stream, &xs, &q2s).unwrap());
+            b.iter(|| grid.xfxq2_batch_host(&stream, &xs, &q2s, &mut out).unwrap());
         });
     }
     group.finish();

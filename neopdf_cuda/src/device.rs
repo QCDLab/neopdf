@@ -21,7 +21,9 @@ use crate::grid_prep::{DeviceGridLayout, Interpolation};
 /// Threads per block; must match the kernel's `launch_contract`.
 const BLOCK_SIZE: u32 = 256;
 
+// `#[cuda_module]` generates the kernel's entry point and expects its items in scope.
 #[cuda_module]
+#[allow(clippy::wildcard_imports, clippy::no_mangle_with_rust_abi)]
 mod kernels {
     use super::*;
 
@@ -160,6 +162,18 @@ impl DeviceGrid {
         })
     }
 
+    /// Number of members on the device.
+    #[must_use]
+    pub const fn n_members(&self) -> usize {
+        self.n_members
+    }
+
+    /// Number of flavors per member (the output has one more column, `alpha_s`).
+    #[must_use]
+    pub const fn n_flavors(&self) -> usize {
+        self.n_flavors
+    }
+
     /// Length of the batch output for `n_events` events: `n_events * n_members * (n_flavors + 1)`.
     #[must_use]
     pub const fn output_len(&self, n_events: usize) -> usize {
@@ -224,24 +238,26 @@ impl DeviceGrid {
         Ok(())
     }
 
-    /// Evaluates host-resident `xs`/`q2s`, returning the batch output on the host.
+    /// Evaluates host-resident `xs`/`q2s` into the host-resident `out`, returning
+    /// once `out` is filled.
     ///
     /// See [`Self::xfxq2_batch_device`] for the output layout.
     ///
     /// # Errors
     ///
-    /// Returns an error if `xs` and `q2s` differ in length, or a device
+    /// Returns an error if the buffer lengths are inconsistent, or a device
     /// allocation, copy or launch fails.
     pub fn xfxq2_batch_host(
         &self,
         stream: &CudaStream,
         xs: &[f64],
         q2s: &[f64],
-    ) -> Result<Vec<f64>, DeviceError> {
+        out: &mut [f64],
+    ) -> Result<(), DeviceError> {
         let xs = DeviceBuffer::from_host(stream, xs)?;
         let q2s = DeviceBuffer::from_host(stream, q2s)?;
-        let mut out = DeviceBuffer::zeroed(stream, self.output_len(xs.len()))?;
-        self.xfxq2_batch_device(stream, &xs, &q2s, &mut out)?;
-        Ok(out.to_host_vec(stream)?)
+        let mut out_dev = DeviceBuffer::zeroed(stream, out.len())?;
+        self.xfxq2_batch_device(stream, &xs, &q2s, &mut out_dev)?;
+        Ok(out_dev.copy_to_host(stream, out)?)
     }
 }

@@ -36,7 +36,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     for (event, (x, q2)) in xs.iter().zip(&q2s).enumerate() {
         let row = &out[event * layout.n_members * n_columns..][..layout.n_members * n_columns];
-        // NNPDF: member 0 is the central value, members 1.. are the replicas.
         let replicas: Vec<f64> = row.chunks(n_columns).skip(1).map(|m| m[gluon]).collect();
         let n = replicas.len() as f64;
         let mean = replicas.iter().sum::<f64>() / n;

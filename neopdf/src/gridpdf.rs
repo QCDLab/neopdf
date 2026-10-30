@@ -1060,7 +1060,7 @@ impl GridPDF {
         }
     }
 
-    /// Gets the alpha_s value at a given `Q²`.
+    /// Gets the alpha_s value at a given `Q^2`.
     ///
     /// # Arguments
     ///
@@ -1075,9 +1075,9 @@ impl GridPDF {
 
     /// Exports this PDF member for a device/GPU backend, e.g. `neopdf_cuda`.
     ///
-    /// Only succeeds for the plain 2-D `(x, Q²)` "collinear" case: Q²-contiguous
+    /// Only succeeds for the plain 2D `(x, Q^2)` "collinear" case: Q^2-contiguous
     /// subgrids sharing one x grid, `LogBicubic` or `LogChebyshev` interpolation,
-    /// and a table-or-constant `alpha_s`. See [`gpu_export`](super::gpu_export) for why.
+    /// and a table-or-constant `alpha_s`. See [`gpu_export`](super::gpu_export).
     pub fn collinear_export(
         &self,
     ) -> Result<super::gpu_export::CollinearExport, super::gpu_export::CollinearExportError> {
@@ -1130,8 +1130,8 @@ impl GridPDF {
                 let expected = *prev
                     .log_q2s
                     .last()
-                    .expect("subgrid has at least 2 Q² knots");
-                let found = *log_q2s.first().expect("subgrid has at least 2 Q² knots");
+                    .expect("subgrid has at least 2 Q^2 knots");
+                let found = *log_q2s.first().expect("subgrid has at least 2 Q^2 knots");
                 if expected != found {
                     return Err(CollinearExportError::QGridNotContiguous {
                         at: i,
@@ -1206,7 +1206,7 @@ mod tests {
         let flavors = vec![21, 22];
         let grid_array = GridArray::new(subgrid_data, flavors);
 
-        // Grid shape is 6D: [nucleons, alphas, pids, kT, x, Q²]
+        // Grid shape is 6D: [nucleons, alphas, pids, kT, x, Q^2]
         match &grid_array.subgrids[0].grid {
             crate::subgrid::GridData::Grid6D(grid) => {
                 assert_eq!(grid.shape(), &[1, 1, 2, 1, 3, 2]);

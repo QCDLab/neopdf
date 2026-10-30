@@ -10,10 +10,10 @@ use neopdf::writer::GridArrayCollection;
 use neopdf_cuda::grid_prep::DeviceGridLayout;
 use tempfile::TempDir;
 
-/// A `LogBicubic` set split into two Q² subgrids at the bottom threshold.
+/// A `LogBicubic` set split into two Q^2 subgrids at the bottom threshold.
 pub const HERMITE_SET: &str = "NNPDF40_nnlo_as_01180";
 
-/// `(x, Q²)` points spanning every subgrid, their shared boundary, the grid edges
+/// `(x, Q^2)` points spanning every subgrid, their shared boundary, the grid edges
 /// and the out-of-range regions on every side.
 pub fn points(pdf: &PDF) -> (Vec<f64>, Vec<f64>) {
     let ranges = pdf.param_ranges();
@@ -59,8 +59,8 @@ fn chebyshev_knots(n: usize, lo: f64, hi: f64) -> Vec<f64> {
     knots
 }
 
-/// No 2-D `LogChebyshev` set is published, so write a synthetic one: three members,
-/// two Q² subgrids split at the bottom threshold, and [`HERMITE_SET`]'s `alpha_s`.
+/// No 2D `LogChebyshev` set is published, so write a synthetic one: three members,
+/// two Q^2 subgrids split at the bottom threshold, and [`HERMITE_SET`]'s `alpha_s`.
 ///
 /// The returned directory holds the set and must outlive the loaded members.
 pub fn chebyshev_set() -> (TempDir, Vec<PDF>) {

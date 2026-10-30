@@ -29,13 +29,31 @@ wrapper.
 ## How it works
 
 ```mermaid
-flowchart LR
-    A["PDF members<br/>(PDF::load_pdfs)"] --> B["DeviceGridLayout<br/>flat buffers, all members"]
-    B -->|"upload once"| C["DeviceGrid<br/>(GPU memory)"]
-    D["batch of (x, Q²)"] --> E["batch kernel<br/>one thread per output entry"]
-    C --> E
-    E --> F["out[event][member][flavor + αs]"]
+graph LR
+
+A["<b>PDF Members</b> <br> PDF::load_pdfs(name)"]
+B["<b>Host Layout</b> <br> DeviceGridLayout"]
+C["<b>Device Grid</b> <br> DeviceGrid (GPU memory)"]
+D["<b>Phase-Space Points</b> <br> batch of (x, Q²)"]
+E["<b>Batch Kernel</b> <br> one thread per output entry"]
+F["<b>Output</b> <br> out[event][member][flavor + αs]"]
+
+A -->|flatten all members| B
+B -->|upload once| C
+C --> E
+D -->|every batch| E
+E --> F
+
+style A fill:#ffd580,stroke:#b8860b,stroke-width:2px
+style B fill:#ffd580,stroke:#b8860b,stroke-width:2px
+style C fill:#98fb98,stroke:#228b22,stroke-width:2px
+style D fill:#add8e6,stroke:#1e90ff,stroke-width:2px
+style E fill:#98fb98,stroke:#228b22,stroke-width:2px
+style F fill:#f08080,stroke:#8b0000,stroke-width:2px
 ```
+
+The colors distinguish the steps on the host (yellow) from those on the GPU (green), with
+the per-batch inputs in blue and the output in red.
 
 1. `DeviceGridLayout::build` flattens every member of a set into a handful of contiguous
    buffers (the grids and the interpolation coefficients of all subgrids, and the

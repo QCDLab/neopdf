@@ -1,7 +1,20 @@
 [workspace]
-members = ["neopdf", "neopdf_capi", "neopdf_cli", "neopdf_gui", "neopdf_legacy", "neopdf_pyapi", "neopdf_tmdlib", "neopdf_wolfram"]
-default-members = ["neopdf", "neopdf_capi", "neopdf_cli", "neopdf_pyapi"]
-# Standalone: pins the `cuda-oxide` toolchain, see its `Cargo.toml`.
+members = [
+  "neopdf",
+  "neopdf_capi",
+  "neopdf_cli",
+  "neopdf_gui",
+  "neopdf_legacy",
+  "neopdf_pyapi",
+  "neopdf_tmdlib",
+  "neopdf_wolfram"
+]
+default-members = [
+  "neopdf",
+  "neopdf_capi",
+  "neopdf_cli",
+  "neopdf_pyapi"
+]
 exclude = ["neopdf_cuda"]
 resolver = "2"
 

@@ -1,8 +1,9 @@
 //! The C-language interface to device grids (feature `capi`).
 //!
-//! Mirrors `neopdf_capi`'s conventions: opaque, heap-allocated handles released with a
-//! `_free` function, and status codes for fallible calls. A grid is built from a set
-//! name, so this library is self-contained and can be used next to `neopdf_capi`.
+//! Mirrors `neopdf_capi`'s conventions: opaque, heap-allocated
+//! handles released with a `_free` function, and status codes
+//! for fallible calls. A grid is built from a set name, so this
+//! library is self-contained and can be used next to `neopdf_capi`.
 
 use std::ffi::{c_char, c_void, CStr};
 use std::ops::{Deref, DerefMut};

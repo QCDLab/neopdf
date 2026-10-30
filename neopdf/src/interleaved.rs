@@ -41,12 +41,12 @@ pub(crate) struct InterleavedHermite {
     n_flavors: usize,
 }
 
-/// Borrowed view of a plain 2-D (x, Q²) `InterleavedHermite` table, for exporting
+/// Borrowed view of a plain 2D (x, Q^2) `InterleavedHermite` table, for exporting
 /// to a device/GPU backend. See [`InterleavedHermite::as_collinear`].
 pub(crate) struct CollinearHermiteView<'a> {
     /// Log-transformed x grid knots.
     pub(crate) log_xs: &'a [f64],
-    /// Log-transformed Q² grid knots.
+    /// Log-transformed Q^2 grid knots.
     pub(crate) log_q2s: &'a [f64],
     /// Flat coefficients, exactly `InterleavedHermite::coeffs`'s own layout:
     /// `[(x_cell * n_q2 + q2_idx) * n_flavors + flavor) * 4 + c]`.
@@ -63,9 +63,9 @@ fn compute_x_derivative(log_xs: &[f64], values: &[f64], ix: usize) -> f64 {
 }
 
 impl InterleavedHermite {
-    /// Borrows this table as a plain 2-D `(x, Q²)` view, for a device/GPU export.
+    /// Borrows this table as a plain 2D `(x, Q^2)` view, for a device/GPU export.
     ///
-    /// Returns `None` for a 3-D+ table (nucleon/kT/xi/delta axes present), since
+    /// Returns `None` for a 3D+ table (nucleon/kT/xi/delta axes present), since
     /// those don't fit the plain collinear case a GPU export models.
     pub(crate) fn as_collinear(&self) -> Option<CollinearHermiteView<'_>> {
         if self.n_extra != 1 {

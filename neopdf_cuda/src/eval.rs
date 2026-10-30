@@ -5,12 +5,12 @@
 //! host for validation against `neopdf`'s CPU path. Each function is a direct port of
 //! its CPU counterpart, keeping the same operation order:
 //!
-//! - [`Hermite`]: `InterleavedHermite::eval_allpids` (2-D branch).
-//! - [`Chebyshev`]: `ChebyshevAllPids::{locate, eval_allpids}` (2-D branch).
+//! - [`Hermite`]: `InterleavedHermite::eval_allpids` (2D branch).
+//! - [`Chebyshev`]: `ChebyshevAllPids::{locate, eval_allpids}` (2D branch).
 //! - `GridView::alphas_q2`: `AlphaSCubicInterpolation::interpolate`.
 //!
 //! The batch output is `[n_events, n_members, n_flavors + 1]` in C order, the last
-//! column holding `alpha_s(Q²)`. [`GridView::eval`] computes one entry of it, which
+//! column holding `alpha_s(Q^2)`. [`GridView::eval`] computes one entry of it, which
 //! makes "one thread per output element" the natural device mapping.
 //!
 //! [`DeviceGridLayout`]: crate::grid_prep::DeviceGridLayout
@@ -40,7 +40,7 @@ pub struct GridView<'a> {
     pub alphas_offsets: &'a [usize],
 }
 
-/// One Q²-contiguous subgrid of one member, as located by [`GridView::subgrid`].
+/// One Q^2-contiguous subgrid of one member, as located by [`GridView::subgrid`].
 struct Subgrid<'a> {
     log_q2s: &'a [f64],
     q2_nodes: &'a [f64],
@@ -50,7 +50,7 @@ struct Subgrid<'a> {
 
 /// A collinear fast path a kernel can be specialized on.
 pub trait Interpolator {
-    /// Interpolated, unclipped `xf(x, Q²)` of `flavor` for `member`, at `ln(x)`/`ln(Q²)`,
+    /// Interpolated, unclipped `xf(x, Q^2)` of `flavor` for `member`, at `ln(x)`/`ln(Q^2)`,
     /// or `None` outside the region this fast path evaluates.
     fn xfxq2(grid: &GridView, member: usize, flavor: usize, lx: f64, lq2: f64) -> Option<f64>;
 }
@@ -104,7 +104,7 @@ impl GridView<'_> {
         }
     }
 
-    /// Index of the first subgrid whose Q² range contains `lq2`, if any.
+    /// Index of the first subgrid whose Q^2 range contains `lq2`, if any.
     fn subgrid_containing(&self, lq2: f64) -> Option<usize> {
         (0..self.q2_offsets.len() - 1).find(|&s| {
             let (lo, hi) = (self.q2_offsets[s], self.q2_offsets[s + 1] - 1);
@@ -124,7 +124,7 @@ impl GridView<'_> {
         }
     }
 
-    /// `alpha_s(Q²)` for `member`, as `AlphaSInterpol::alphas_q2` computes it.
+    /// `alpha_s(Q^2)` for `member`, as `AlphaSInterpol::alphas_q2` computes it.
     #[must_use]
     pub fn alphas_q2(&self, member: usize, q2: f64) -> f64 {
         let range = self.alphas_offsets[member]..self.alphas_offsets[member + 1];
@@ -176,7 +176,7 @@ impl Interpolator for Hermite {
         let nq2 = knots.len();
         let u = (lx - grid.log_xs[ix]) / (grid.log_xs[ix + 1] - grid.log_xs[ix]);
         let v = (lq2 - knots[iq2]) / (knots[iq2 + 1] - knots[iq2]);
-        // Cubic in x at Q² knot `iq2 + offset`, from the precomputed coefficients.
+        // Cubic in x at Q^2 knot `iq2 + offset`, from the precomputed coefficients.
         let at = |offset: isize| {
             let cell = ix * nq2 + iq2.wrapping_add_signed(offset);
             let c = &sg.values[(cell * grid.n_flavors + flavor) * 4..][..4];

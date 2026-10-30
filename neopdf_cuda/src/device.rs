@@ -3,7 +3,7 @@
 //! [`DeviceGrid::upload`] copies a [`DeviceGridLayout`] to the GPU once, so it can be
 //! reused across a whole integration run. [`DeviceGrid::xfxq2_batch_device`] is the
 //! primitive a GPU-native caller wants: inputs and output already live on the
-//! device, the launch is enqueued on the caller's stream and nothing is
+//! device. The launch is then enqueued on the caller's stream and nothing is
 //! synchronized. [`DeviceGrid::xfxq2_batch_host`] wraps it with the host transfers.
 //!
 //! The kernel runs one thread per entry of the `[n_events, n_members, n_flavors + 1]`
@@ -82,7 +82,7 @@ mod kernels {
     }
 }
 
-/// Why a [`DeviceGrid`] operation failed.
+/// Errors detailing why a [`DeviceGrid`] operation failed.
 #[derive(Debug, Error)]
 pub enum DeviceError {
     /// A CUDA driver call (allocation, copy, launch) failed.
@@ -95,11 +95,11 @@ pub enum DeviceError {
     #[error(transparent)]
     Launch(#[from] LaunchContractError),
     /// The batch buffers don't have consistent lengths.
-    #[error("{xs} x values and {q2s} Q² values need an output of length {expected}, found {out}")]
+    #[error("{xs} x values and {q2s} Q^2 values need an output of length {expected}, found {out}")]
     Shape {
         /// Length of the x buffer.
         xs: usize,
-        /// Length of the Q² buffer.
+        /// Length of the Q^2 buffer.
         q2s: usize,
         /// Length of the output buffer.
         out: usize,
@@ -184,7 +184,7 @@ impl DeviceGrid {
     /// `stream`, without synchronizing.
     ///
     /// `out` is laid out `[n_events, n_members, n_flavors + 1]`, the last column
-    /// holding `alpha_s(Q²)`; see [`Self::output_len`].
+    /// holding `alpha_s(Q^2)`; see [`Self::output_len`].
     ///
     /// # Errors
     ///

@@ -1,12 +1,12 @@
 //! Flattens N PDF members into one contiguous, device-upload-ready layout.
 //!
-//! This module is pure Rust and depends only on [`neopdf::gpu_export`] — no GPU
+//! This module is pure Rust and depends only on [`neopdf::gpu_export`], no GPU
 //! toolchain is needed to build or test it. It is the place almost all of this
 //! crate's correctness risk lives: once [`DeviceGridLayout`] is right, the device
 //! kernels are a transliteration of its indexing (see [`crate::eval`]).
 //!
-//! LHAPDF-style sets store the same `(x, Q²)` grid (across one or more Q²-contiguous
-//! subgrids — see [`neopdf::gpu_export`] for why there can be more than one) and the
+//! LHAPDF-style sets store the same `(x, Q^2)` grid (across one or more Q^2-contiguous
+//! subgrids, see [`neopdf::gpu_export`] for why there can be more than one) and the
 //! same flavor PIDs for every member of a set — only the tabulated values (and often
 //! the `alpha_s` table) differ by member. [`DeviceGridLayout::build`] checks that
 //! assumption explicitly rather than relying on it silently.
@@ -60,7 +60,7 @@ pub enum Interpolation {
 /// an offsets array of length `n_subgrids + 1`, so the whole layout is a handful of
 /// flat buffers a kernel can take as plain slices:
 ///
-/// - Q² knots of subgrid `s`: `log_q2s[q2_offsets[s]..q2_offsets[s + 1]]`.
+/// - Q^2 knots of subgrid `s`: `log_q2s[q2_offsets[s]..q2_offsets[s + 1]]`.
 /// - Values of subgrid `s`: `values[value_offsets[s]..value_offsets[s + 1]]`, split
 ///   into `n_members` equal member-major blocks. Within member `m`'s block, the
 ///   local index is `((ix * n_q2 + iq2) * n_flavors + flavor) * 4 + c` for
@@ -81,7 +81,7 @@ pub struct DeviceGridLayout {
     pub log_xs: Vec<f64>,
     /// Chebyshev nodes matching `log_xs`; empty for [`Interpolation::Hermite`].
     pub x_nodes: Vec<f64>,
-    /// Every subgrid's log-transformed Q² knots, concatenated in Q² order.
+    /// Every subgrid's log-transformed Q^2 knots, concatenated in Q^2 order.
     pub log_q2s: Vec<f64>,
     /// Chebyshev nodes matching `log_q2s`; empty for [`Interpolation::Hermite`].
     pub q2_nodes: Vec<f64>,
@@ -91,7 +91,7 @@ pub struct DeviceGridLayout {
     pub values: Vec<f64>,
     /// Subgrid boundaries within `values`.
     pub value_offsets: Vec<usize>,
-    /// Every member's `alpha_s` log-Q² knots, concatenated in member order.
+    /// Every member's `alpha_s` log-Q^2 knots, concatenated in member order.
     pub alphas_log_q2s: Vec<f64>,
     /// Every member's `alpha_s` values, matching `alphas_log_q2s`.
     pub alphas: Vec<f64>,
@@ -142,7 +142,7 @@ impl DeviceGridLayout {
 
     /// Flattens `members` (same PDF set, every member) into one device-ready layout.
     ///
-    /// Every member must share the same x grid, the same subgrid Q² ranges, the
+    /// Every member must share the same x grid, the same subgrid Q^2 ranges, the
     /// same flavor PIDs, the same fast-path kind and the same [`ForcePositive`]
     /// setting as member 0.
     ///
@@ -287,7 +287,7 @@ mod tests {
         assert_eq!(layout.pids, members[0].pids().to_vec());
         assert!(layout.log_xs.windows(2).all(|w| w[0] < w[1]));
         assert!(layout.x_nodes.is_empty() && layout.q2_nodes.is_empty());
-        // NNPDF40_nnlo_as_01180 splits into 2 Q²-contiguous subgrids at the
+        // NNPDF40_nnlo_as_01180 splits into 2 Q^2-contiguous subgrids at the
         // bottom-quark threshold -- this is the normal LHAPDF layout, not an
         // edge case, so a 1-subgrid-only export would reject almost every real
         // proton PDF set.
@@ -318,8 +318,8 @@ mod tests {
         ));
     }
 
-    /// `MAP22_grids_FF_Km_N3LL` is `LogChebyshev`, but it's a 3-D `(x, kT, Q²)` TMD
-    /// grid, not a plain 2-D collinear one. It should be rejected, not silently
+    /// `MAP22_grids_FF_Km_N3LL` is `LogChebyshev`, but it's a 3D `(x, kT, Q^2)` TMD
+    /// grid, not a plain 2D collinear one. It should be rejected, not silently
     /// mis-exported.
     #[test]
     fn rejects_a_non_collinear_chebyshev_set() {

@@ -9,7 +9,7 @@ use neopdf_cuda::device::DeviceGrid;
 use neopdf_cuda::grid_prep::DeviceGridLayout;
 use rayon::prelude::*;
 
-/// `n` log-uniform `(x, Q²)` points inside the grid, decorrelated between axes.
+/// `n` log-uniform `(x, Q^2)` points inside the grid, decorrelated between axes.
 #[allow(clippy::cast_precision_loss)]
 fn events(n: usize) -> (Vec<f64>, Vec<f64>) {
     (0..n)

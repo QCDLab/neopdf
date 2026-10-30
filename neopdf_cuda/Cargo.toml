@@ -8,15 +8,23 @@ keywords = ["high-energy-physics", "physics"]
 license = "GPL-3.0-or-later"
 repository = "https://github.com/Radonirinaunimi/neopdf"
 version = "0.4.0"
+readme = "README.md"
+build = "build.rs"
 
 # Standalone, outside the main workspace: `cuda-oxide` pins its own toolchain (see
 # `rust-toolchain.toml`) and is only available from git, neither of which should
 # leak into ordinary NeoPDF builds. Build the device layer with
-# `cargo oxide test -- --features cuda`; the host-only layout runs under `cargo test`.
+# `cargo oxide test -- --features cuda` (and the C interface with
+# `cargo oxide build -- --features capi --release`); the host-only layout runs under `cargo test`.
 [workspace]
+
+[lib]
+crate-type = ["rlib", "cdylib"]
 
 [features]
 cuda = ["dep:cuda-core", "dep:cuda-device", "dep:cuda-host"]
+# C interface: `libneopdf_cuda` + `include/neopdf_cuda.h` (generated) + `include/NeoPDFCuda.hpp`.
+capi = ["cuda", "dep:cbindgen"]
 
 [dependencies]
 neopdf = { path = "../neopdf", version = "0.4.0" }
@@ -28,6 +36,9 @@ cuda-core = { git = "https://github.com/NVIDIA/cuda-rust.git", rev = "76ac102166
 cuda-device = { git = "https://github.com/NVIDIA/cuda-rust.git", rev = "76ac1021660b0324c579d7cb57e847e7ffa3b9e1", optional = true }
 cuda-host = { git = "https://github.com/NVIDIA/cuda-rust.git", rev = "76ac1021660b0324c579d7cb57e847e7ffa3b9e1", optional = true }
 
+[build-dependencies]
+cbindgen = { version = "0.26.0", optional = true }
+
 [dev-dependencies]
 criterion = "0.6"
 rayon = "1.5"
@@ -36,6 +47,14 @@ tempfile = "3.10.1"
 [[bench]]
 name = "bench_batch"
 harness = false
+required-features = ["cuda"]
+
+[[example]]
+name = "replica_uncertainty"
+required-features = ["cuda"]
+
+[[example]]
+name = "device_batches"
 required-features = ["cuda"]
 
 [lints.clippy]

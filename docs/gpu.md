@@ -28,32 +28,30 @@ wrapper, and as a Python module.
 
 ## How it works
 
-```mermaid
-graph LR
+<!-- rumdl-disable MD052 -->
+<div class="neopdf-flow"><script type="application/json">
+{
+  "nodes": [
+    {"id": "pdf", "color": "orange", "title": "PDF Members", "detail": "PDF::load_pdfs(name)", "row": 0},
+    {"id": "layout", "color": "orange", "title": "Host Layout", "detail": "DeviceGridLayout", "row": 1},
+    {"id": "grid", "color": "red", "title": "Device Grid", "detail": "DeviceGrid (GPU memory)", "row": 2},
+    {"id": "points", "color": "cyan", "title": "Phase-Space Points", "detail": "batch of (x, Q²)", "row": 2, "col": 1},
+    {"id": "kernel", "color": "red", "title": "Batch Kernel", "detail": "one thread per output entry", "row": 3, "col": 0.5},
+    {"id": "out", "color": "green", "title": "Output", "detail": "out[event][member][flavor + αs]", "row": 4, "col": 0.5}
+  ],
+  "edges": [
+    ["pdf", "layout", "flatten all members"],
+    ["layout", "grid", "upload once"],
+    ["grid", "kernel"],
+    ["points", "kernel", "every batch"],
+    ["kernel", "out"]
+  ]
+}
+</script></div>
+<!-- rumdl-enable MD052 -->
 
-A["<b>PDF Members</b> <br> PDF::load_pdfs(name)"]
-B["<b>Host Layout</b> <br> DeviceGridLayout"]
-C["<b>Device Grid</b> <br> DeviceGrid (GPU memory)"]
-D["<b>Phase-Space Points</b> <br> batch of (x, Q²)"]
-E["<b>Batch Kernel</b> <br> one thread per output entry"]
-F["<b>Output</b> <br> out[event][member][flavor + αs]"]
-
-A -->|flatten all members| B
-B -->|upload once| C
-C --> E
-D -->|every batch| E
-E --> F
-
-style A fill:#ffd580,stroke:#b8860b,stroke-width:2px
-style B fill:#ffd580,stroke:#b8860b,stroke-width:2px
-style C fill:#98fb98,stroke:#228b22,stroke-width:2px
-style D fill:#add8e6,stroke:#1e90ff,stroke-width:2px
-style E fill:#98fb98,stroke:#228b22,stroke-width:2px
-style F fill:#f08080,stroke:#8b0000,stroke-width:2px
-```
-
-The colors distinguish the steps on the host (yellow) from those on the GPU (green), with
-the per-batch inputs in blue and the output in red.
+The colors distinguish the steps on the host (orange) from those on the GPU (red), with
+the per-batch inputs in cyan and the output in green.
 
 1. `DeviceGridLayout::build` flattens every member of a set into a handful of contiguous
    buffers (the grids and the interpolation coefficients of all subgrids, and the

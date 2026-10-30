@@ -22,6 +22,8 @@ extra_css:
   - https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  - path: assets/javascripts/flow.js
+    type: module
 nav:
   - Home: index.md
   - Installation: installation.md
@@ -43,7 +45,6 @@ nav:
       - '<img src="https://cdn.simpleicons.org/wolfram/c83737" alt="Wolfram" style="height: 1em; vertical-align: -0.125em; margin-right: 0.25em;"/> Mathematica': 'examples/mathematica.md'
 plugins:
   - search
-  - mermaid2
   - mkdocs-jupyter:
       execute: false
       include_source: true
@@ -63,11 +64,6 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences:
-      custom_fences:
-        - name: mermaid
-          class: mermaid
-          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.arithmatex:

@@ -123,25 +123,22 @@ features, [design rationale](./design.md), and future plans.
 of the kinematic variables. Examples of known distribution functions are given in the diagram
 below with their simplified relationships.
 
-<div align="center" markdown="1">
-```mermaid
-graph TD
-
-A["<b>Generalized Tranverse Momentum Distributions</b> <br> GTMD(x, ξ, Δ, kT​​, Q²)"]
-
-A -->|∫ dkT| B["<b>Generalized Parton Distributions</b> <br> GPD(x, ξ, Δ, Q²)"]
-A -->|ξ → 0, Δ → 0| C["<b>Transverse Momentum Distributions</b> <br> TMD(x, kT, Q²)"]
-
-B -->|ξ → 0, Δ → 0| D["<b>Collinear Parton Distribution Functions</b> <br> PDF(x, Q²)"]
-C -->|∫ dkT| D
-
-style A fill:#8B4513,stroke:#D2691E,stroke-width:2px
-style B fill:#1E3A5F,stroke:#4169E1,stroke-width:2px
-style C fill:#2F4F2F,stroke:#3CB371,stroke-width:2px
-style D fill:#8B2F2F,stroke:#CD5C5C,stroke-width:2px
-
-```
-</div>
+<div class="neopdf-flow"><script type="application/json">
+{
+  "nodes": [
+    {"id": "gtmd", "color": "orange", "title": "Generalized Transverse Momentum Distributions", "detail": "GTMD(x, ξ, Δ, kT, Q²)", "row": 0, "col": 0.5},
+    {"id": "gpd", "color": "cyan", "title": "Generalized Parton Distributions", "detail": "GPD(x, ξ, Δ, Q²)", "row": 1},
+    {"id": "tmd", "color": "green", "title": "Transverse Momentum Distributions", "detail": "TMD(x, kT, Q²)", "row": 1, "col": 1},
+    {"id": "pdf", "color": "red", "title": "Collinear Parton Distribution Functions", "detail": "PDF(x, Q²)", "row": 2, "col": 0.5}
+  ],
+  "edges": [
+    ["gtmd", "gpd", "∫ dkT"],
+    ["gtmd", "tmd", "ξ → 0, Δ → 0"],
+    ["gpd", "pdf", "ξ → 0, Δ → 0"],
+    ["tmd", "pdf", "∫ dkT"]
+  ]
+}
+</script></div>
 
 In order to support these distributions, `NeoPDF` provides Hermite Cubic Spline and Chebyshev
 interpolation strategies for up to 6D data.
@@ -152,18 +149,18 @@ interpolation strategies for up to 6D data.
 treatment of heavy quark effects across all scales. Advanced schemes like FONLL and ACOT require
 careful handling of flavor thresholds and mass effects. `NeoPDF`'s multi-flavor support will enable:
 
-  - Precision predictions for heavy flavor production
-  - Proper matching across flavor thresholds
-  - Consistent treatment of charm and bottom quark effects
+- Precision predictions for heavy flavor production
+- Proper matching across flavor thresholds
+- Consistent treatment of charm and bottom quark effects
 
 ### Analytical Interpolation (Planned)
 
 Future versions will support **DGLAP**-based analytical interpolation. Such an analytical-based
 interpolation will provide:
 
-  - Consistent treatment of scale evolution
-  - Reduced interpolation artifacts
-  - More accurate extrapolation beyond the grid boundaries
+- Consistent treatment of scale evolution
+- Reduced interpolation artifacts
+- More accurate extrapolation beyond the grid boundaries
 
 ## Technical Features
 

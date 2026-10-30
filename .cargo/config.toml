@@ -1,0 +1,14 @@
+[alias]
+# Tests run in CI (`run-rust.yml`): everything except the crates needing external tools.
+test-ci = ["test", "--workspace", "--no-fail-fast", "--exclude", "neopdf_pyapi", "--exclude", "neopdf_tmdlib", "--exclude", "neopdf_wolfram", "--exclude", "neopdf_gui"]
+# TMDlib tests; need TMDlib installed and `TMDLIBPATH` pointing at the MAP22 grids.
+test-tmdlib = ["test", "-p", "neopdf_tmdlib", "--", "--include-ignored"]
+# Same checks as the pre-commit hooks.
+lint = ["clippy", "--all-targets", "--", "-Awarnings"]
+bench-core = ["bench", "-p", "neopdf"]
+# Build and install the C API and the C++ header (needs `cargo-c`).
+install-capi = ["cinstall", "--release", "-p", "neopdf_capi"]
+
+[env]
+# Sets downloaded by `maintainer/download-data.sh`; an exported value takes precedence.
+NEOPDF_DATA_PATH = { value = "neopdf-data", relative = true }

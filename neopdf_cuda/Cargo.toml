@@ -2,22 +2,48 @@
 name = "neopdf_cuda"
 description = "Device/GPU batch evaluation for NeoPDF's collinear PDF grids"
 authors = ["Tanjona R. Rabemananjara <tanjona.hepc@gmail.com>"]
-categories.workspace = true
-edition.workspace = true
-keywords.workspace = true
-license.workspace = true
-repository.workspace = true
-rust-version.workspace = true
-version.workspace = true
+categories = ["science"]
+edition = "2021"
+keywords = ["high-energy-physics", "physics"]
+license = "GPL-3.0-or-later"
+repository = "https://github.com/Radonirinaunimi/neopdf"
+version = "0.4.0"
 
-[lints]
-workspace = true
+# Standalone, outside the main workspace: `cuda-oxide` pins its own toolchain (see
+# `rust-toolchain.toml`) and is only available from git, neither of which should
+# leak into ordinary NeoPDF builds. Build the device layer with
+# `cargo oxide test -- --features cuda`; the host-only layout runs under `cargo test`.
+[workspace]
+
+[features]
+cuda = ["dep:cuda-core", "dep:cuda-device", "dep:cuda-host"]
 
 [dependencies]
-neopdf.workspace = true
-thiserror.workspace = true
+neopdf = { path = "../neopdf", version = "0.4.0" }
+thiserror = "1.0.69"
 
-# The `cuda-oxide` dependency (and the device kernels it builds) lands in a later
-# phase, behind a `cuda` feature, once Phase 0's host-only data layout is settled.
-# It pins its own Rust toolchain (1.99.1 via `cargo oxide`), independent of this
-# workspace's `rust-version`, so it stays opt-in rather than affecting every build.
+# `cuda-oxide` is alpha and breaks its API between commits, so it is pinned to the
+# revision this crate was written against.
+cuda-core = { git = "https://github.com/NVIDIA/cuda-rust.git", rev = "76ac1021660b0324c579d7cb57e847e7ffa3b9e1", optional = true }
+cuda-device = { git = "https://github.com/NVIDIA/cuda-rust.git", rev = "76ac1021660b0324c579d7cb57e847e7ffa3b9e1", optional = true }
+cuda-host = { git = "https://github.com/NVIDIA/cuda-rust.git", rev = "76ac1021660b0324c579d7cb57e847e7ffa3b9e1", optional = true }
+
+[dev-dependencies]
+criterion = "0.6"
+rayon = "1.5"
+tempfile = "3.10.1"
+
+[[bench]]
+name = "bench_batch"
+harness = false
+required-features = ["cuda"]
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+
+[lints.rust]
+missing_docs = "warn"
+unsafe_op_in_unsafe_fn = "deny"

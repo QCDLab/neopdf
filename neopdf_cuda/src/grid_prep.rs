@@ -3,7 +3,7 @@
 //! This module is pure Rust and depends only on [`neopdf::gpu_export`] — no GPU
 //! toolchain is needed to build or test it. It is the place almost all of this
 //! crate's correctness risk lives: once [`DeviceGridLayout`] is right, the device
-//! kernels (a later phase) are close to a transliteration of its indexing.
+//! kernels are a transliteration of its indexing (see [`crate::eval`]).
 //!
 //! LHAPDF-style sets store the same `(x, Q²)` grid (across one or more Q²-contiguous
 //! subgrids — see [`neopdf::gpu_export`] for why there can be more than one) and the
@@ -11,11 +11,14 @@
 //! the `alpha_s` table) differ by member. [`DeviceGridLayout::build`] checks that
 //! assumption explicitly rather than relying on it silently.
 
-use neopdf::gpu_export::{
-    AlphaSValues, CollinearExport, CollinearExportError, CollinearSubgrid, CollinearValues,
-};
+use std::mem::discriminant;
+
+use neopdf::gpu_export::{AlphaSValues, CollinearExport, CollinearExportError, CollinearValues};
+use neopdf::gridpdf::ForcePositive;
 use neopdf::pdf::PDF;
 use thiserror::Error;
+
+use crate::eval::{Chebyshev, GridView, Hermite};
 
 /// Why [`DeviceGridLayout::build`] could not flatten a set of members.
 #[derive(Debug, Error)]
@@ -32,160 +35,124 @@ pub enum GridPrepError {
         #[source]
         source: CollinearExportError,
     },
-    /// A member's x grid differs from member 0's.
-    #[error("member {member}'s x grid differs from member 0's")]
-    XGridMismatch {
+    /// A member's grids, flavors or fast-path kind differ from member 0's.
+    #[error("member {member}'s {what} differs from member 0's")]
+    Mismatch {
         /// The member's index in the input slice.
         member: usize,
-    },
-    /// A member's flavor PIDs differ from member 0's.
-    #[error("member {member}'s flavor PIDs differ from member 0's")]
-    PidMismatch {
-        /// The member's index in the input slice.
-        member: usize,
-    },
-    /// A member has a different number of subgrids than member 0.
-    #[error(
-        "member {member} has {found} subgrids, but member 0 has {expected}; \
-         a device grid requires every member to split into the same subgrids"
-    )]
-    SubgridCountMismatch {
-        /// The member's index in the input slice.
-        member: usize,
-        /// Member 0's subgrid count.
-        expected: usize,
-        /// This member's subgrid count.
-        found: usize,
-    },
-    /// Subgrid `subgrid` of member `member` has a different Q² grid than
-    /// subgrid `subgrid` of member 0.
-    #[error("member {member}'s subgrid {subgrid} has a different Q² grid than member 0's")]
-    QGridMismatch {
-        /// The member's index in the input slice.
-        member: usize,
-        /// The subgrid's index within that member.
-        subgrid: usize,
-    },
-    /// Subgrid `subgrid` of member `member` uses a different fast-path
-    /// representation than subgrid `subgrid` of member 0 (one is `LogBicubic`,
-    /// the other `LogChebyshev`).
-    #[error(
-        "member {member}'s subgrid {subgrid} is {found}, but member 0's is {expected}; \
-         a device grid requires every member to use the same fast path"
-    )]
-    ValueKindMismatch {
-        /// The member's index in the input slice.
-        member: usize,
-        /// The subgrid's index within that member.
-        subgrid: usize,
-        /// Member 0's fast-path kind for this subgrid.
-        expected: &'static str,
-        /// This member's fast-path kind for this subgrid.
-        found: &'static str,
-    },
-    /// A member's `alpha_s` data is a different kind than member 0's (one
-    /// member has a table, another a single constant value).
-    #[error(
-        "member {member}'s alpha_s data is {found}, but member 0's is {expected}; \
-         a device grid requires every member to use the same kind"
-    )]
-    AlphaSKindMismatch {
-        /// The member's index in the input slice.
-        member: usize,
-        /// Member 0's `alpha_s` kind.
-        expected: &'static str,
-        /// This member's `alpha_s` kind.
-        found: &'static str,
+        /// What differs (e.g. `"x grid"`, `"subgrid 1"`).
+        what: String,
     },
 }
 
-/// The all-flavor value table across every member for one subgrid, flattened
-/// member-major.
-pub enum ValuesLayout {
-    /// Interleaved cubic Hermite coefficients. `coeffs[m * member_stride..][..member_stride]`
-    /// is member `m`'s own [`CollinearValues::Hermite`] array for this subgrid, unchanged.
-    Hermite {
-        /// Every member's coefficients, concatenated in member order.
-        coeffs: Vec<f64>,
-        /// Length of one member's slice within `coeffs`.
-        member_stride: usize,
-    },
-    /// Barycentric Chebyshev values. `values[flavor][m * member_stride..][..member_stride]`
-    /// is member `m`'s own per-flavor array for this subgrid, unchanged.
-    Chebyshev {
-        /// Per-flavor arrays, each the concatenation of every member's values
-        /// for that flavor and this subgrid, in member order.
-        values: Vec<Vec<f64>>,
-        /// Length of one member's slice within each per-flavor array.
-        member_stride: usize,
-    },
-}
-
-/// `alpha_s(Q²)` data across every member.
-pub enum AlphaSLayout {
-    /// One Q-independent value per member.
-    Constant {
-        /// `values[m]` is member `m`'s constant `alpha_s`.
-        values: Vec<f64>,
-    },
-    /// A per-member table, concatenated. Member `m`'s knots/values are
-    /// `log_q2s[offsets[m]..offsets[m + 1]]` / `alphas[offsets[m]..offsets[m + 1]]`.
-    Cubic {
-        /// Every member's log-Q² knots, concatenated in member order.
-        log_q2s: Vec<f64>,
-        /// Every member's `alpha_s` values, concatenated in member order.
-        alphas: Vec<f64>,
-        /// Length `n_members + 1`; `offsets[m]..offsets[m + 1]` bounds member `m`.
-        offsets: Vec<usize>,
-    },
-}
-
-/// One Q²-contiguous piece of a [`DeviceGridLayout`], across every member.
-pub struct SubgridLayout {
-    /// Log-transformed Q² grid knots for this subgrid, shared by every member.
-    pub log_q2s: Vec<f64>,
-    /// The all-flavor value table for this subgrid, across every member.
-    pub values: ValuesLayout,
+/// Which of `neopdf`'s two collinear fast paths a [`DeviceGridLayout`] holds.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Interpolation {
+    /// Interleaved cubic Hermite coefficients (`LogBicubic`).
+    Hermite,
+    /// Barycentric Chebyshev values (`LogChebyshev`).
+    Chebyshev,
 }
 
 /// A device-upload-ready layout for `n_members` members of one collinear PDF set.
+///
+/// Every per-subgrid quantity is concatenated over subgrids and addressed through
+/// an offsets array of length `n_subgrids + 1`, so the whole layout is a handful of
+/// flat buffers a kernel can take as plain slices:
+///
+/// - Q² knots of subgrid `s`: `log_q2s[q2_offsets[s]..q2_offsets[s + 1]]`.
+/// - Values of subgrid `s`: `values[value_offsets[s]..value_offsets[s + 1]]`, split
+///   into `n_members` equal member-major blocks. Within member `m`'s block, the
+///   local index is `((ix * n_q2 + iq2) * n_flavors + flavor) * 4 + c` for
+///   [`Interpolation::Hermite`] (the CPU's own coefficient layout), and
+///   `(flavor * n_x + ix) * n_q2 + iq2` for [`Interpolation::Chebyshev`].
+/// - `alpha_s` of member `m`: `alphas_log_q2s/alphas[alphas_offsets[m]..alphas_offsets[m + 1]]`;
+///   a single entry means a Q-independent value.
 pub struct DeviceGridLayout {
-    /// Log-transformed x grid knots, shared by every member and every subgrid.
-    pub log_xs: Vec<f64>,
+    /// Which fast path `values` holds.
+    pub interpolation: Interpolation,
     /// Flavor PIDs, shared by every member.
     pub pids: Vec<i32>,
     /// Number of members flattened into this layout.
     pub n_members: usize,
-    /// Subgrids, ordered by increasing, contiguous Q² range (see
-    /// [`neopdf::gpu_export::CollinearExport`] for why there can be more than one).
-    pub subgrids: Vec<SubgridLayout>,
-    /// The `alpha_s(Q²)` data.
-    pub alphas: AlphaSLayout,
+    /// Lower bound applied to every PDF value, encoding the members' [`ForcePositive`].
+    pub clip_floor: f64,
+    /// Log-transformed x grid knots, shared by every member and every subgrid.
+    pub log_xs: Vec<f64>,
+    /// Chebyshev nodes matching `log_xs`; empty for [`Interpolation::Hermite`].
+    pub x_nodes: Vec<f64>,
+    /// Every subgrid's log-transformed Q² knots, concatenated in Q² order.
+    pub log_q2s: Vec<f64>,
+    /// Chebyshev nodes matching `log_q2s`; empty for [`Interpolation::Hermite`].
+    pub q2_nodes: Vec<f64>,
+    /// Subgrid boundaries within `log_q2s`/`q2_nodes`.
+    pub q2_offsets: Vec<usize>,
+    /// Every subgrid's value table across every member, concatenated.
+    pub values: Vec<f64>,
+    /// Subgrid boundaries within `values`.
+    pub value_offsets: Vec<usize>,
+    /// Every member's `alpha_s` log-Q² knots, concatenated in member order.
+    pub alphas_log_q2s: Vec<f64>,
+    /// Every member's `alpha_s` values, matching `alphas_log_q2s`.
+    pub alphas: Vec<f64>,
+    /// Member boundaries within `alphas_log_q2s`/`alphas`.
+    pub alphas_offsets: Vec<usize>,
 }
 
 impl DeviceGridLayout {
     /// Number of flavors, i.e. `self.pids.len()`.
     #[must_use]
-    pub fn n_flavors(&self) -> usize {
+    pub const fn n_flavors(&self) -> usize {
         self.pids.len()
+    }
+
+    /// Borrows this layout as the slices the evaluation kernels read.
+    #[must_use]
+    pub fn view(&self) -> GridView<'_> {
+        GridView {
+            n_members: self.n_members,
+            n_flavors: self.n_flavors(),
+            clip_floor: self.clip_floor,
+            log_xs: &self.log_xs,
+            x_nodes: &self.x_nodes,
+            log_q2s: &self.log_q2s,
+            q2_nodes: &self.q2_nodes,
+            q2_offsets: &self.q2_offsets,
+            values: &self.values,
+            value_offsets: &self.value_offsets,
+            alphas_log_q2s: &self.alphas_log_q2s,
+            alphas: &self.alphas,
+            alphas_offsets: &self.alphas_offsets,
+        }
+    }
+
+    /// Evaluates the whole `[n_events, n_members, n_flavors + 1]` batch output on the
+    /// host, with the same code the device kernel runs.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `xs` and `q2s` differ in length or `out` has the wrong length.
+    pub fn eval_batch(&self, xs: &[f64], q2s: &[f64], out: &mut [f64]) {
+        let grid = self.view();
+        match self.interpolation {
+            Interpolation::Hermite => grid.eval_batch::<Hermite>(xs, q2s, out),
+            Interpolation::Chebyshev => grid.eval_batch::<Chebyshev>(xs, q2s, out),
+        }
     }
 
     /// Flattens `members` (same PDF set, every member) into one device-ready layout.
     ///
     /// Every member must share the same x grid, the same subgrid Q² ranges, the
-    /// same flavor PIDs, and the same fast-path/`alpha_s` kind as member 0 — see
-    /// [`GridPrepError`] for what's checked and why.
+    /// same flavor PIDs, the same fast-path kind and the same [`ForcePositive`]
+    /// setting as member 0.
     ///
     /// # Errors
     ///
     /// Returns an error if `members` is empty, if any member's
     /// [`PDF::collinear_export`] fails, or if the members disagree on any of the
-    /// grids/PIDs/kinds above. See [`GridPrepError`] for each case.
+    /// properties above. See [`GridPrepError`] for each case.
     pub fn build(members: &[PDF]) -> Result<Self, GridPrepError> {
-        if members.is_empty() {
-            return Err(GridPrepError::NoMembers);
-        }
-
+        let first = members.first().ok_or(GridPrepError::NoMembers)?;
         let exports: Vec<CollinearExport> = members
             .iter()
             .enumerate()
@@ -195,169 +162,113 @@ impl DeviceGridLayout {
             })
             .collect::<Result<_, _>>()?;
 
-        let first = &exports[0];
-        let n_subgrids = first.subgrids.len();
-        for (member, export) in exports.iter().enumerate().skip(1) {
-            if export.log_xs != first.log_xs {
-                return Err(GridPrepError::XGridMismatch { member });
+        let reference = &exports[0];
+        let mismatch = |member, what: &str| GridPrepError::Mismatch {
+            member,
+            what: what.to_owned(),
+        };
+        for (member, (export, pdf)) in exports.iter().zip(members).enumerate().skip(1) {
+            if export.log_xs != reference.log_xs {
+                return Err(mismatch(member, "x grid"));
             }
-            if export.pids != first.pids {
-                return Err(GridPrepError::PidMismatch { member });
+            if export.pids != reference.pids {
+                return Err(mismatch(member, "flavor PIDs"));
             }
-            if export.subgrids.len() != n_subgrids {
-                return Err(GridPrepError::SubgridCountMismatch {
-                    member,
-                    expected: n_subgrids,
-                    found: export.subgrids.len(),
-                });
+            if export.subgrids.len() != reference.subgrids.len() {
+                return Err(mismatch(member, "subgrid count"));
+            }
+            if discriminant(pdf.is_force_positive()) != discriminant(first.is_force_positive()) {
+                return Err(mismatch(member, "force-positive setting"));
+            }
+            for (s, (this, base)) in export.subgrids.iter().zip(&reference.subgrids).enumerate() {
+                if this.log_q2s != base.log_q2s || !same_shape(&this.values, &base.values) {
+                    return Err(mismatch(member, &format!("subgrid {s}")));
+                }
             }
         }
 
-        let log_xs = first.log_xs.clone();
-        let pids = first.pids.clone();
-        let n_members = exports.len();
-
-        let subgrids = (0..n_subgrids)
-            .map(|subgrid| Self::flatten_subgrid(&exports, subgrid))
-            .collect::<Result<_, _>>()?;
-        let alphas = Self::flatten_alphas(&exports)?;
-
-        Ok(Self {
-            log_xs,
-            pids,
-            n_members,
-            subgrids,
-            alphas,
-        })
-    }
-
-    fn flatten_subgrid(
-        exports: &[CollinearExport],
-        subgrid: usize,
-    ) -> Result<SubgridLayout, GridPrepError> {
-        let first = &exports[0].subgrids[subgrid];
-        let log_q2s = first.log_q2s.clone();
-
-        let values = match &first.values {
-            CollinearValues::Hermite { coeffs } => {
-                let member_stride = coeffs.len();
-                let mut all = Vec::with_capacity(member_stride * exports.len());
-                for (member, export) in exports.iter().enumerate() {
-                    let this: &CollinearSubgrid = &export.subgrids[subgrid];
-                    if this.log_q2s != log_q2s {
-                        return Err(GridPrepError::QGridMismatch { member, subgrid });
-                    }
-                    match &this.values {
-                        CollinearValues::Hermite { coeffs } if coeffs.len() == member_stride => {
-                            all.extend_from_slice(coeffs);
-                        }
-                        CollinearValues::Hermite { .. } => {
-                            return Err(GridPrepError::QGridMismatch { member, subgrid });
-                        }
-                        CollinearValues::Chebyshev { .. } => {
-                            return Err(GridPrepError::ValueKindMismatch {
-                                member,
-                                subgrid,
-                                expected: "hermite",
-                                found: "chebyshev",
-                            });
-                        }
-                    }
-                }
-                ValuesLayout::Hermite {
-                    coeffs: all,
-                    member_stride,
-                }
-            }
-            CollinearValues::Chebyshev { values } => {
-                let n_flavors = values.len();
-                let member_stride = values.first().map_or(0, Vec::len);
-                let mut all: Vec<Vec<f64>> = (0..n_flavors)
-                    .map(|_| Vec::with_capacity(member_stride * exports.len()))
-                    .collect();
-                for (member, export) in exports.iter().enumerate() {
-                    let this: &CollinearSubgrid = &export.subgrids[subgrid];
-                    if this.log_q2s != log_q2s {
-                        return Err(GridPrepError::QGridMismatch { member, subgrid });
-                    }
-                    match &this.values {
-                        CollinearValues::Chebyshev { values } if values.len() == n_flavors => {
-                            for (flavor, per_member) in values.iter().enumerate() {
-                                if per_member.len() != member_stride {
-                                    return Err(GridPrepError::QGridMismatch { member, subgrid });
-                                }
-                                all[flavor].extend_from_slice(per_member);
-                            }
-                        }
-                        CollinearValues::Chebyshev { .. } => {
-                            return Err(GridPrepError::QGridMismatch { member, subgrid });
-                        }
-                        CollinearValues::Hermite { .. } => {
-                            return Err(GridPrepError::ValueKindMismatch {
-                                member,
-                                subgrid,
-                                expected: "chebyshev",
-                                found: "hermite",
-                            });
-                        }
-                    }
-                }
-                ValuesLayout::Chebyshev {
-                    values: all,
-                    member_stride,
-                }
-            }
+        let interpolation = match reference.subgrids.first().map(|s| &s.values) {
+            Some(CollinearValues::Chebyshev { .. }) => Interpolation::Chebyshev,
+            _ => Interpolation::Hermite,
         };
 
-        Ok(SubgridLayout { log_q2s, values })
-    }
+        let mut layout = Self {
+            interpolation,
+            pids: reference.pids.clone(),
+            n_members: exports.len(),
+            clip_floor: clip_floor(first.is_force_positive()),
+            log_xs: reference.log_xs.clone(),
+            x_nodes: Vec::new(),
+            log_q2s: Vec::new(),
+            q2_nodes: Vec::new(),
+            q2_offsets: vec![0],
+            values: Vec::new(),
+            value_offsets: vec![0],
+            alphas_log_q2s: Vec::new(),
+            alphas: Vec::new(),
+            alphas_offsets: vec![0],
+        };
 
-    fn flatten_alphas(exports: &[CollinearExport]) -> Result<AlphaSLayout, GridPrepError> {
-        match &exports[0].alphas {
-            AlphaSValues::Constant(_) => {
-                let mut values = Vec::with_capacity(exports.len());
-                for (member, export) in exports.iter().enumerate() {
-                    match &export.alphas {
-                        AlphaSValues::Constant(v) => values.push(*v),
-                        AlphaSValues::Cubic { .. } => {
-                            return Err(GridPrepError::AlphaSKindMismatch {
-                                member,
-                                expected: "constant",
-                                found: "cubic",
-                            });
-                        }
+        for (s, subgrid) in reference.subgrids.iter().enumerate() {
+            layout.log_q2s.extend_from_slice(&subgrid.log_q2s);
+            if let CollinearValues::Chebyshev {
+                x_nodes, q2_nodes, ..
+            } = &subgrid.values
+            {
+                layout.x_nodes.clone_from(x_nodes);
+                layout.q2_nodes.extend_from_slice(q2_nodes);
+            }
+            layout.q2_offsets.push(layout.log_q2s.len());
+
+            for export in &exports {
+                match &export.subgrids[s].values {
+                    CollinearValues::Hermite { coeffs } => layout.values.extend_from_slice(coeffs),
+                    CollinearValues::Chebyshev { values, .. } => {
+                        layout.values.extend(values.iter().flatten());
                     }
                 }
-                Ok(AlphaSLayout::Constant { values })
             }
-            AlphaSValues::Cubic { .. } => {
-                let mut log_q2s_all = Vec::new();
-                let mut alphas_all = Vec::new();
-                let mut offsets = Vec::with_capacity(exports.len() + 1);
-                offsets.push(0usize);
-                for (member, export) in exports.iter().enumerate() {
-                    match &export.alphas {
-                        AlphaSValues::Cubic { log_q2s, alphas } => {
-                            log_q2s_all.extend_from_slice(log_q2s);
-                            alphas_all.extend_from_slice(alphas);
-                            offsets.push(log_q2s_all.len());
-                        }
-                        AlphaSValues::Constant(_) => {
-                            return Err(GridPrepError::AlphaSKindMismatch {
-                                member,
-                                expected: "cubic",
-                                found: "constant",
-                            });
-                        }
-                    }
-                }
-                Ok(AlphaSLayout::Cubic {
-                    log_q2s: log_q2s_all,
-                    alphas: alphas_all,
-                    offsets,
-                })
-            }
+            layout.value_offsets.push(layout.values.len());
         }
+
+        for export in &exports {
+            match &export.alphas {
+                AlphaSValues::Constant(value) => {
+                    layout.alphas_log_q2s.push(0.0);
+                    layout.alphas.push(*value);
+                }
+                AlphaSValues::Cubic { log_q2s, alphas } => {
+                    layout.alphas_log_q2s.extend_from_slice(log_q2s);
+                    layout.alphas.extend_from_slice(alphas);
+                }
+            }
+            layout.alphas_offsets.push(layout.alphas.len());
+        }
+
+        Ok(layout)
+    }
+}
+
+/// Whether two value tables use the same fast path with the same number of entries.
+fn same_shape(a: &CollinearValues, b: &CollinearValues) -> bool {
+    match (a, b) {
+        (CollinearValues::Hermite { coeffs: a }, CollinearValues::Hermite { coeffs: b }) => {
+            a.len() == b.len()
+        }
+        (
+            CollinearValues::Chebyshev { values: a, .. },
+            CollinearValues::Chebyshev { values: b, .. },
+        ) => a.len() == b.len() && a.iter().zip(b).all(|(a, b)| a.len() == b.len()),
+        _ => false,
+    }
+}
+
+/// The lower bound `value.max(floor)` that reproduces a [`ForcePositive`] policy.
+const fn clip_floor(policy: &ForcePositive) -> f64 {
+    match policy {
+        ForcePositive::ClipNegative => 0.0,
+        ForcePositive::ClipSmall => 1e-10,
+        ForcePositive::NoClipping => f64::NEG_INFINITY,
     }
 }
 
@@ -365,52 +276,38 @@ impl DeviceGridLayout {
 mod tests {
     use super::*;
 
-    fn load_members(name: &str) -> Vec<PDF> {
-        PDF::load_pdfs(name)
-    }
-
     #[test]
     fn flattens_nnpdf40_members_with_shared_grid_and_pids() {
-        let members = load_members("NNPDF40_nnlo_as_01180");
+        let members = PDF::load_pdfs("NNPDF40_nnlo_as_01180");
         let n_members = members.len();
         let layout = DeviceGridLayout::build(&members).unwrap();
 
+        assert_eq!(layout.interpolation, Interpolation::Hermite);
         assert_eq!(layout.n_members, n_members);
         assert_eq!(layout.pids, members[0].pids().to_vec());
         assert!(layout.log_xs.windows(2).all(|w| w[0] < w[1]));
+        assert!(layout.x_nodes.is_empty() && layout.q2_nodes.is_empty());
         // NNPDF40_nnlo_as_01180 splits into 2 Q²-contiguous subgrids at the
         // bottom-quark threshold -- this is the normal LHAPDF layout, not an
         // edge case, so a 1-subgrid-only export would reject almost every real
         // proton PDF set.
-        assert_eq!(layout.subgrids.len(), 2);
+        assert_eq!(layout.q2_offsets.len(), 3);
+        assert_eq!(layout.value_offsets.len(), 3);
+        assert_eq!(layout.alphas_offsets.len(), n_members + 1);
 
-        for (i, subgrid) in layout.subgrids.iter().enumerate() {
-            assert!(subgrid.log_q2s.windows(2).all(|w| w[0] < w[1]));
-            if i > 0 {
-                // Exact equality is the point: adjacent subgrids share their
-                // boundary knot verbatim (same provenance, not independently
-                // rounded), which is exactly what `QGridNotContiguous` checks.
-                #[allow(clippy::float_cmp)]
-                let shares_boundary_knot =
-                    *layout.subgrids[i - 1].log_q2s.last().unwrap() == subgrid.log_q2s[0];
-                assert!(shares_boundary_knot);
-            }
-            match &subgrid.values {
-                ValuesLayout::Hermite {
-                    coeffs,
-                    member_stride,
-                } => {
-                    assert_eq!(coeffs.len(), member_stride * n_members);
-                    assert_eq!(
-                        *member_stride,
-                        (layout.log_xs.len() - 1) * subgrid.log_q2s.len() * layout.n_flavors() * 4
-                    );
-                }
-                ValuesLayout::Chebyshev { .. } => {
-                    panic!("NNPDF40_nnlo_as_01180 is LogBicubic, expected a Hermite layout")
-                }
-            }
+        for s in 0..2 {
+            let log_q2s = &layout.log_q2s[layout.q2_offsets[s]..layout.q2_offsets[s + 1]];
+            assert!(log_q2s.windows(2).all(|w| w[0] < w[1]));
+            assert_eq!(
+                layout.value_offsets[s + 1] - layout.value_offsets[s],
+                n_members * (layout.log_xs.len() - 1) * log_q2s.len() * layout.n_flavors() * 4
+            );
         }
+        // Adjacent subgrids share their boundary knot verbatim.
+        #[allow(clippy::float_cmp)]
+        let shares_boundary_knot =
+            layout.log_q2s[layout.q2_offsets[1] - 1] == layout.log_q2s[layout.q2_offsets[1]];
+        assert!(shares_boundary_knot);
     }
 
     #[test]
@@ -422,16 +319,11 @@ mod tests {
     }
 
     /// `MAP22_grids_FF_Km_N3LL` is `LogChebyshev`, but it's a 3-D `(x, kT, Q²)` TMD
-    /// grid, not a plain 2-D collinear one (its own benchmark queries it with a
-    /// 3-element point). It should be rejected, not silently mis-exported.
-    ///
-    /// This is also the only locally available `LogChebyshev` set, so it only
-    /// covers the rejection path — genuine 2-D `LogChebyshev` coverage needs
-    /// either a real 2-D `LogChebyshev` set or a synthetic on-disk fixture built
-    /// through `neopdf`'s own writer, neither of which exists yet.
+    /// grid, not a plain 2-D collinear one. It should be rejected, not silently
+    /// mis-exported.
     #[test]
     fn rejects_a_non_collinear_chebyshev_set() {
-        let members = load_members("MAP22_grids_FF_Km_N3LL.neopdf.lz4");
+        let members = PDF::load_pdfs("MAP22_grids_FF_Km_N3LL.neopdf.lz4");
         assert!(matches!(
             DeviceGridLayout::build(&members),
             Err(GridPrepError::Export {

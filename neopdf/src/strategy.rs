@@ -1534,6 +1534,10 @@ pub(crate) struct CollinearChebyshevView<'a> {
     pub(crate) log_xs: &'a [f64],
     /// Log-transformed Q² grid knots.
     pub(crate) log_q2s: &'a [f64],
+    /// Chebyshev nodes in `[-1, 1]` matching `log_xs`.
+    pub(crate) x_nodes: &'a [f64],
+    /// Chebyshev nodes in `[-1, 1]` matching `log_q2s`.
+    pub(crate) q2_nodes: &'a [f64],
     /// One flat, C-order `[n_x * n_q2]` array per flavor, in internal PID order.
     pub(crate) values: &'a [Vec<f64>],
 }
@@ -1550,6 +1554,8 @@ impl ChebyshevAllPids {
         Some(CollinearChebyshevView {
             log_xs: &self.coords[0],
             log_q2s: &self.coords[1],
+            x_nodes: &self.t_coords[0],
+            q2_nodes: &self.t_coords[1],
             values: &self.values,
         })
     }

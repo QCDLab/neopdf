@@ -71,6 +71,10 @@ pub enum CollinearValues {
     Chebyshev {
         /// One flat, C-order `[n_x * n_q2]` array per flavor, in `pids` order.
         values: Vec<Vec<f64>>,
+        /// Chebyshev nodes in `[-1, 1]` for the x axis, one per x knot.
+        x_nodes: Vec<f64>,
+        /// Chebyshev nodes in `[-1, 1]` for this subgrid's Q² axis, one per Q² knot.
+        q2_nodes: Vec<f64>,
     },
 }
 

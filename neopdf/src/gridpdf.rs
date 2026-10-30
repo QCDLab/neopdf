@@ -1075,9 +1075,9 @@ impl GridPDF {
 
     /// Exports this PDF member for a device/GPU backend, e.g. `neopdf_cuda`.
     ///
-    /// Only succeeds for the plain 2-D `(x, Q²)` "collinear" case: one subgrid,
-    /// `LogBicubic` or `LogChebyshev` interpolation, and a table-or-constant
-    /// `alpha_s`. See [`gpu_export`](super::gpu_export) for why.
+    /// Only succeeds for the plain 2-D `(x, Q²)` "collinear" case: Q²-contiguous
+    /// subgrids sharing one x grid, `LogBicubic` or `LogChebyshev` interpolation,
+    /// and a table-or-constant `alpha_s`. See [`gpu_export`](super::gpu_export) for why.
     pub fn collinear_export(
         &self,
     ) -> Result<super::gpu_export::CollinearExport, super::gpu_export::CollinearExportError> {
@@ -1110,6 +1110,8 @@ impl GridPDF {
                     view.log_q2s.to_vec(),
                     CollinearValues::Chebyshev {
                         values: view.values.to_vec(),
+                        x_nodes: view.x_nodes.to_vec(),
+                        q2_nodes: view.q2_nodes.to_vec(),
                     },
                 )
             } else {

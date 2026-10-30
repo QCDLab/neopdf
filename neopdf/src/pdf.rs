@@ -410,6 +410,15 @@ impl PDF {
         self.grid_pdf.alphas_q2(q2)
     }
 
+    /// Exports this PDF member for a device/GPU backend, e.g. `neopdf_cuda`.
+    ///
+    /// Abstraction to the `GridPDF::collinear_export` method.
+    pub fn collinear_export(
+        &self,
+    ) -> Result<super::gpu_export::CollinearExport, super::gpu_export::CollinearExportError> {
+        self.grid_pdf.collinear_export()
+    }
+
     /// Returns a reference to the PDF metadata.
     ///
     /// Abstraction to the `GridPDF::info` method.

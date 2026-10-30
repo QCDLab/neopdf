@@ -1527,7 +1527,33 @@ pub(crate) struct ChebyshevAllPids {
     shape: Vec<usize>,
 }
 
+/// Borrowed view of a plain 2-D (x, Q²) `ChebyshevAllPids` table, for exporting to a
+/// device/GPU backend. See [`ChebyshevAllPids::as_collinear`].
+pub(crate) struct CollinearChebyshevView<'a> {
+    /// Log-transformed x grid knots.
+    pub(crate) log_xs: &'a [f64],
+    /// Log-transformed Q² grid knots.
+    pub(crate) log_q2s: &'a [f64],
+    /// One flat, C-order `[n_x * n_q2]` array per flavor, in internal PID order.
+    pub(crate) values: &'a [Vec<f64>],
+}
+
 impl ChebyshevAllPids {
+    /// Borrows this table as a plain 2-D `(x, Q²)` view, for a device/GPU export.
+    ///
+    /// Returns `None` for a 3-D+ table (nucleon/kT/xi/delta axes present), since
+    /// those don't fit the plain collinear case a GPU export models.
+    pub(crate) fn as_collinear(&self) -> Option<CollinearChebyshevView<'_>> {
+        if self.shape.len() != 2 {
+            return None;
+        }
+        Some(CollinearChebyshevView {
+            log_xs: &self.coords[0],
+            log_q2s: &self.coords[1],
+            values: &self.values,
+        })
+    }
+
     pub(crate) fn build<F>(coord_vecs: Vec<Vec<f64>>, n_pids: usize, get_value: F) -> Self
     where
         F: Fn(usize, &[usize]) -> f64, // (pid_idx, multi_index) -> value

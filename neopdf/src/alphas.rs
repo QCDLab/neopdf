@@ -55,6 +55,18 @@ impl AlphaS {
             AlphaS::Interpol(interpol) => interpol.alphas_q2(q2),
         }
     }
+
+    /// Owned copy of this calculator's data, for a device/GPU export.
+    ///
+    /// Returns `None` for [`AlphaS::Analytic`]: porting the closed-form running
+    /// to a device kernel is unscoped follow-up work, not part of the collinear
+    /// GPU export.
+    pub(crate) fn as_gpu_export(&self) -> Option<AlphaSExport> {
+        match self {
+            AlphaS::Interpol(interpol) => Some(interpol.as_export()),
+            AlphaS::Analytic(_) => None,
+        }
+    }
 }
 
 /// Strong coupling calculator using the analytic formulas.
@@ -208,12 +220,32 @@ enum Interpolant {
     Constant(f64),
 }
 
+/// Owned export of an [`AlphaSInterpol`]'s underlying data, for a device/GPU backend.
+/// See [`AlphaSInterpol::as_export`].
+pub(crate) enum AlphaSExport {
+    /// A single, Q-independent value (see [`Interpolant::Constant`]).
+    Constant(f64),
+    /// Log-Q² knots and the `alpha_s` value at each, for [`AlphaSCubicInterpolation`].
+    Cubic { log_q2s: Vec<f64>, alphas: Vec<f64> },
+}
+
 /// Strong coupling calculator using interpolation.
 pub struct AlphaSInterpol {
     interpolant: Interpolant,
 }
 
 impl AlphaSInterpol {
+    /// Owned copy of this calculator's data, for a device/GPU export.
+    pub(crate) fn as_export(&self) -> AlphaSExport {
+        match &self.interpolant {
+            Interpolant::Constant(value) => AlphaSExport::Constant(*value),
+            Interpolant::Cubic(interpolator) => AlphaSExport::Cubic {
+                log_q2s: interpolator.data.grid[0].iter().copied().collect(),
+                alphas: interpolator.data.values.iter().copied().collect(),
+            },
+        }
+    }
+
     pub fn from_metadata(meta: &MetaData) -> Result<Self, String> {
         let alphas_q_values = &meta.alphas_q_values;
         let alphas_vals = &meta.alphas_vals;

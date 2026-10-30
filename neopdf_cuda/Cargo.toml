@@ -1,0 +1,23 @@
+[package]
+name = "neopdf_cuda"
+description = "Device/GPU batch evaluation for NeoPDF's collinear PDF grids"
+authors = ["Tanjona R. Rabemananjara <tanjona.hepc@gmail.com>"]
+categories.workspace = true
+edition.workspace = true
+keywords.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+neopdf.workspace = true
+thiserror.workspace = true
+
+# The `cuda-oxide` dependency (and the device kernels it builds) lands in a later
+# phase, behind a `cuda` feature, once Phase 0's host-only data layout is settled.
+# It pins its own Rust toolchain (1.99.1 via `cargo oxide`), independent of this
+# workspace's `rust-version`, so it stays opt-in rather than affecting every build.

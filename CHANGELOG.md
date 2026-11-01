@@ -10,10 +10,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added meaningful error messages when failing to read metadata.
+- Added `PDF::with_arithmetic`: the collinear `xfxq2` and `alphas_q2`
+  path of `LogBicubic` sets in a caller-chosen arithmetic
+  (`precision_pdf`), built on the `precision` kernels. LHAPDF `.dat`
+  sets keep their original Q knots (`GridArray::with_q_knots`), so
+  thresholds are squared in that arithmetic.
+- Added `PDF.with_arithmetic` to the Python API: the arithmetic of any
+  Python number type (e.g. `mpmath.mpf` or `Decimal`), given by its
+  `lift`, `ln` and `is_finite` callables.
+- Added `neopdf_pdf_with_arithmetic` to the C API, with the arithmetic given as a
+  table of callbacks on opaque scalars, and `NeoPDF::with_arithmetic<T>` to the
+  C++ API for any number type `T` (e.g. `long double` or `boost::multiprecision`).
+- Added `neopdf_pdf_with_arithmetic` to the Fortran API, with a built-in
+  quadruple-precision arithmetic (`neopdf_pdf_with_quad`) for `real(real128)`.
 
 ### Changed
 
-- Promote `SetIndex` from `u32` to `u64` ([#96](https://github.com/QCDLab/neopdf/pull/96))
+- Bump `ninterp` to `v0.11.2`.
+- Promote `SetIndex` from `u32` to `u64` ([#96](https://github.com/QCDLab/neopdf/pull/96)).
 
 ## [0.4.0] - 15/07/2026
 

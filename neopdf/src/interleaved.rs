@@ -4,6 +4,7 @@
 //! and the Hermite cubic basis function. All grid layout and config awareness lives in
 //! `gridpdf.rs`, which supplies a value-extraction closure at build time.
 
+use super::precision::{derivative, Binary64};
 use super::utils;
 
 /// Maximum number of "extra" dimensions beyond x (Q2 + up to 3 outer dims covers 5D).
@@ -59,7 +60,7 @@ pub(crate) struct CollinearHermiteView<'a> {
 /// - Interior knots: average of left and right finite differences
 /// - Boundary knots: one-sided finite difference
 fn compute_x_derivative(log_xs: &[f64], values: &[f64], ix: usize) -> f64 {
-    crate::precision::derivative(&crate::precision::Binary64, log_xs, values, ix)
+    derivative(&Binary64, log_xs, values, ix)
 }
 
 impl InterleavedHermite {

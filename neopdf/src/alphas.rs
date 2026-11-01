@@ -72,7 +72,8 @@ impl AlphaS {
 /// Strong coupling calculator using the analytic formulas.
 pub struct AlphaSAnalytic {
     qcd_order: u32,
-    fl_scheme: String,
+    /// Whether the flavor scheme is `FIXED`, resolved once instead of at every evaluation.
+    fixed_flavors: bool,
     lambda_maps: HashMap<u32, f64>,
     mc_sq: f64,
     mb_sq: f64,
@@ -103,13 +104,13 @@ impl AlphaSAnalytic {
             mb_sq: m_bottom * m_bottom,
             mt_sq: m_top * m_top,
             num_fl: meta.number_flavors,
-            fl_scheme: meta.flavor_scheme.clone(),
+            fixed_flavors: meta.flavor_scheme.eq_ignore_ascii_case("FIXED"),
         })
     }
 
     fn number_flavors_q2(&self, q2: f64) -> u32 {
         match () {
-            _ if self.fl_scheme.to_uppercase() == "FIXED" => self.num_fl,
+            _ if self.fixed_flavors => self.num_fl,
             _ if q2 > self.mt_sq && self.mt_sq > 0.0 => 6,
             _ if q2 > self.mb_sq && self.mb_sq > 0.0 => 5,
             _ if q2 > self.mc_sq && self.mc_sq > 0.0 => 4,
@@ -119,19 +120,18 @@ impl AlphaSAnalytic {
 
     fn lambda_qcd(&self, nf: u32) -> Result<f64, Error> {
         // NOTE: This is better be checked using `alphas_type`.
-        match self.fl_scheme.to_uppercase().as_str() {
-            "FIXED" => match self.lambda_maps.get(&self.num_fl) {
+        if self.fixed_flavors {
+            match self.lambda_maps.get(&self.num_fl) {
                 Some(lambda_value) => Ok(*lambda_value),
                 None => Err(Error::LambdaQCDValueNotFound { nf: self.num_fl }),
-            },
-            _ => {
-                if nf == 0 {
-                    return Err(Error::NfZeroValueError);
-                }
-                match self.lambda_maps.get(&nf) {
-                    Some(lambda_value) => Ok(*lambda_value),
-                    None => self.lambda_qcd(nf - 1),
-                }
+            }
+        } else {
+            if nf == 0 {
+                return Err(Error::NfZeroValueError);
+            }
+            match self.lambda_maps.get(&nf) {
+                Some(lambda_value) => Ok(*lambda_value),
+                None => self.lambda_qcd(nf - 1),
             }
         }
     }
@@ -234,6 +234,18 @@ pub struct AlphaSInterpol {
     interpolant: Interpolant,
 }
 
+/// The tabulated `(Q, alpha_s)` knots of `meta`, with repeated threshold `Q` knots reduced to their
+/// first occurrence. Shared by the binary64 interpolation and the precision path.
+pub(crate) fn alphas_knots(meta: &MetaData) -> (Vec<f64>, Vec<f64>) {
+    meta.alphas_q_values
+        .iter()
+        .zip(&meta.alphas_vals)
+        .enumerate()
+        .filter(|(i, (&q, _))| *i == 0 || q != meta.alphas_q_values[i - 1])
+        .map(|(_, (&q, &alpha))| (q, alpha))
+        .unzip()
+}
+
 impl AlphaSInterpol {
     /// Owned copy of this calculator's data, for a device/GPU export.
     pub(crate) fn as_export(&self) -> AlphaSExport {
@@ -247,16 +259,7 @@ impl AlphaSInterpol {
     }
 
     pub fn from_metadata(meta: &MetaData) -> Result<Self, String> {
-        let alphas_q_values = &meta.alphas_q_values;
-        let alphas_vals = &meta.alphas_vals;
-
-        let (q_values, alphas_vals_filtered): (Vec<_>, Vec<_>) = alphas_q_values
-            .iter()
-            .zip(alphas_vals)
-            .enumerate()
-            .filter(|(i, (&q, _))| *i == 0 || q != alphas_q_values[i - 1])
-            .map(|(_, (&q, &alpha))| (q, alpha))
-            .unzip();
+        let (q_values, alphas_vals_filtered) = alphas_knots(meta);
 
         if q_values.len() < 2 {
             let constant = alphas_vals_filtered.first().copied().unwrap_or(0.0);
@@ -359,6 +362,11 @@ mod tests {
 
         let analytic_fixed = AlphaSAnalytic::from_metadata(&meta_fixed).unwrap();
         assert_eq!(analytic_fixed.number_flavors_q2(1.0), 4);
+        assert_eq!(analytic_fixed.number_flavors_q2(30000.0), 4);
+
+        // The flavor scheme is case-insensitive.
+        meta_fixed.flavor_scheme = "fixed".to_string();
+        let analytic_fixed = AlphaSAnalytic::from_metadata(&meta_fixed).unwrap();
         assert_eq!(analytic_fixed.number_flavors_q2(30000.0), 4);
     }
 

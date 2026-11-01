@@ -113,6 +113,47 @@ module neopdf
         enumerator :: neopdf_force_positive
     end enum
 
+    ! A PDF member prepared in a caller-chosen arithmetic (see `neopdf_pdf_with_arithmetic`)
+    type neopdf_precision_pdf
+        type (c_ptr) :: ptr = c_null_ptr
+    end type
+
+    ! An arithmetic given by callbacks on opaque scalars (`type (c_ptr)`); see
+    ! `NeoPDFArithmetic` in the C API for the contract of each callback
+    type, bind(c) :: neopdf_arithmetic
+        type (c_ptr) :: context = c_null_ptr
+        type (c_funptr) :: lift = c_null_funptr
+        type (c_funptr) :: clone = c_null_funptr
+        type (c_funptr) :: free = c_null_funptr
+        type (c_funptr) :: add = c_null_funptr
+        type (c_funptr) :: sub = c_null_funptr
+        type (c_funptr) :: mul = c_null_funptr
+        type (c_funptr) :: div = c_null_funptr
+        type (c_funptr) :: ln = c_null_funptr
+        type (c_funptr) :: compare = c_null_funptr
+        type (c_funptr) :: is_finite = c_null_funptr
+    end type
+
+    enum, bind(c) ! :: neopdf_result
+        enumerator :: neopdf_result_success = 0
+        enumerator :: neopdf_result_error_null_pointer = -1
+        enumerator :: neopdf_result_error_invalid_data = -2
+        enumerator :: neopdf_result_error_memory_error = -3
+        enumerator :: neopdf_result_error_invalid_length = -4
+        enumerator :: neopdf_result_error_unsupported = -5
+        enumerator :: neopdf_result_error_out_of_range = -6
+        enumerator :: neopdf_result_error_non_finite = -7
+        enumerator :: neopdf_result_error_insufficient_precision = -8
+        enumerator :: neopdf_result_error_arithmetic = -9
+    end enum
+
+    enum, bind(c) ! :: neopdf_ordering
+        enumerator :: neopdf_ordering_less = -1
+        enumerator :: neopdf_ordering_equal = 0
+        enumerator :: neopdf_ordering_greater = 1
+        enumerator :: neopdf_ordering_unordered = 2
+    end enum
+
     interface
         function strlen(s) bind(c, name="strlen")
             use iso_c_binding
@@ -289,6 +330,37 @@ module neopdf
             type (c_ptr), value :: pdf
             integer (c_int) :: c_neopdf_pdf_is_force_positive
         end function
+
+        function c_neopdf_pdf_with_arithmetic(pdf, arithmetic, view) bind(c, name="neopdf_pdf_with_arithmetic")
+            use iso_c_binding
+            import :: neopdf_arithmetic
+            type (c_ptr), value :: pdf
+            type (neopdf_arithmetic), intent(in) :: arithmetic
+            type (c_ptr), intent(out) :: view
+            integer (c_int) :: c_neopdf_pdf_with_arithmetic
+        end function
+
+        function c_neopdf_precision_pdf_xfxq2(view, id, x, q2, val) bind(c, name="neopdf_precision_pdf_xfxq2")
+            use iso_c_binding
+            type (c_ptr), value :: view
+            integer (c_int32_t), value :: id
+            type (c_ptr), value :: x, q2
+            type (c_ptr), intent(out) :: val
+            integer (c_int) :: c_neopdf_precision_pdf_xfxq2
+        end function
+
+        function c_neopdf_precision_pdf_alphas_q2(view, q2, val) bind(c, name="neopdf_precision_pdf_alphas_q2")
+            use iso_c_binding
+            type (c_ptr), value :: view
+            type (c_ptr), value :: q2
+            type (c_ptr), intent(out) :: val
+            integer (c_int) :: c_neopdf_precision_pdf_alphas_q2
+        end function
+
+        subroutine c_neopdf_precision_pdf_free(view) bind(c, name="neopdf_precision_pdf_free")
+            use iso_c_binding
+            type (c_ptr), value :: view
+        end subroutine
 
         type (c_ptr) function c_neopdf_grid_new() bind(c, name="neopdf_grid_new")
             use iso_c_binding
@@ -742,6 +814,267 @@ contains
         character (*), intent(in) :: output_path
         integer :: res
         res = c_neopdf_grid_compress_v2(collection%ptr, metadata, output_path // c_null_char)
+    end function
+
+    ! Prepares `xfxq2` and `alphas_q2` of `pdf` in the arithmetic `arithmetic`, and returns
+    ! `neopdf_result_success`, or an error code with `view` left null. The view uses the same
+    ! data, subgrid selection, flavour lookup and positivity policy as `pdf`, but never
+    ! extrapolates; it is supported for collinear `LogBicubic` sets, and does not refer to
+    ! `pdf` afterwards. Release it with `neopdf_precision_pdf_free`.
+    function neopdf_pdf_with_arithmetic(pdf, arithmetic, view) result(res)
+        implicit none
+
+        type (neopdf_pdf), intent(in) :: pdf
+        type (neopdf_arithmetic), intent(in) :: arithmetic
+        type (neopdf_precision_pdf), intent(out) :: view
+        integer :: res
+
+        res = c_neopdf_pdf_with_arithmetic(pdf%ptr, arithmetic, view%ptr)
+    end function
+
+    ! Interpolates `x f(x, Q2)` in the view's arithmetic. `x` and `q2` are scalars of that
+    ! arithmetic, which the caller keeps owning; on success `xf` is a new scalar, which the
+    ! caller owns and releases with the arithmetic's `free`.
+    function neopdf_precision_pdf_xfxq2(view, id, x, q2, xf) result(res)
+        implicit none
+
+        type (neopdf_precision_pdf), intent(in) :: view
+        integer, intent(in) :: id
+        type (c_ptr), intent(in) :: x, q2
+        type (c_ptr), intent(out) :: xf
+        integer :: res
+
+        res = c_neopdf_precision_pdf_xfxq2(view%ptr, int(id, c_int32_t), x, q2, xf)
+    end function
+
+    ! Interpolates `alpha_s(Q2)` from the set's table in the view's arithmetic; the ownership
+    ! of the scalars is as for `neopdf_precision_pdf_xfxq2`.
+    function neopdf_precision_pdf_alphas_q2(view, q2, alphas) result(res)
+        implicit none
+
+        type (neopdf_precision_pdf), intent(in) :: view
+        type (c_ptr), intent(in) :: q2
+        type (c_ptr), intent(out) :: alphas
+        integer :: res
+
+        res = c_neopdf_precision_pdf_alphas_q2(view%ptr, q2, alphas)
+    end function
+
+    subroutine neopdf_precision_pdf_free(view)
+        implicit none
+
+        type (neopdf_precision_pdf), intent(in) :: view
+
+        call c_neopdf_precision_pdf_free(view%ptr)
+    end subroutine
+
+    ! The arithmetic of quadruple precision, `real (real128)`, for `neopdf_pdf_with_arithmetic`.
+    ! Its scalars are evaluated with `neopdf_precision_pdf_xfxq2_quad` and
+    ! `neopdf_precision_pdf_alphas_q2_quad`.
+    function neopdf_quad_arithmetic() result(arithmetic)
+        implicit none
+
+        type (neopdf_arithmetic) :: arithmetic
+
+        arithmetic%lift = c_funloc(neopdf_quad_lift)
+        arithmetic%clone = c_funloc(neopdf_quad_clone)
+        arithmetic%free = c_funloc(neopdf_quad_free)
+        arithmetic%add = c_funloc(neopdf_quad_add)
+        arithmetic%sub = c_funloc(neopdf_quad_sub)
+        arithmetic%mul = c_funloc(neopdf_quad_mul)
+        arithmetic%div = c_funloc(neopdf_quad_div)
+        arithmetic%ln = c_funloc(neopdf_quad_ln)
+        arithmetic%compare = c_funloc(neopdf_quad_compare)
+        arithmetic%is_finite = c_funloc(neopdf_quad_is_finite)
+    end function
+
+    ! Prepares `pdf` in quadruple precision; see `neopdf_pdf_with_arithmetic`.
+    function neopdf_pdf_with_quad(pdf, view) result(res)
+        implicit none
+
+        type (neopdf_pdf), intent(in) :: pdf
+        type (neopdf_precision_pdf), intent(out) :: view
+        integer :: res
+
+        res = neopdf_pdf_with_arithmetic(pdf, neopdf_quad_arithmetic(), view)
+    end function
+
+    ! Interpolates `x f(x, Q2)` in quadruple precision with a view of `neopdf_pdf_with_quad`,
+    ! and returns `neopdf_result_success` or an error code (`xf` is then zero).
+    function neopdf_precision_pdf_xfxq2_quad(view, id, x, q2, xf) result(res)
+        implicit none
+
+        type (neopdf_precision_pdf), intent(in) :: view
+        integer, intent(in) :: id
+        real (real128), intent(in), target :: x, q2
+        real (real128), intent(out) :: xf
+        integer :: res
+        type (c_ptr) :: val
+
+        res = neopdf_precision_pdf_xfxq2(view, id, c_loc(x), c_loc(q2), val)
+        xf = neopdf_quad_take(res, val)
+    end function
+
+    ! Interpolates `alpha_s(Q2)` in quadruple precision with a view of `neopdf_pdf_with_quad`,
+    ! and returns `neopdf_result_success` or an error code (`alphas` is then zero).
+    function neopdf_precision_pdf_alphas_q2_quad(view, q2, alphas) result(res)
+        implicit none
+
+        type (neopdf_precision_pdf), intent(in) :: view
+        real (real128), intent(in), target :: q2
+        real (real128), intent(out) :: alphas
+        integer :: res
+        type (c_ptr) :: val
+
+        res = neopdf_precision_pdf_alphas_q2(view, c_loc(q2), val)
+        alphas = neopdf_quad_take(res, val)
+    end function
+
+    ! Takes the value of a scalar returned by the C API, and releases it.
+    function neopdf_quad_take(res, val) result(value)
+        implicit none
+
+        integer, intent(in) :: res
+        type (c_ptr), intent(in) :: val
+        real (real128) :: value
+        real (real128), pointer :: scalar
+
+        value = 0.0_real128
+        if (res /= neopdf_result_success) return
+        call c_f_pointer(val, scalar)
+        value = scalar
+        deallocate(scalar)
+    end function
+
+    ! The callbacks of `neopdf_quad_arithmetic`: each scalar is a `real (real128)` allocated
+    ! on the heap. They do not use `context`; testing it only avoids unused-argument warnings.
+    function neopdf_quad_new(value) result(out)
+        implicit none
+
+        real (real128), intent(in) :: value
+        type (c_ptr) :: out
+        real (real128), pointer :: scalar
+
+        allocate(scalar)
+        scalar = value
+        out = c_loc(scalar)
+    end function
+
+    function neopdf_quad_get(a) result(value)
+        implicit none
+
+        type (c_ptr), intent(in) :: a
+        real (real128) :: value
+        real (real128), pointer :: scalar
+
+        call c_f_pointer(a, scalar)
+        value = scalar
+    end function
+
+    integer (c_int) function neopdf_quad_lift(context, value, out) bind(c)
+        type (c_ptr), value :: context
+        real (c_double), value :: value
+        type (c_ptr), intent(out) :: out
+
+        if (c_associated(context)) continue
+        ! Exact: every `real (c_double)` is representable in `real (real128)`
+        out = neopdf_quad_new(real(value, real128))
+        neopdf_quad_lift = 0
+    end function
+
+    integer (c_int) function neopdf_quad_clone(context, a, out) bind(c)
+        type (c_ptr), value :: context, a
+        type (c_ptr), intent(out) :: out
+
+        if (c_associated(context)) continue
+        out = neopdf_quad_new(neopdf_quad_get(a))
+        neopdf_quad_clone = 0
+    end function
+
+    subroutine neopdf_quad_free(context, a) bind(c)
+        type (c_ptr), value :: context, a
+        real (real128), pointer :: scalar
+
+        if (c_associated(context)) continue
+        call c_f_pointer(a, scalar)
+        deallocate(scalar)
+    end subroutine
+
+    integer (c_int) function neopdf_quad_add(context, a, b, out) bind(c)
+        type (c_ptr), value :: context, a, b
+        type (c_ptr), intent(out) :: out
+
+        if (c_associated(context)) continue
+        out = neopdf_quad_new(neopdf_quad_get(a) + neopdf_quad_get(b))
+        neopdf_quad_add = 0
+    end function
+
+    integer (c_int) function neopdf_quad_sub(context, a, b, out) bind(c)
+        type (c_ptr), value :: context, a, b
+        type (c_ptr), intent(out) :: out
+
+        if (c_associated(context)) continue
+        out = neopdf_quad_new(neopdf_quad_get(a) - neopdf_quad_get(b))
+        neopdf_quad_sub = 0
+    end function
+
+    integer (c_int) function neopdf_quad_mul(context, a, b, out) bind(c)
+        type (c_ptr), value :: context, a, b
+        type (c_ptr), intent(out) :: out
+
+        if (c_associated(context)) continue
+        out = neopdf_quad_new(neopdf_quad_get(a) * neopdf_quad_get(b))
+        neopdf_quad_mul = 0
+    end function
+
+    integer (c_int) function neopdf_quad_div(context, a, b, out) bind(c)
+        type (c_ptr), value :: context, a, b
+        type (c_ptr), intent(out) :: out
+
+        if (c_associated(context)) continue
+        out = neopdf_quad_new(neopdf_quad_get(a) / neopdf_quad_get(b))
+        neopdf_quad_div = 0
+    end function
+
+    integer (c_int) function neopdf_quad_ln(context, a, out) bind(c)
+        type (c_ptr), value :: context, a
+        type (c_ptr), intent(out) :: out
+
+        if (c_associated(context)) continue
+        out = neopdf_quad_new(log(neopdf_quad_get(a)))
+        neopdf_quad_ln = 0
+    end function
+
+    integer (c_int) function neopdf_quad_compare(context, a, b, out) bind(c)
+        type (c_ptr), value :: context, a, b
+        integer (c_int), intent(out) :: out
+        real (real128) :: x, y
+
+        if (c_associated(context)) continue
+        x = neopdf_quad_get(a)
+        y = neopdf_quad_get(b)
+        if (x < y) then
+            out = neopdf_ordering_less
+        else if (x > y) then
+            out = neopdf_ordering_greater
+        else if (x <= y) then
+            out = neopdf_ordering_equal
+        else
+            out = neopdf_ordering_unordered
+        end if
+        neopdf_quad_compare = 0
+    end function
+
+    integer (c_int) function neopdf_quad_is_finite(context, a, out) bind(c)
+        type (c_ptr), value :: context, a
+        logical (c_bool), intent(out) :: out
+        real (real128) :: x
+
+        if (c_associated(context)) continue
+        x = neopdf_quad_get(a)
+        ! False for infinities and NaNs
+        out = abs(x) <= huge(x)
+        neopdf_quad_is_finite = 0
     end function
 
     subroutine setlhaparm(line)

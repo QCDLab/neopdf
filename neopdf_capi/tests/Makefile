@@ -7,6 +7,8 @@ MATH_LIBS = -lm
 
 CHECKS = \
 	check-capi \
+	check-precision \
+	check-precision-oop \
 	check-oop \
 	check-writer \
 	check-writer-8d \
@@ -29,6 +31,12 @@ test-benchmarks: $(BENCHMARKS)
 
 check-capi: check-capi.c
 	$(CC) $(CXXFLAGS) $< $(NEOPDF_DEPS) $(MATH_LIBS) -o $@
+
+check-precision: check-precision.c
+	$(CC) $(CXXFLAGS) $< $(NEOPDF_DEPS) $(MATH_LIBS) -o $@
+
+check-precision-oop: check-precision-oop.cpp
+	$(CXX) $(CXXFLAGS) $< $(NEOPDF_DEPS) -o $@
 
 check-writer: check-writer.c
 	$(CC) $(CXXFLAGS) $< $(NEOPDF_DEPS) $(MATH_LIBS) -o $@

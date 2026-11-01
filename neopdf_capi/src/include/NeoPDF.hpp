@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <neopdf_capi.h>
@@ -7,6 +8,7 @@
 #include <sys/types.h>
 #include <vector>
 #include <memory>
+#include <exception>
 #include <stdexcept>
 
 /** @brief Object Oriented interface to NeoPDF. */
@@ -135,9 +137,13 @@ struct MetaDataV2 : public MetaData {
 
 class NeoPDFs; // Forward declaration
 
+template <typename T> struct ArithmeticTraits; // Forward declaration
+template <typename T, typename Traits = ArithmeticTraits<T>> class PrecisionPDF; // Forward declaration
+
 /** @brief Base PDF class that instantiates the PDF object. */
 class NeoPDF {
     friend class NeoPDFs; // Grant NeoPDFs access to private members
+    template <typename T, typename Traits> friend class PrecisionPDF;
     private:
         /** @brief Underlying raw object. */
         NeoPDFWrapper* raw;
@@ -320,6 +326,221 @@ class NeoPDF {
         /** @brief Returns the value of `ForcePositive` defining the PDF grid. */
         neopdf_force_positive is_force_positive() const {
             return neopdf_pdf_is_force_positive(this->raw);
+        }
+
+        /**
+         * @brief Prepares `xfxQ2` and `alphasQ2` in the arithmetic of the number type `T`.
+         * @throws PrecisionError if the set is not supported, or cannot be prepared in this arithmetic.
+         */
+        template <typename T, typename Traits = ArithmeticTraits<T>>
+        PrecisionPDF<T, Traits> with_arithmetic() const {
+            return PrecisionPDF<T, Traits>(*this);
+        }
+};
+
+/** @brief Error of `PrecisionPDF`, carrying the result code of the C API. */
+class PrecisionError : public std::runtime_error {
+    private:
+        NeopdfResult result;
+
+        static const char* message(NeopdfResult code) {
+            switch (code) {
+                case NEOPDF_RESULT_ERROR_UNSUPPORTED:
+                    return "not supported by the precision-generic path";
+                case NEOPDF_RESULT_ERROR_OUT_OF_RANGE:
+                    return "query is outside the supported grid";
+                case NEOPDF_RESULT_ERROR_NON_FINITE:
+                    return "nonfinite interpolation data, query or result";
+                case NEOPDF_RESULT_ERROR_INSUFFICIENT_PRECISION:
+                    return "working precision cannot resolve the grid knots";
+                case NEOPDF_RESULT_ERROR_ARITHMETIC:
+                    return "an arithmetic operation failed";
+                default:
+                    return "precision-generic interpolation failed";
+            }
+        }
+
+    public:
+        explicit PrecisionError(NeopdfResult code) : std::runtime_error(message(code)), result(code) {}
+
+        /** @brief The result code of the C API, e.g. `NEOPDF_RESULT_ERROR_OUT_OF_RANGE`. */
+        NeopdfResult code() const { return result; }
+};
+
+/**
+ * @brief The arithmetic of a number type `T` for `PrecisionPDF`.
+ *
+ * Addition, subtraction, multiplication, division and comparison use the operators of `T`. The
+ * default converts with `T(double)`, and finds `log` and `isfinite` in `std` or, by
+ * argument-dependent lookup, in the namespace of `T` (as for `boost::multiprecision`).
+ * Specialize it for a type that provides these differently, e.g. `__float128` with `logq`.
+ * `lift` must convert the `double` exactly.
+ */
+template <typename T>
+struct ArithmeticTraits {
+    static T lift(double value) { return T(value); }
+
+    static T ln(const T& a) {
+        using std::log;
+        return log(a);
+    }
+
+    static bool is_finite(const T& a) {
+        using std::isfinite;
+        return isfinite(a);
+    }
+};
+
+/**
+ * @brief The collinear `xfxQ2` and `alphasQ2` of a PDF member in the arithmetic of `T`.
+ *
+ * The view rebuilds the member's grids in that arithmetic, and evaluates with the same subgrid
+ * selection, flavour lookup and positivity policy as the `NeoPDF` it is built from (the policy
+ * at construction), but never extrapolates. It does not refer to that `NeoPDF` afterwards. It is
+ * supported for collinear `LogBicubic` sets.
+ *
+ * Errors are thrown as `PrecisionError`; an exception thrown by an operation of `T` is rethrown
+ * as it is.
+ */
+template <typename T, typename Traits>
+class PrecisionPDF {
+    private:
+        /** @brief Underlying raw object. */
+        NeoPDFPrecisionPDF* raw = nullptr;
+
+        /** @brief The exception thrown by an operation of `T` during the current call. */
+        static std::exception_ptr& pending() {
+            static thread_local std::exception_ptr exception;
+            return exception;
+        }
+
+        /** @brief Runs `op`, turning an exception into a failure of the callback. */
+        template <typename Op>
+        static int guard(Op op) noexcept {
+            try {
+                op();
+                return 0;
+            } catch (...) {
+                pending() = std::current_exception();
+                return 1;
+            }
+        }
+
+        static const T& get(const void* a) { return *static_cast<const T*>(a); }
+
+        static int lift(void*, double value, void** out) noexcept {
+            return guard([&] { *out = new T(Traits::lift(value)); });
+        }
+
+        static int clone(void*, const void* a, void** out) noexcept {
+            return guard([&] { *out = new T(get(a)); });
+        }
+
+        static void release(void*, void* a) noexcept { delete static_cast<T*>(a); }
+
+        static int add(void*, const void* a, const void* b, void** out) noexcept {
+            return guard([&] { *out = new T(get(a) + get(b)); });
+        }
+
+        static int sub(void*, const void* a, const void* b, void** out) noexcept {
+            return guard([&] { *out = new T(get(a) - get(b)); });
+        }
+
+        static int mul(void*, const void* a, const void* b, void** out) noexcept {
+            return guard([&] { *out = new T(get(a) * get(b)); });
+        }
+
+        static int div(void*, const void* a, const void* b, void** out) noexcept {
+            return guard([&] { *out = new T(get(a) / get(b)); });
+        }
+
+        static int ln(void*, const void* a, void** out) noexcept {
+            return guard([&] { *out = new T(Traits::ln(get(a))); });
+        }
+
+        static int compare(void*, const void* a, const void* b, NeopdfOrdering* out) noexcept {
+            return guard([&] {
+                const T& x = get(a);
+                const T& y = get(b);
+                *out = x < y    ? NEOPDF_ORDERING_LESS
+                       : x > y  ? NEOPDF_ORDERING_GREATER
+                       : x == y ? NEOPDF_ORDERING_EQUAL
+                                : NEOPDF_ORDERING_UNORDERED;
+            });
+        }
+
+        static int is_finite(void*, const void* a, bool* out) noexcept {
+            return guard([&] { *out = Traits::is_finite(get(a)); });
+        }
+
+        /** @brief Throws the error of a C API call, if any. */
+        static void check(NeopdfResult code) {
+            std::exception_ptr exception = pending();
+            pending() = nullptr;
+            if (code == NEOPDF_RESULT_SUCCESS) { return; }
+            if (code == NEOPDF_RESULT_ERROR_ARITHMETIC && exception) {
+                std::rethrow_exception(exception);
+            }
+            throw PrecisionError(code);
+        }
+
+        /** @brief Takes ownership of a scalar returned by the C API. */
+        static T take(void* value) {
+            std::unique_ptr<T> owned(static_cast<T*>(value));
+            return *owned;
+        }
+
+    public:
+        /**
+         * @brief Prepares the view of `pdf` in the arithmetic of `T`.
+         * @throws PrecisionError if the set is not supported, or cannot be prepared in this arithmetic.
+         */
+        explicit PrecisionPDF(const NeoPDF& pdf) {
+            NeoPDFArithmetic arithmetic = {
+                nullptr, &lift, &clone, &release, &add, &sub, &mul, &div, &ln, &compare, &is_finite,
+            };
+            check(neopdf_pdf_with_arithmetic(pdf.raw, &arithmetic, &this->raw));
+        }
+
+        /** @brief Destructor. */
+        ~PrecisionPDF() { neopdf_precision_pdf_free(this->raw); }
+
+        /** @brief Deleted copy semantics. */
+        PrecisionPDF(const PrecisionPDF&) = delete;
+        PrecisionPDF& operator=(const PrecisionPDF&) = delete;
+
+        /** @brief Move semantics. */
+        PrecisionPDF(PrecisionPDF&& other) noexcept : raw(other.raw) { other.raw = nullptr; }
+        PrecisionPDF& operator=(PrecisionPDF&& other) noexcept {
+            if (this != &other) {
+                neopdf_precision_pdf_free(this->raw);
+                this->raw = other.raw;
+                other.raw = nullptr;
+            }
+            return *this;
+        }
+
+        /**
+         * @brief Compute the `xf` value for a given PID, x, and Q2, in the arithmetic of `T`.
+         *
+         * A flavour that the set does not contain gives zero.
+         * @throws PrecisionError if `(x, Q2)` lies outside every subgrid (there is no
+         * extrapolation), or is not finite.
+         */
+        T xfxQ2(int pid, const T& x, const T& q2) const {
+            void* value = nullptr;
+            check(neopdf_precision_pdf_xfxq2(this->raw, pid, &x, &q2, &value));
+            return take(value);
+        }
+
+        /**
+         * @brief Compute the value of `alphas` at the Q2 value, in the arithmetic of `T`.
+         * @throws PrecisionError if Q2 lies outside the table, or `alphas` is analytic.
+         */
+        T alphasQ2(const T& q2) const {
+            void* value = nullptr;
+            check(neopdf_precision_pdf_alphas_q2(this->raw, &q2, &value));
+            return take(value);
         }
 };
 

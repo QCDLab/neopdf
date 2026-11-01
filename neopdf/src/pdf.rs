@@ -25,6 +25,8 @@ use rayon::prelude::*;
 use super::gridpdf::{ForcePositive, GridArray, GridPDF};
 use super::metadata::MetaData;
 use super::parser::{LhapdfSet, NeopdfSet};
+use super::precision::Arithmetic;
+use super::precision_pdf::{PrecisionError, PrecisionPDF};
 use super::subgrid::{RangeParameters, SubGrid};
 use super::utils::lookup_lhaid;
 
@@ -248,8 +250,10 @@ impl PDF {
             let info_path = parent.join(format!("{}.info", set_name));
 
             let info = LhapdfSet::read_metadata_or_panic(&info_path);
-            let pdf_data = LhapdfSet::read_data(path);
-            let knot_array = GridArray::new(pdf_data.subgrid_data, pdf_data.pids);
+            let (pdf_data, q_knots) = LhapdfSet::read_data_with_q_knots(path);
+            let knot_array = GridArray::new(pdf_data.subgrid_data, pdf_data.pids)
+                .with_q_knots(q_knots)
+                .expect("the parser's Q^2 knots are the squares of its Q knots");
 
             let mut info = info;
             if info.alphas_vals.is_empty() {
@@ -417,6 +421,18 @@ impl PDF {
         &self,
     ) -> Result<super::gpu_export::CollinearExport, super::gpu_export::CollinearExportError> {
         self.grid_pdf.collinear_export()
+    }
+
+    /// Prepares `xfxq2` and `alphas_q2` in the arithmetic `a`, from the same data and with the
+    /// same subgrid selection, flavour lookup and positivity policy as this `PDF`.
+    ///
+    /// For `LogBicubic` collinear sets; see [`crate::precision_pdf`] for the supported class and
+    /// the explicit differences (no extrapolation, thresholds squared in `a`).
+    pub fn with_arithmetic<A: Arithmetic + Clone>(
+        &self,
+        a: A,
+    ) -> Result<PrecisionPDF<A>, PrecisionError> {
+        self.grid_pdf.with_arithmetic(a)
     }
 
     /// Returns a reference to the PDF metadata.

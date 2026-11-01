@@ -454,3 +454,243 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
+
+---
+
+## Example 8: Interpolating in a Caller-Chosen Arithmetic
+
+`PDF::xfxq2` and `PDF::alphas_q2` compute in `f64`. With `PDF::with_arithmetic`,
+the same interpolation runs in **an arithmetic one chooses**. That can be a
+multiprecision float (MPFR through `rug`, `astro-float`, ...), a double-double,
+interval arithmetic, or plain `f64` again.
+
+### Why it is needed
+
+A PDF grid stores its values as `f64`, and `PDF::xfxq2` turns them into
+\(x f(x, Q^2)\) with a sequence of `f64` operations:
+
+- the logarithms of \(x\), \(Q^2\) and of the grid knots;
+- the finite-difference slopes at the knots;
+- the Hermite polynomial in the two variables.
+
+Each operation rounds, so the result carries an error of a few units in the last
+place, \(\mathcal{O}(10^{-16})\) relative and sometimes more. For a typical
+prediction this error is irrelevant. It matters when the rest of the computation
+is done beyond `f64`. This is relevant for example for **High-precision calculations**
+(quadruple precision or with MPFR).
+
+### How it works
+
+`with_arithmetic` builds a `PrecisionPDF<A>`, a **view** of one PDF member in the
+arithmetic `A`. When the view is created:
+
+1. every grid value and knot is converted **exactly** from `f64` into `A` (`lift`);
+2. the logarithms of the knots, the slopes and the interpolation coefficients are
+   computed **in `A`**, not in `f64`.
+
+The view then evaluates `xfxq2` and `alphas_q2` entirely in `A`. It uses the same
+subgrid selection, the same flavour lookup and the same positivity clipping as the
+`PDF` it came from. It owns its data, so it does not borrow the `PDF`: the `PDF`
+can be changed or dropped while the view is in use.
+
+An arithmetic is any type that implements the `neopdf::precision::Arithmetic` trait:
+
+```rust
+pub trait Arithmetic {
+    /// A finite real scalar; it need not implement `Copy`.
+    type Scalar: Clone;
+    /// Convert fixed binary64 input data at the context's precision.
+    fn lift(&self, value: f64) -> Self::Scalar;
+    fn add(&self, a: &Self::Scalar, b: &Self::Scalar) -> Self::Scalar;
+    fn sub(&self, a: &Self::Scalar, b: &Self::Scalar) -> Self::Scalar;
+    fn mul(&self, a: &Self::Scalar, b: &Self::Scalar) -> Self::Scalar;
+    fn div(&self, a: &Self::Scalar, b: &Self::Scalar) -> Self::Scalar;
+    /// Natural logarithm in the context's arithmetic.
+    fn ln(&self, a: &Self::Scalar) -> Self::Scalar;
+    /// Compare without conversion to binary64. Unordered values return `None`.
+    fn compare(&self, a: &Self::Scalar, b: &Self::Scalar) -> Option<std::cmp::Ordering>;
+    /// Whether the scalar is finite.
+    fn is_finite(&self, a: &Self::Scalar) -> bool;
+}
+```
+
+The trait is a **context**: `self` can carry the precision, the rounding mode or any
+other setting, and `Scalar` is the number type. `neopdf` itself depends on no
+multiprecision crate. It ships one implementation, `neopdf::precision::Binary64`,
+which is plain `f64`.
+
+### Usage with `f64`
+
+With `Binary64`, the view reproduces the standard path, which makes it a convenient
+check:
+
+```rust linenums="1"
+use neopdf::pdf::PDF;
+use neopdf::precision::Binary64;
+use neopdf::precision_pdf::PrecisionError;
+
+fn main() -> Result<(), PrecisionError> {
+    let pdf = PDF::load("NNPDF40_nnlo_as_01180", 0);
+    let view = pdf.with_arithmetic(Binary64)?;
+
+    let (x, q2) = (1e-3, 1e4);
+    println!("PDF::xfxq2           {:.17e}", pdf.xfxq2(21, &[x, q2]));
+    println!("PrecisionPDF::xfxq2  {:.17e}", view.xfxq2(21, &x, &q2)?);
+    println!("PrecisionPDF::alphas {:.17e}", view.alphas_q2(&q2)?);
+    Ok(())
+}
+```
+
+Note the signature of `PrecisionPDF::xfxq2`: it takes `x` and `q2` **by reference as scalars
+of the arithmetic**, `xfxq2(pid, &x, &q2)`, instead of the slice `&[x, q2]` taken
+by `PDF::xfxq2`. It returns a `Result`, because the view reports failures instead
+of returning a value.
+
+### Usage with MPFR
+
+To evaluate with, say, 256-bit MPFR (Multiple Precision Floating-Point Reliable
+Library) floats, implement `Arithmetic` for a small context type. This example
+uses the [`rug`](https://crates.io/crates/rug) crate:
+
+```toml
+[dependencies]
+neopdf = "0.4.0"
+rug = { version = "1.28", default-features = false, features = ["float"] }
+```
+
+```rust linenums="1"
+use std::cmp::Ordering;
+
+use neopdf::pdf::PDF;
+use neopdf::precision::Arithmetic;
+use neopdf::precision_pdf::PrecisionError;
+use rug::Float;
+
+/// MPFR floating-point numbers with a fixed number of mantissa bits.
+#[derive(Clone, Copy)]
+struct Mpfr {
+    bits: u32,
+}
+
+impl Arithmetic for Mpfr {
+    type Scalar = Float;
+
+    fn lift(&self, value: f64) -> Float {
+        // Exact: every f64 is representable with 53 bits or more.
+        Float::with_val(self.bits, value)
+    }
+    fn add(&self, a: &Float, b: &Float) -> Float {
+        Float::with_val(self.bits, a + b)
+    }
+    fn sub(&self, a: &Float, b: &Float) -> Float {
+        Float::with_val(self.bits, a - b)
+    }
+    fn mul(&self, a: &Float, b: &Float) -> Float {
+        Float::with_val(self.bits, a * b)
+    }
+    fn div(&self, a: &Float, b: &Float) -> Float {
+        Float::with_val(self.bits, a / b)
+    }
+    fn ln(&self, a: &Float) -> Float {
+        Float::with_val(self.bits, a.ln_ref())
+    }
+    fn compare(&self, a: &Float, b: &Float) -> Option<Ordering> {
+        a.partial_cmp(b)
+    }
+    fn is_finite(&self, a: &Float) -> bool {
+        a.is_finite()
+    }
+}
+
+fn main() -> Result<(), PrecisionError> {
+    let pdf = PDF::load("NNPDF40_nnlo_as_01180", 0);
+
+    let mpfr = Mpfr { bits: 256 };
+    let view = pdf.with_arithmetic(mpfr)?;
+
+    let (x, q2) = (mpfr.lift(1e-3), mpfr.lift(1e4));
+    let gluon = view.xfxq2(21, &x, &q2)?;
+    let alphas = view.alphas_q2(&mpfr.lift(8315.0))?;
+
+    println!("x g(x, Q2) = {gluon:.40}");
+    println!("alpha_s    = {alphas:.40}");
+    Ok(())
+}
+```
+
+This prints:
+
+```
+x g(x, Q2) = 29.59155878119592248046416566474969528643
+alpha_s    = 0.1180023495562482395598442571216052032962
+```
+
+The `f64` path gives `2.95915587811959142e1` for the same gluon: it agrees with
+the 256-bit value to about \(2 \times 10^{-16}\) relative, which is the rounding
+error that `with_arithmetic` removes.
+
+### Supported sets
+
+The view supports **collinear `LogBicubic` sets**. Every subgrid must be a plain
+\((x, Q^2)\) grid, with no nucleon number, \(\alpha_s\), \(k_T\), \(\xi\) or
+\(\Delta\) dimension. This covers the usual LHAPDF sets, read from LHAPDF `.dat`
+files or from NeoPDF grids.
+
+Sets outside this class are rejected when the view is created, with
+`PrecisionError::Unsupported`. Examples are Chebyshev grids (`LogChebyshev`), grids
+that combine several nuclei (`LogTricubic`, as in `nNNPDF30_nlo_as_0118.neopdf.lz4`)
+and TMD grids. A set whose \(\alpha_s\) is analytic rather than tabulated
+gets a working `xfxq2`, but its `alphas_q2` returns `PrecisionError::Unsupported`.
+
+### Differences from `PDF::xfxq2`
+
+The view is deliberately stricter than the standard path:
+
+| | `PDF::xfxq2` / `PDF::alphas_q2` | `PrecisionPDF::xfxq2` / `PrecisionPDF::alphas_q2` |
+|---|---|---|
+| Point outside the grid | Clamps or extrapolates | `Err(OutOfRange)` |
+| Non-finite input | Panics | `Err(NonFinite)` |
+| Flavour not in the set | `0.0` | `lift(0.0)` |
+| Positivity clipping | The current `ForcePositive` | The `ForcePositive` when the view was created |
+| Subgrid bounds in \(Q^2\) | The stored `f64` \(Q^2\) knots | For LHAPDF `.dat` sets, the original \(Q\) knots squared in `A` |
+
+Two of these rows need more explanation:
+
+- **No extrapolation.** Extrapolating would be a modelling choice, so the view refuses to
+  make it. Check the point with `pdf.param_ranges()` first, or handle `OutOfRange`.
+- **Thresholds squared in `A`.** LHAPDF `.dat` files list \(Q\), not \(Q^2\). The standard
+  path squares each \(Q\) knot in `f64`; the view squares it in `A`. That way, a flavour
+  threshold given by one \(Q\) stays a single point, shared by the subgrids on both sides
+  and by the \(\alpha_s\) table. As a consequence, the lowest \(Q^2\) of the view can lie a
+  hair above `pdf.param_ranges().q2.min`. For `NNPDF40_nnlo_as_01180`, the lowest \(Q\) is
+  1.65:
+
+    ```
+    f64 q2 min:          2.72249999999999969801...
+    1.65 squared in A:   2.72249999999999970690...
+    ```
+
+    `lift(pdf.param_ranges().q2.min)` is then just outside the grid. To evaluate at a
+    threshold, square \(Q\) in the arithmetic, `a.mul(&q, &q)`, instead of lifting an `f64`
+    \(Q^2\).
+
+The positivity row means that a later `pdf.set_force_positive(...)` does not affect a view
+that already exists. Create the view after setting the clipping you want.
+
+### Cost
+
+Measured on `NNPDF40_nnlo_as_01180` (for the gluon PDF) over 2000 points spread across the
+grid:
+
+| Arithmetic | Building the view | Per `xfxq2` |
+|---|---|---|
+| `PDF::xfxq2` (reference) | | 93 ns |
+| `Binary64` | 3 ms | 81 ns |
+| MPFR, 64 bits | 134 ms | 5.1 µs |
+| MPFR, 128 bits | 164 ms | 8.6 µs |
+| MPFR, 256 bits | 221 ms | 13 µs |
+| MPFR, 512 bits | 275 ms | 19 µs |
+
+The cost is set by the arithmetic: the view performs the same number of operations whatever
+`A` is. Across those 2000 points, the 256-bit and the `f64` results differ by at most
+\(1.1 \times 10^{-15}\) relative.

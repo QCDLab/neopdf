@@ -213,18 +213,21 @@ pub struct AlphaSInterpol {
     interpolant: Interpolant,
 }
 
+/// The tabulated `(Q, alpha_s)` knots of `meta`, with repeated threshold `Q` knots reduced to their
+/// first occurrence. Shared by the binary64 interpolation and the precision path.
+pub(crate) fn alphas_knots(meta: &MetaData) -> (Vec<f64>, Vec<f64>) {
+    meta.alphas_q_values
+        .iter()
+        .zip(&meta.alphas_vals)
+        .enumerate()
+        .filter(|(i, (&q, _))| *i == 0 || q != meta.alphas_q_values[i - 1])
+        .map(|(_, (&q, &alpha))| (q, alpha))
+        .unzip()
+}
+
 impl AlphaSInterpol {
     pub fn from_metadata(meta: &MetaData) -> Result<Self, String> {
-        let alphas_q_values = &meta.alphas_q_values;
-        let alphas_vals = &meta.alphas_vals;
-
-        let (q_values, alphas_vals_filtered): (Vec<_>, Vec<_>) = alphas_q_values
-            .iter()
-            .zip(alphas_vals)
-            .enumerate()
-            .filter(|(i, (&q, _))| *i == 0 || q != alphas_q_values[i - 1])
-            .map(|(_, (&q, &alpha))| (q, alpha))
-            .unzip();
+        let (q_values, alphas_vals_filtered) = alphas_knots(meta);
 
         if q_values.len() < 2 {
             let constant = alphas_vals_filtered.first().copied().unwrap_or(0.0);

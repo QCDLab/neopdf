@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `PDF.with_arithmetic` to the Python API: the arithmetic of any
   Python number type (e.g. `mpmath.mpf` or `Decimal`), given by its
   `lift`, `ln` and `is_finite` callables.
+- Added `neopdf_pdf_with_arithmetic` to the C API, with the arithmetic given as a
+  table of callbacks on opaque scalars, and `NeoPDF::with_arithmetic<T>` to the
+  C++ API for any number type `T` (e.g. `long double` or `boost::multiprecision`).
 
 ### Changed
 

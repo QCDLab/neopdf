@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `neopdf_pdf_with_arithmetic` to the C API, with the arithmetic given as a
   table of callbacks on opaque scalars, and `NeoPDF::with_arithmetic<T>` to the
   C++ API for any number type `T` (e.g. `long double` or `boost::multiprecision`).
+- Added `neopdf_pdf_with_arithmetic` to the Fortran API, with a built-in
+  quadruple-precision arithmetic (`neopdf_pdf_with_quad`) for `real(real128)`.
 
 ### Changed
 

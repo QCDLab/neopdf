@@ -14,6 +14,8 @@
 use std::cmp::Ordering;
 use thiserror::Error;
 
+use super::utils::find_interval_index_by;
+
 /// Arithmetic context for interpolation, independent of any multiprecision crate.
 ///
 /// The context controls precision and rounding. `lift` must convert the *exact*
@@ -191,7 +193,7 @@ impl<T: Clone> Axis<T> {
         }
         // The knots are finite (checked on construction) and so is `x`, so every comparison is
         // ordered and `None` means out of range.
-        let i = crate::utils::find_interval_index_by(&self.knots, x, |k, v| a.compare(k, v))
+        let i = find_interval_index_by(&self.knots, x, |k, v| a.compare(k, v))
             .ok_or(InterpolationError::OutOfRange)?;
         let t = a.div(
             &a.sub(&a.ln(x), &self.logs[i]),

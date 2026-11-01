@@ -4,6 +4,8 @@
 //! performing 1D cubic interpolation using Hermite basis functions. Finds the index
 //! of the interval in a sorted coordinate array that contains the given value.
 
+use super::precision::{hermite, Binary64};
+
 /// Dynamical object that contains the LHAPDF mapping from LHAID to PDF names.
 const LHAPDF_INDEX_URL: &str = "https://lhapdfsets.web.cern.ch/current/pdfsets.index";
 
@@ -126,7 +128,7 @@ pub(crate) fn find_interval_index_by<T>(
 /// extrapolated value changes from the product of dx and the discrete low-
 /// and high-edge derivative estimates.
 pub fn hermite_cubic_interpolate(t: f64, vl: f64, vdl: f64, vh: f64, vdh: f64) -> f64 {
-    crate::precision::hermite(&crate::precision::Binary64, &t, &vl, &vdl, &vh, &vdh)
+    hermite(&Binary64, &t, &vl, &vdl, &vh, &vdh)
 }
 
 #[cfg(test)]

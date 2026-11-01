@@ -16,6 +16,8 @@ use super::interleaved::InterleavedHermite;
 use super::interpolator::{DynInterpolator, InterpolationConfig, InterpolatorFactory};
 use super::metadata::{InterpolatorType, MetaData};
 use super::parser::SubgridData;
+use super::precision::Arithmetic;
+use super::precision_pdf::{PrecisionError, PrecisionPDF};
 use super::strategy::ChebyshevAllPids;
 use super::subgrid::{ParamRange, RangeParameters, SubGrid};
 
@@ -46,7 +48,7 @@ const PID_RANGE: usize = (PID_MAX - PID_MIN + 1) as usize;
 const PID_NONE: u8 = u8::MAX;
 
 #[derive(Debug, Clone)]
-struct PidLookup {
+pub(crate) struct PidLookup {
     table: [u8; PID_RANGE],
 }
 
@@ -74,7 +76,7 @@ impl PidLookup {
     }
 
     #[inline(always)]
-    fn get(&self, pid: i32) -> Option<usize> {
+    pub(crate) fn get(&self, pid: i32) -> Option<usize> {
         let normalized = if pid == 0 { 21 } else { pid };
         if !(PID_MIN..=PID_MAX).contains(&normalized) {
             return None;
@@ -97,7 +99,7 @@ pub struct GridArray {
     pub subgrids: Vec<SubGrid>,
     /// Direct-indexed PID lookup with complexity O(1).
     #[serde(skip)]
-    pid_lookup: PidLookup,
+    pub(crate) pid_lookup: PidLookup,
     /// Original unsquared Q knots per subgrid, when the input file provided them (LHAPDF `.dat`
     /// files). They are not serialized: `.neopdf` files store Q² only.
     #[serde(skip)]
@@ -1099,12 +1101,11 @@ impl GridPDF {
     /// Prepares this grid's collinear `xfxq2` and `alphas_q2` in the arithmetic `a`: every subgrid
     /// and the alpha_s table are rebuilt from the fixed binary64 data in `a` (see
     /// [`crate::precision_pdf`] for the supported class).
-    pub fn with_arithmetic<A: crate::precision::Arithmetic + Clone>(
+    pub fn with_arithmetic<A: Arithmetic + Clone>(
         &self,
         a: A,
-    ) -> Result<crate::precision_pdf::PrecisionPDF<'_, A>, crate::precision_pdf::PrecisionError>
-    {
-        crate::precision_pdf::PrecisionPDF::new(self, a)
+    ) -> Result<PrecisionPDF<A>, PrecisionError> {
+        PrecisionPDF::new(self, a)
     }
 
     /// Gets the alpha_s value at a given `Q²`.

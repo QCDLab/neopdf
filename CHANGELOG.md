@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`precision_pdf`), built on the `precision` kernels. LHAPDF `.dat`
   sets keep their original Q knots (`GridArray::with_q_knots`), so
   thresholds are squared in that arithmetic.
+- Added `PDF.with_arithmetic` to the Python API: the arithmetic of any
+  Python number type (e.g. `mpmath.mpf` or `Decimal`), given by its
+  `lift`, `ln` and `is_finite` callables.
 
 ### Changed
 

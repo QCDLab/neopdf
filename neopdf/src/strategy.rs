@@ -15,7 +15,7 @@
 //! ensuring compatibility and extensibility.
 
 use ndarray::{Array2, Axis, Data, IxDyn, RawDataClone};
-use ninterp::data::{InterpData1D, InterpData2D, InterpData3D, InterpDataND};
+use ninterp::data::{InterpData1DBase, InterpData2DBase, InterpData3DBase, InterpDataNDBase};
 use ninterp::error::{InterpolateError, ValidateError};
 use ninterp::strategy::traits::{Strategy1D, Strategy2D, Strategy3D, StrategyND};
 use serde::{Deserialize, Serialize};
@@ -72,7 +72,7 @@ where
     /// The interpolated value as a `Result`.
     fn interpolate(
         &self,
-        data: &InterpData2D<D>,
+        data: &InterpData2DBase<D>,
         point: &[f64; 2],
     ) -> Result<f64, InterpolateError> {
         let [x, y] = *point;
@@ -127,7 +127,7 @@ where
     /// # Arguments
     ///
     /// * `data` - The interpolation data to validate.
-    fn init(&mut self, _data: &InterpData2D<D>) -> Result<(), ValidateError> {
+    fn init(&mut self, _data: &InterpData2DBase<D>) -> Result<(), ValidateError> {
         Ok(())
     }
 
@@ -146,7 +146,7 @@ where
     /// The interpolated value as a `Result`.
     fn interpolate(
         &self,
-        data: &InterpData2D<D>,
+        data: &InterpData2DBase<D>,
         point: &[f64; 2],
     ) -> Result<f64, InterpolateError> {
         let [x, y] = *point;
@@ -231,7 +231,7 @@ impl LogBicubicInterpolation {
 
     /// Calculates the derivative with respect to x at a given knot.
     /// This mirrors the _ddx function in LHAPDF's C++ implementation.
-    pub fn calculate_ddx<D>(data: &InterpData2D<D>, ix: usize, iq2: usize) -> f64
+    pub fn calculate_ddx<D>(data: &InterpData2DBase<D>, ix: usize, iq2: usize) -> f64
     where
         D: Data<Elem = f64> + RawDataClone + Clone,
     {
@@ -263,7 +263,7 @@ impl LogBicubicInterpolation {
     }
 
     /// Computes the polynomial coefficients for bicubic interpolation, mirroring LHAPDF's C++ implementation.
-    pub(crate) fn compute_polynomial_coefficients<D>(data: &InterpData2D<D>) -> Vec<f64>
+    pub(crate) fn compute_polynomial_coefficients<D>(data: &InterpData2DBase<D>) -> Vec<f64>
     where
         D: Data<Elem = f64> + RawDataClone + Clone,
     {
@@ -303,7 +303,7 @@ impl LogBicubicInterpolation {
     /// Performs bicubic interpolation using pre-computed coefficients.
     pub(crate) fn interpolate_with_coeffs<D>(
         &self,
-        data: &InterpData2D<D>,
+        data: &InterpData2DBase<D>,
         ix: usize,
         iq2: usize,
         u: f64,
@@ -378,7 +378,7 @@ impl<D> Strategy2D<D> for LogBicubicInterpolation
 where
     D: Data<Elem = f64> + RawDataClone + Clone,
 {
-    fn init(&mut self, data: &InterpData2D<D>) -> Result<(), ValidateError> {
+    fn init(&mut self, data: &InterpData2DBase<D>) -> Result<(), ValidateError> {
         let x_coords = data.grid[0].as_slice().unwrap();
         let y_coords = data.grid[1].as_slice().unwrap();
 
@@ -394,7 +394,7 @@ where
 
     fn interpolate(
         &self,
-        data: &InterpData2D<D>,
+        data: &InterpData2DBase<D>,
         point: &[f64; 2],
     ) -> Result<f64, InterpolateError> {
         let [x, y] = *point;
@@ -455,7 +455,7 @@ impl LogTricubicInterpolation {
     }
 
     /// Calculates the derivative with respect to x at a given knot.
-    pub fn calculate_ddx<D>(data: &InterpData3D<D>, ix: usize, iq2: usize, iz: usize) -> f64
+    pub fn calculate_ddx<D>(data: &InterpData3DBase<D>, ix: usize, iq2: usize, iz: usize) -> f64
     where
         D: Data<Elem = f64> + RawDataClone + Clone,
     {
@@ -487,7 +487,7 @@ impl LogTricubicInterpolation {
     }
 
     /// Calculates the derivative with respect to y at a given knot.
-    pub fn calculate_ddy<D>(data: &InterpData3D<D>, ix: usize, iq2: usize, iz: usize) -> f64
+    pub fn calculate_ddy<D>(data: &InterpData3DBase<D>, ix: usize, iq2: usize, iz: usize) -> f64
     where
         D: Data<Elem = f64> + RawDataClone + Clone,
     {
@@ -519,7 +519,7 @@ impl LogTricubicInterpolation {
     }
 
     /// Calculates the derivative with respect to z at a given knot.
-    pub fn calculate_ddz<D>(data: &InterpData3D<D>, ix: usize, iq2: usize, iz: usize) -> f64
+    pub fn calculate_ddz<D>(data: &InterpData3DBase<D>, ix: usize, iq2: usize, iz: usize) -> f64
     where
         D: Data<Elem = f64> + RawDataClone + Clone,
     {
@@ -552,7 +552,7 @@ impl LogTricubicInterpolation {
 
     fn hermite_tricubic_interpolate<D>(
         &self,
-        data: &InterpData3D<D>,
+        data: &InterpData3DBase<D>,
         indices: (usize, usize, usize),
         coords: (f64, f64, f64),
         derivatives: (f64, f64, f64),
@@ -640,7 +640,7 @@ impl<D> Strategy3D<D> for LogTricubicInterpolation
 where
     D: Data<Elem = f64> + RawDataClone + Clone,
 {
-    fn init(&mut self, data: &InterpData3D<D>) -> Result<(), ValidateError> {
+    fn init(&mut self, data: &InterpData3DBase<D>) -> Result<(), ValidateError> {
         let x_coords = data.grid[0].as_slice().unwrap();
         let y_coords = data.grid[1].as_slice().unwrap();
         let z_coords = data.grid[2].as_slice().unwrap();
@@ -658,7 +658,7 @@ where
 
     fn interpolate(
         &self,
-        data: &InterpData3D<D>,
+        data: &InterpData3DBase<D>,
         point: &[f64; 3],
     ) -> Result<f64, InterpolateError> {
         let [x, y, z] = *point;
@@ -711,7 +711,7 @@ impl LogFourCubicInterpolation {
     }
 
     /// Calculates the derivative with respect to the first dimension at a given knot.
-    pub fn calculate_dd0<D>(data: &InterpDataND<D>, idx: &[usize]) -> f64
+    pub fn calculate_dd0<D>(data: &InterpDataNDBase<D>, idx: &[usize]) -> f64
     where
         D: Data<Elem = f64> + RawDataClone + Clone,
     {
@@ -753,7 +753,7 @@ impl LogFourCubicInterpolation {
     }
 
     /// Calculates the derivative with respect to the second dimension at a given knot.
-    pub fn calculate_dd1<D>(data: &InterpDataND<D>, idx: &[usize]) -> f64
+    pub fn calculate_dd1<D>(data: &InterpDataNDBase<D>, idx: &[usize]) -> f64
     where
         D: Data<Elem = f64> + RawDataClone + Clone,
     {
@@ -795,7 +795,7 @@ impl LogFourCubicInterpolation {
     }
 
     /// Calculates the derivative with respect to the third dimension at a given knot.
-    pub fn calculate_dd2<D>(data: &InterpDataND<D>, idx: &[usize]) -> f64
+    pub fn calculate_dd2<D>(data: &InterpDataNDBase<D>, idx: &[usize]) -> f64
     where
         D: Data<Elem = f64> + RawDataClone + Clone,
     {
@@ -837,7 +837,7 @@ impl LogFourCubicInterpolation {
     }
 
     /// Calculates the derivative with respect to the fourth dimension at a given knot.
-    pub fn calculate_dd3<D>(data: &InterpDataND<D>, idx: &[usize]) -> f64
+    pub fn calculate_dd3<D>(data: &InterpDataNDBase<D>, idx: &[usize]) -> f64
     where
         D: Data<Elem = f64> + RawDataClone + Clone,
     {
@@ -895,7 +895,7 @@ impl LogFourCubicInterpolation {
     /// Four-cubic Hermite interpolation in 4D
     fn hermite_fourcubic_interpolate<D>(
         &self,
-        data: &InterpDataND<D>,
+        data: &InterpDataNDBase<D>,
         indices: (usize, usize, usize, usize),
         coords: (f64, f64, f64, f64),
         deltas: (f64, f64, f64, f64),
@@ -1001,7 +1001,7 @@ impl<D> StrategyND<D> for LogFourCubicInterpolation
 where
     D: Data<Elem = f64> + RawDataClone + Clone,
 {
-    fn init(&mut self, data: &InterpDataND<D>) -> Result<(), ValidateError> {
+    fn init(&mut self, data: &InterpDataNDBase<D>) -> Result<(), ValidateError> {
         if data.grid.len() != 4 {
             return Err(ValidateError::Other(
                 "LogFourCubic requires exactly 4 dimensions".to_string(),
@@ -1021,7 +1021,11 @@ where
         Ok(())
     }
 
-    fn interpolate(&self, data: &InterpDataND<D>, point: &[f64]) -> Result<f64, InterpolateError> {
+    fn interpolate(
+        &self,
+        data: &InterpDataNDBase<D>,
+        point: &[f64],
+    ) -> Result<f64, InterpolateError> {
         if point.len() != 4 {
             return Err(InterpolateError::Other(
                 "LogFourCubic requires exactly 4-dimensional point".to_string(),
@@ -1087,7 +1091,7 @@ impl LogFiveCubicInterpolation {
     }
 
     /// Calculates the derivative with respect to dimension k at a given knot.
-    fn calculate_ddk<D>(data: &InterpDataND<D>, idx: &[usize], dim: usize) -> f64
+    fn calculate_ddk<D>(data: &InterpDataNDBase<D>, idx: &[usize], dim: usize) -> f64
     where
         D: Data<Elem = f64> + RawDataClone + Clone,
     {
@@ -1145,7 +1149,7 @@ impl LogFiveCubicInterpolation {
     /// Five-cubic Hermite interpolation in 5D
     fn hermite_fivecubic_interpolate<D>(
         &self,
-        data: &InterpDataND<D>,
+        data: &InterpDataNDBase<D>,
         indices: (usize, usize, usize, usize, usize),
         coords: (f64, f64, f64, f64, f64),
         deltas: (f64, f64, f64, f64, f64),
@@ -1280,7 +1284,7 @@ impl<D> StrategyND<D> for LogFiveCubicInterpolation
 where
     D: Data<Elem = f64> + RawDataClone + Clone,
 {
-    fn init(&mut self, data: &InterpDataND<D>) -> Result<(), ValidateError> {
+    fn init(&mut self, data: &InterpDataNDBase<D>) -> Result<(), ValidateError> {
         if data.grid.len() != 5 {
             return Err(ValidateError::Other(
                 "LogFiveCubic requires exactly 5 dimensions".to_string(),
@@ -1300,7 +1304,11 @@ where
         Ok(())
     }
 
-    fn interpolate(&self, data: &InterpDataND<D>, point: &[f64]) -> Result<f64, InterpolateError> {
+    fn interpolate(
+        &self,
+        data: &InterpDataNDBase<D>,
+        point: &[f64],
+    ) -> Result<f64, InterpolateError> {
         if point.len() != 5 {
             return Err(InterpolateError::Other(
                 "LogFiveCubic requires exactly 5-dimensional point".to_string(),
@@ -1363,7 +1371,7 @@ impl AlphaSCubicInterpolation {
     /// Get the index of the closest Q2 knot row <= q2
     ///
     /// If the value is >= q2_max, return (i_max-1).
-    fn ilogq2below<D>(data: &InterpData1D<D>, logq2: f64) -> usize
+    fn ilogq2below<D>(data: &InterpData1DBase<D>, logq2: f64) -> usize
     where
         D: Data<Elem = f64> + RawDataClone + Clone,
     {
@@ -1399,7 +1407,7 @@ impl AlphaSCubicInterpolation {
     }
 
     /// Forward derivative w.r.t. logQ2
-    fn ddlogq_forward<D>(data: &InterpData1D<D>, i: usize) -> f64
+    fn ddlogq_forward<D>(data: &InterpData1DBase<D>, i: usize) -> f64
     where
         D: Data<Elem = f64> + RawDataClone + Clone,
     {
@@ -1409,7 +1417,7 @@ impl AlphaSCubicInterpolation {
     }
 
     /// Backward derivative w.r.t. logQ2
-    fn ddlogq_backward<D>(data: &InterpData1D<D>, i: usize) -> f64
+    fn ddlogq_backward<D>(data: &InterpData1DBase<D>, i: usize) -> f64
     where
         D: Data<Elem = f64> + RawDataClone + Clone,
     {
@@ -1419,7 +1427,7 @@ impl AlphaSCubicInterpolation {
     }
 
     /// Central (avg of forward and backward) derivative w.r.t. logQ2
-    fn ddlogq_central<D>(data: &InterpData1D<D>, i: usize) -> f64
+    fn ddlogq_central<D>(data: &InterpData1DBase<D>, i: usize) -> f64
     where
         D: Data<Elem = f64> + RawDataClone + Clone,
     {
@@ -1433,7 +1441,7 @@ where
 {
     fn interpolate(
         &self,
-        data: &InterpData1D<D>,
+        data: &InterpData1DBase<D>,
         point: &[f64; 1],
     ) -> Result<f64, InterpolateError> {
         let logq2 = point[0];
@@ -1864,7 +1872,7 @@ impl<D> Strategy1D<D> for LogChebyshevInterpolation<1>
 where
     D: Data<Elem = f64> + RawDataClone + Clone,
 {
-    fn init(&mut self, data: &InterpData1D<D>) -> Result<(), ValidateError> {
+    fn init(&mut self, data: &InterpData1DBase<D>) -> Result<(), ValidateError> {
         let x_coords = data.grid[0].as_slice().unwrap();
         let n = x_coords.len();
         if n < 2 {
@@ -1884,7 +1892,7 @@ where
 
     fn interpolate(
         &self,
-        data: &InterpData1D<D>,
+        data: &InterpData1DBase<D>,
         point: &[f64; 1],
     ) -> Result<f64, InterpolateError> {
         let x = point[0];
@@ -1916,7 +1924,7 @@ impl<D> Strategy2D<D> for LogChebyshevInterpolation<2>
 where
     D: Data<Elem = f64> + RawDataClone + Clone,
 {
-    fn init(&mut self, data: &InterpData2D<D>) -> Result<(), ValidateError> {
+    fn init(&mut self, data: &InterpData2DBase<D>) -> Result<(), ValidateError> {
         for dim in 0..2 {
             let x_coords = data.grid[dim].as_slice().unwrap();
             let n = x_coords.len();
@@ -1936,7 +1944,7 @@ where
 
     fn interpolate(
         &self,
-        data: &InterpData2D<D>,
+        data: &InterpData2DBase<D>,
         point: &[f64; 2],
     ) -> Result<f64, InterpolateError> {
         let [x, y] = *point;
@@ -1994,7 +2002,7 @@ impl<D> Strategy3D<D> for LogChebyshevInterpolation<3>
 where
     D: Data<Elem = f64> + RawDataClone + Clone,
 {
-    fn init(&mut self, data: &InterpData3D<D>) -> Result<(), ValidateError> {
+    fn init(&mut self, data: &InterpData3DBase<D>) -> Result<(), ValidateError> {
         for dim in 0..3 {
             let x_coords = data.grid[dim].as_slice().unwrap();
             let n = x_coords.len();
@@ -2014,7 +2022,7 @@ where
 
     fn interpolate(
         &self,
-        data: &InterpData3D<D>,
+        data: &InterpData3DBase<D>,
         point: &[f64; 3],
     ) -> Result<f64, InterpolateError> {
         let [x, y, z] = *point;
@@ -2087,7 +2095,7 @@ impl<D> StrategyND<D> for LogChebyshevInterpolation<4>
 where
     D: Data<Elem = f64> + RawDataClone + Clone,
 {
-    fn init(&mut self, data: &InterpDataND<D>) -> Result<(), ValidateError> {
+    fn init(&mut self, data: &InterpDataNDBase<D>) -> Result<(), ValidateError> {
         if data.grid.len() != 4 {
             return Err(ValidateError::Other(
                 "LogChebyshevInterpolation<4> requires exactly 4 dimensions".to_string(),
@@ -2110,7 +2118,11 @@ where
         Ok(())
     }
 
-    fn interpolate(&self, data: &InterpDataND<D>, point: &[f64]) -> Result<f64, InterpolateError> {
+    fn interpolate(
+        &self,
+        data: &InterpDataNDBase<D>,
+        point: &[f64],
+    ) -> Result<f64, InterpolateError> {
         if point.len() != 4 {
             return Err(InterpolateError::Other(
                 "LogChebyshevInterpolation<4> requires a 4D point".to_string(),
@@ -2205,7 +2217,7 @@ impl<D> StrategyND<D> for LogChebyshevInterpolation<5>
 where
     D: Data<Elem = f64> + RawDataClone + Clone,
 {
-    fn init(&mut self, data: &InterpDataND<D>) -> Result<(), ValidateError> {
+    fn init(&mut self, data: &InterpDataNDBase<D>) -> Result<(), ValidateError> {
         if data.grid.len() != 5 {
             return Err(ValidateError::Other(
                 "LogChebyshevInterpolation<5> requires exactly 5 dimensions".to_string(),
@@ -2228,7 +2240,11 @@ where
         Ok(())
     }
 
-    fn interpolate(&self, data: &InterpDataND<D>, point: &[f64]) -> Result<f64, InterpolateError> {
+    fn interpolate(
+        &self,
+        data: &InterpDataNDBase<D>,
+        point: &[f64],
+    ) -> Result<f64, InterpolateError> {
         if point.len() != 5 {
             return Err(InterpolateError::Other(
                 "LogChebyshevInterpolation<5> requires a 5D point".to_string(),
@@ -2459,7 +2475,7 @@ impl<const DIM: usize> LogChebyshevBatchInterpolation<DIM> {
 }
 
 impl LogChebyshevBatchInterpolation<1> {
-    pub fn init<D>(&mut self, data: &InterpData1D<D>) -> Result<(), ValidateError>
+    pub fn init<D>(&mut self, data: &InterpData1DBase<D>) -> Result<(), ValidateError>
     where
         D: Data<Elem = f64> + RawDataClone + Clone,
     {
@@ -2482,7 +2498,7 @@ impl LogChebyshevBatchInterpolation<1> {
 
     pub fn interpolate<D>(
         &self,
-        data: &InterpData1D<D>,
+        data: &InterpData1DBase<D>,
         points: &[[f64; 1]],
     ) -> Result<Vec<f64>, InterpolateError>
     where
@@ -2507,7 +2523,7 @@ impl LogChebyshevBatchInterpolation<1> {
 }
 
 impl LogChebyshevBatchInterpolation<2> {
-    pub fn init<D>(&mut self, data: &InterpData2D<D>) -> Result<(), ValidateError>
+    pub fn init<D>(&mut self, data: &InterpData2DBase<D>) -> Result<(), ValidateError>
     where
         D: Data<Elem = f64> + RawDataClone + Clone,
     {
@@ -2531,7 +2547,7 @@ impl LogChebyshevBatchInterpolation<2> {
 
     pub fn interpolate<D>(
         &self,
-        data: &InterpData2D<D>,
+        data: &InterpData2DBase<D>,
         points: &[[f64; 2]],
     ) -> Result<Vec<f64>, InterpolateError>
     where
@@ -2562,7 +2578,7 @@ impl LogChebyshevBatchInterpolation<2> {
 }
 
 impl LogChebyshevBatchInterpolation<3> {
-    pub fn init<D>(&mut self, data: &InterpData3D<D>) -> Result<(), ValidateError>
+    pub fn init<D>(&mut self, data: &InterpData3DBase<D>) -> Result<(), ValidateError>
     where
         D: Data<Elem = f64> + RawDataClone + Clone,
     {
@@ -2585,7 +2601,7 @@ impl LogChebyshevBatchInterpolation<3> {
 
     pub fn interpolate<D>(
         &self,
-        data: &InterpData3D<D>,
+        data: &InterpData3DBase<D>,
         points: &[[f64; 3]],
     ) -> Result<Vec<f64>, InterpolateError>
     where
@@ -2644,10 +2660,10 @@ impl LogChebyshevBatchInterpolation<3> {
 mod tests {
     use super::*;
     use itertools::Itertools;
-    use ndarray::{Array, Array1, Array2, Array3, OwnedRepr};
+    use ndarray::{Array, Array1, Array2, Array3};
     use std::f64::consts::PI;
 
-    use ninterp::data::{InterpData1D, InterpData2D, InterpDataND};
+    use ninterp::data::{InterpData1D, InterpData2D, InterpData3D, InterpDataND};
     use ninterp::interpolator::{Extrapolate, InterpND};
     use ninterp::num_traits::Float;
     use ninterp::prelude::Interpolator;
@@ -2680,10 +2696,7 @@ mod tests {
             .collect()
     }
 
-    fn create_test_data_1d(
-        q2_values: Vec<f64>,
-        alphas_vals: Vec<f64>,
-    ) -> InterpData1D<OwnedRepr<f64>> {
+    fn create_test_data_1d(q2_values: Vec<f64>, alphas_vals: Vec<f64>) -> InterpData1D<f64> {
         InterpData1D::new(Array1::from(q2_values), Array1::from(alphas_vals)).unwrap()
     }
 
@@ -2691,7 +2704,7 @@ mod tests {
         x_coords: Vec<f64>,
         y_coords: Vec<f64>,
         values: Vec<f64>,
-    ) -> InterpData2D<OwnedRepr<f64>> {
+    ) -> InterpData2D<f64> {
         let shape = (x_coords.len(), y_coords.len());
         let values_array = Array2::from_shape_vec(shape, values).unwrap();
         InterpData2D::new(x_coords.into(), y_coords.into(), values_array).unwrap()
@@ -2702,7 +2715,7 @@ mod tests {
         y_coords: Vec<f64>,
         z_coords: Vec<f64>,
         values: Vec<f64>,
-    ) -> InterpData3D<OwnedRepr<f64>> {
+    ) -> InterpData3D<f64> {
         let shape = (x_coords.len(), y_coords.len(), z_coords.len());
         let values_array = Array3::from_shape_vec(shape, values).unwrap();
         InterpData3D::new(
@@ -2998,17 +3011,12 @@ mod tests {
             1
         );
 
-        let data_single = create_test_data_1d(vec![1.0f64.ln()], vec![0.1]);
-
-        let result = std::panic::catch_unwind(|| {
-            AlphaSCubicInterpolation::ilogq2below(&data_single, 0.5f64.ln());
-        });
-        assert!(result.is_err());
-
-        let result = std::panic::catch_unwind(|| {
-            AlphaSCubicInterpolation::ilogq2below(&data_single, 1.5f64.ln());
-        });
-        assert!(result.is_err());
+        // A single-point grid can no longer even be constructed: ninterp now rejects it
+        // during `InterpData1D::new` validation instead of panicking later on use.
+        assert!(matches!(
+            InterpData1D::new(Array1::from(vec![1.0f64.ln()]), Array1::from(vec![0.1]),),
+            Err(ninterp::error::ValidateError::InsufficientGridLength(0))
+        ));
     }
 
     #[test]

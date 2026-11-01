@@ -65,15 +65,14 @@ pub(crate) fn lookup_lhaid(lhaid: u32) -> Result<(String, usize), String> {
 /// # Returns
 ///
 /// A `Result` containing the 0-based index of the left bound of the interval if successful.
-/// Returns an `InterpolateError::ExtrapolateError` if the value is outside the bounds
-/// of the `coords` array.
+/// Returns an `InterpolateError::Other` if the value is outside the bounds of the
+/// `coords` array.
 pub fn find_interval_index(
     coords: &[f64],
     value: f64,
 ) -> Result<usize, ninterp::error::InterpolateError> {
-    find_interval_index_by(coords, &value, f64::partial_cmp).ok_or_else(|| {
-        ninterp::error::InterpolateError::ExtrapolateError("Out of Bounds!".to_string())
-    })
+    find_interval_index_by(coords, &value, f64::partial_cmp)
+        .ok_or_else(|| ninterp::error::InterpolateError::Other("Out of Bounds!".to_string()))
 }
 
 /// Arithmetic-generic form of [`find_interval_index`].

@@ -197,9 +197,20 @@ impl AlphaSAnalytic {
     }
 }
 
+/// The underlying numerical scheme backing [`AlphaSInterpol`].
+///
+/// A grid with fewer than two distinct `Q` knots can't bracket a query point,
+/// so `ninterp` refuses to build a cubic interpolator from it. Such a grid
+/// still encodes a well-defined `alpha_s`, just a constant one, which this
+/// variant returns directly.
+enum Interpolant {
+    Cubic(Interp1D<f64, AlphaSCubicInterpolation>),
+    Constant(f64),
+}
+
 /// Strong coupling calculator using interpolation.
 pub struct AlphaSInterpol {
-    interpolator: Interp1DOwned<f64, AlphaSCubicInterpolation>,
+    interpolant: Interpolant,
 }
 
 /// The tabulated `(Q, alpha_s)` knots of `meta`, with repeated threshold `Q` knots reduced to their
@@ -218,6 +229,13 @@ impl AlphaSInterpol {
     pub fn from_metadata(meta: &MetaData) -> Result<Self, String> {
         let (q_values, alphas_vals_filtered) = alphas_knots(meta);
 
+        if q_values.len() < 2 {
+            let constant = alphas_vals_filtered.first().copied().unwrap_or(0.0);
+            return Ok(Self {
+                interpolant: Interpolant::Constant(constant),
+            });
+        }
+
         let q2_values: Vec<f64> = q_values.iter().map(|&q| (q * q).ln()).collect();
 
         let interpolator = Interp1D::new(
@@ -228,11 +246,16 @@ impl AlphaSInterpol {
         )
         .map_err(|e| e.to_string())?;
 
-        Ok(Self { interpolator })
+        Ok(Self {
+            interpolant: Interpolant::Cubic(interpolator),
+        })
     }
 
     pub fn alphas_q2(&self, q2: f64) -> f64 {
-        self.interpolator.interpolate(&[q2.ln()]).unwrap_or(0.0)
+        match &self.interpolant {
+            Interpolant::Cubic(interpolator) => interpolator.interpolate(&[q2.ln()]).unwrap_or(0.0),
+            Interpolant::Constant(value) => *value,
+        }
     }
 }
 

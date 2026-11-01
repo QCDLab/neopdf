@@ -25,6 +25,8 @@ use rayon::prelude::*;
 use super::gridpdf::{ForcePositive, GridArray, GridPDF};
 use super::metadata::MetaData;
 use super::parser::{LhapdfSet, NeopdfSet};
+use super::precision::Arithmetic;
+use super::precision_pdf::{PrecisionError, PrecisionPDF};
 use super::subgrid::{RangeParameters, SubGrid};
 use super::utils::lookup_lhaid;
 
@@ -417,11 +419,10 @@ impl PDF {
     ///
     /// For `LogBicubic` collinear sets; see [`crate::precision_pdf`] for the supported class and
     /// the explicit differences (no extrapolation, thresholds squared in `a`).
-    pub fn with_arithmetic<A: crate::precision::Arithmetic + Clone>(
+    pub fn with_arithmetic<A: Arithmetic + Clone>(
         &self,
         a: A,
-    ) -> Result<crate::precision_pdf::PrecisionPDF<'_, A>, crate::precision_pdf::PrecisionError>
-    {
+    ) -> Result<PrecisionPDF<A>, PrecisionError> {
         self.grid_pdf.with_arithmetic(a)
     }
 

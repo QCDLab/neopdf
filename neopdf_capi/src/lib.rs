@@ -10,6 +10,8 @@ use neopdf::parser::SubgridData;
 use neopdf::pdf::PDF;
 use neopdf::writer::GridArrayCollection;
 
+pub mod precision;
+
 const DEFAULT_PIDS: [i32; 14] = [21, -6, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 22];
 
 /// Result codes for `NeoPDF` operations
@@ -26,6 +28,16 @@ pub enum NeopdfResult {
     ErrorMemoryError = -3,
     /// The provided length or size argument was invalid.
     ErrorInvalidLength = -4,
+    /// The PDF set is not supported by the requested operation.
+    ErrorUnsupported = -5,
+    /// The point lies outside the grid, and the operation does not extrapolate.
+    ErrorOutOfRange = -6,
+    /// An input or a result is not finite.
+    ErrorNonFinite = -7,
+    /// The arithmetic is not precise enough to resolve the grid knots.
+    ErrorInsufficientPrecision = -8,
+    /// A callback of a caller-provided arithmetic reported a failure.
+    ErrorArithmetic = -9,
 }
 
 impl From<NeopdfResult> for c_int {

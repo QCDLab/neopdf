@@ -43,6 +43,12 @@
     </li>
     <li>
     <p align="justify">
+      Collinear PDFs can be evaluated in <b>arbitrary arithmetic precision</b> (e.g. quadruple or MPFR)
+      chosen by the caller, from the Rust, Python, C/C++ and Fortran APIs.
+    </p>
+    </li>
+    <li>
+    <p align="justify">
       NeoPDF implements its own file format using binary serialization and <a href="https://lz4.org/">LZ4</a>
       compression, prioritizing speed and efficiency over human-readable formats. A command Line
       Interface (CLI) is provided to easily inspect and perform various operations on NeoPDF grids.

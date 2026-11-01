@@ -25,10 +25,11 @@ use std::cmp::Ordering;
 
 use thiserror::Error;
 
-use crate::gridpdf::{ForcePositive, GridPDF};
-use crate::interpolator::InterpolationConfig;
-use crate::metadata::InterpolatorType;
-use crate::precision::{Arithmetic, InterpolationError, LogBicubicGrid, LogCubicTable};
+use super::alphas::alphas_knots;
+use super::gridpdf::{ForcePositive, GridPDF, PidLookup};
+use super::interpolator::InterpolationConfig;
+use super::metadata::InterpolatorType;
+use super::precision::{Arithmetic, InterpolationError, LogBicubicGrid, LogCubicTable};
 
 /// Errors of the precision-generic path; it never substitutes a value for a failure.
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
@@ -49,18 +50,21 @@ struct PreparedSubgrid<A: Arithmetic> {
 }
 
 /// The collinear `PDF` path in the arithmetic `A`; see the module documentation.
-pub struct PrecisionPDF<'a, A: Arithmetic> {
+///
+/// It owns everything it evaluates with, so it does not borrow the `GridPDF`.
+pub struct PrecisionPDF<A: Arithmetic> {
     arithmetic: A,
-    pdf: &'a GridPDF,
+    pids: PidLookup,
+    force_positive: Option<ForcePositive>,
     subgrids: Vec<PreparedSubgrid<A>>,
     /// `None` for sets with analytic αs.
     alphas: Option<LogCubicTable<A>>,
 }
 
-impl<'a, A: Arithmetic + Clone> PrecisionPDF<'a, A> {
+impl<A: Arithmetic + Clone> PrecisionPDF<A> {
     /// Prepares the view: every subgrid and the αs table are rebuilt from the fixed binary64 data
     /// in `arithmetic`.
-    pub(crate) fn new(pdf: &'a GridPDF, arithmetic: A) -> Result<Self, PrecisionError> {
+    pub(crate) fn new(pdf: &GridPDF, arithmetic: A) -> Result<Self, PrecisionError> {
         let info = pdf.metadata();
         if info.interpolator_type != InterpolatorType::LogBicubic {
             return Err(PrecisionError::Unsupported(format!(
@@ -122,7 +126,7 @@ impl<'a, A: Arithmetic + Clone> PrecisionPDF<'a, A> {
             None
         } else {
             // The same knots as the binary64 path (repeated threshold Q knots reduced to the first).
-            let (qs, values) = crate::alphas::alphas_knots(info);
+            let (qs, values) = alphas_knots(info);
             Some(LogCubicTable::from_q_knots(
                 arithmetic.clone(),
                 &qs,
@@ -131,14 +135,15 @@ impl<'a, A: Arithmetic + Clone> PrecisionPDF<'a, A> {
         };
         Ok(Self {
             arithmetic,
-            pdf,
+            pids: knots.pid_lookup.clone(),
+            force_positive: pdf.force_positive.clone(),
             subgrids,
             alphas,
         })
     }
 }
 
-impl<A: Arithmetic> PrecisionPDF<'_, A> {
+impl<A: Arithmetic> PrecisionPDF<A> {
     /// `x f(x, Q^2)` of flavour `pid` (PDG code, 0 for the gluon), as [`crate::pdf::PDF::xfxq2`]
     /// with the points `[x, Q^2]`.
     pub fn xfxq2(
@@ -151,12 +156,12 @@ impl<A: Arithmetic> PrecisionPDF<'_, A> {
         if !a.is_finite(x) || !a.is_finite(q2) {
             return Err(InterpolationError::NonFinite.into());
         }
-        let Some(flavor) = self.pdf.knot_array.pid_index(pid) else {
+        let Some(flavor) = self.pids.get(pid) else {
             return Ok(a.lift(0.0));
         };
         let subgrid = self.locate(x, q2)?;
         let value = subgrid.grid.evaluate(flavor, x, q2)?;
-        Ok(match self.pdf.force_positive {
+        Ok(match self.force_positive {
             Some(ForcePositive::ClipNegative) => self.at_least(value, 0.0),
             Some(ForcePositive::ClipSmall) => self.at_least(value, 1e-10),
             Some(ForcePositive::NoClipping) | None => value,

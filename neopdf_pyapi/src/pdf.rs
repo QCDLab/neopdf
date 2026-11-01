@@ -8,6 +8,7 @@ use neopdf::pdf::PDF;
 
 use super::gridpdf::PySubGrid;
 use super::metadata::{build_lhapdf_map, PyMetaData};
+use super::precision::PyPrecisionPDF;
 use super::uncertainty::PyUncertainty;
 
 // Type aliases
@@ -804,6 +805,53 @@ impl PyPDF {
         self.pdf.alphas_q2(q2)
     }
 
+    /// Prepares `xfxQ2` and `alphasQ2` in a caller-chosen arithmetic, from the same data and
+    /// with the same subgrid selection, flavor lookup and positivity policy as this PDF.
+    ///
+    /// The arithmetic is that of a Python number type: `lift` converts the grid's binary64
+    /// values, `ln` takes their logarithms, and the numbers' own operators do the rest. For
+    /// example `(mpmath.mpf, mpmath.log, mpmath.isfinite)` or `(Decimal, Decimal.ln,
+    /// Decimal.is_finite)`; `(float, math.log)` reproduces `xfxQ2` and `alphasQ2`.
+    ///
+    /// Only `LogBicubic` sets with collinear `(x, Q2)` subgrids are supported. Unlike `xfxQ2`
+    /// and `alphasQ2`, the view never extrapolates.
+    ///
+    /// Parameters
+    /// ----------
+    /// lift : Callable[[float], Any]
+    ///     Converts a float into the arithmetic. It must be exact (`mpmath.mpf(float)` and
+    ///     `Decimal(float)` are), not go through a decimal string.
+    /// ln : Callable[[Any], Any]
+    ///     The natural logarithm in the arithmetic.
+    /// is_finite : Callable[[Any], bool]
+    ///     Whether a number is finite. Defaults to `math.isfinite`.
+    ///
+    /// Returns
+    /// -------
+    /// PrecisionPDF
+    ///     The view, with its own copy of the member's data in the arithmetic.
+    ///
+    /// Raises
+    /// ------
+    /// ValueError
+    ///     If the set is outside the supported class, or the arithmetic cannot resolve the
+    ///     grid's knots.
+    #[allow(clippy::missing_errors_doc)]
+    #[pyo3(signature = (lift, ln, is_finite = None))]
+    pub fn with_arithmetic(
+        &self,
+        py: Python<'_>,
+        lift: Py<PyAny>,
+        ln: Py<PyAny>,
+        is_finite: Option<Py<PyAny>>,
+    ) -> PyResult<PyPrecisionPDF> {
+        let is_finite = match is_finite {
+            Some(is_finite) => is_finite,
+            None => py.import("math")?.getattr("isfinite")?.unbind(),
+        };
+        PyPrecisionPDF::new(&self.pdf, lift, ln, is_finite)
+    }
+
     /// Returns the metadata associated with this PDF set.
     ///
     /// Provides access to the metadata describing the PDF set, including information
@@ -1054,6 +1102,7 @@ pub fn register(parent_module: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyForcePositive>()?;
     m.add_class::<PyGridParams>()?;
     m.add_class::<PyLoaderMethod>()?;
+    m.add_class::<PyPrecisionPDF>()?;
     parent_module.add_class::<PyPDFSet>()?;
     parent_module.add_submodule(&m)
 }

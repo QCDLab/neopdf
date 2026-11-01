@@ -1,0 +1,119 @@
+body {
+  font-size: 0.85rem;
+}
+
+.md-content__inner {
+  max-width: 80ch;
+}
+
+/* Justify all paragraphs and list items globally */
+.md-content__inner p,
+.md-content__inner li {
+  text-align: justify;
+}
+
+/* Custom red color palette */
+:root {
+  --md-primary-fg-color: #ff5555;
+  --md-primary-fg-color--light: #ff5555;
+  --md-primary-fg-color--dark: #ff5555;
+  --md-accent-fg-color: #ff5555;
+  --md-accent-fg-color--transparent: rgba(255, 85, 85, 0.1);
+}
+
+/* Style headers with the same red color */
+h1, h2, h3, h4, h5, h6 {
+  color: #ff5555 !important;
+}
+
+/* Feature grid styling - CSS Grid approach */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.feature-card {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 1rem;
+  height: 100%;
+  transition: background 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.feature-card:hover {
+  background-color: rgba(255, 85, 85, 0.1);
+  border-color: #ff5555;
+}
+
+/* Alternative: Simple flexbox approach */
+.feature-grid-simple {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.feature-grid-simple .feature-card {
+  flex: 1 1 300px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 1rem;
+  transition: background 0.2s ease;
+}
+
+.feature-grid-simple .feature-card:hover {
+  background-color: rgba(255, 85, 85, 0.1);
+  border-color: #ff5555;
+}
+
+/* Make main sections bold in navigation */
+.md-nav__title {
+  font-weight: bold !important;
+}
+
+/* Make top-level navigation items bold */
+.md-nav__list .md-nav__item:first-child > .md-nav__link {
+  font-weight: bold !important;
+}
+
+/* Make main section headers bold in navigation */
+.md-nav__list > .md-nav__item > .md-nav__link {
+  font-weight: bold !important;
+}
+
+/* Hide Jupyter input/output prompts in mkdocs-jupyter */
+.jp-InputPrompt, .jp-OutputPrompt, .prompt, .nbinput .prompt, .nboutput .prompt {
+    display: none !important;
+}
+
+/* Slightly increase font size in notebook code cells for mkdocs-jupyter and similar renderers */
+div.nbinput .input_area pre,
+div.input_area pre,
+div.jp-InputArea-editor,
+div.jp-CodeCell .jp-InputArea-editor,
+div.highlight pre,
+pre {
+    font-size: 1.06em !important;
+}
+
+.center-medium {
+    display: block;
+    margin: 0 auto;
+    width: 75%;
+    height: auto;
+}
+
+/* Header logo: increase size and hide site name next to it */
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+  height: 2.2rem;
+  width: auto;
+}
+
+.md-header__title .md-header__topic {
+  display: none;
+}

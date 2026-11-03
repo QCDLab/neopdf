@@ -44,6 +44,30 @@ def test_device_matches_host(grid: DeviceGrid) -> None:
     np.testing.assert_array_equal(got, grid.xfxQ2_batch(XS, Q2S))
 
 
+def test_host_buffer_matches_new_arrays(grid: DeviceGrid) -> None:
+    # sized for a larger batch and reused across batches
+    buffer = grid.host_buffer(2 * XS.size)
+    assert buffer.shape == (2 * XS.size, grid.num_members(), len(grid.pids()) + 1)
+    for xs, q2s in ((XS, Q2S), (XS[::-1].copy(), Q2S[::-1].copy()), (XS[:5], Q2S[:5])):
+        got = grid.xfxQ2_batch(xs, q2s, out=buffer)
+        np.testing.assert_array_equal(got, grid.xfxQ2_batch(xs, q2s))
+        assert np.shares_memory(got, buffer)
+
+
+def test_out_accepts_any_c_contiguous_array(grid: DeviceGrid) -> None:
+    out = np.empty(grid.output_len(XS.size))
+    got = grid.xfxQ2_batch(XS, Q2S, out=out)
+    assert got.shape == (XS.size, grid.num_members(), len(grid.pids()) + 1)
+    np.testing.assert_array_equal(out, grid.xfxQ2_batch(XS, Q2S).ravel())
+
+
+def test_rejects_invalid_out(grid: DeviceGrid) -> None:
+    with pytest.raises(ValueError):
+        grid.xfxQ2_batch(XS, Q2S, out=np.empty(grid.output_len(XS.size) - 1))
+    with pytest.raises(ValueError):
+        grid.xfxQ2_batch(XS, Q2S, out=np.empty((grid.output_len(XS.size), 2))[:, 0])
+
+
 def test_rejects_inconsistent_lengths(grid: DeviceGrid) -> None:
     with pytest.raises(ValueError):
         grid.xfxQ2_batch(XS, Q2S[:-1])

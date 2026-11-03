@@ -34,6 +34,27 @@ int main(void) {
         return EXIT_FAILURE;
     }
 
+    /* The same batch into page-locked memory, sized for larger batches and
+     * reused across them: the copy back from the GPU is then faster. */
+    NeoPDFHostBuffer *pinned =
+        neopdf_device_grid_host_buffer_new(grid, 2 * num_events);
+    if (pinned == NULL || neopdf_host_buffer_len(pinned) < out_len) {
+        return EXIT_FAILURE;
+    }
+    double *pinned_out = neopdf_host_buffer_data(pinned);
+    if (neopdf_device_grid_xfxq2_batch_host(grid,
+            xs,
+            q2s,
+            num_events,
+            pinned_out,
+            out_len) != NEOPDF_CUDA_RESULT_SUCCESS) {
+        return EXIT_FAILURE;
+    }
+    for (size_t i = 0; i < out_len; ++i) {
+        if (pinned_out[i] != out[i]) { return EXIT_FAILURE; }
+    }
+    neopdf_host_buffer_free(pinned);
+
     printf("members: %zu, flavors: %zu\n", num_members, num_pids);
     printf("              x              Q2              xg              xu    "
            "     alpha_s\n");

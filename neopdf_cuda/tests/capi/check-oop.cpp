@@ -31,6 +31,14 @@ int main() {
     // Host interface.
     std::vector<double> host       = grid.xfxQ2_batch(xs, q2s);
 
+    // The same into page-locked memory, sized for larger batches and reused
+    // across them: the copy back from the GPU is then faster.
+    neopdf::HostBuffer pinned = grid.host_buffer(2 * num_events);
+    grid.xfxQ2_batch(xs, q2s, pinned);
+    for (size_t i = 0; i < out_len; ++i) {
+        if (pinned.data()[i] != host[i]) return EXIT_FAILURE;
+    }
+
     // Device interface, as an event generator would use it: the buffers and the
     // stream belong to the caller, and the evaluation is ordered on that
     // stream.

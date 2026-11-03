@@ -6,7 +6,7 @@
 
 mod common;
 
-use cuda_core::CudaContext;
+use cuda_core::{CudaContext, PinnedHostBuffer};
 use neopdf::pdf::PDF;
 use neopdf_cuda::device::DeviceGrid;
 use neopdf_cuda::grid_prep::DeviceGridLayout;
@@ -43,6 +43,45 @@ fn hermite_batch_matches_host() {
 fn chebyshev_batch_matches_host() {
     let (_dir, members) = common::chebyshev_set();
     assert_device_matches_host(&members);
+}
+
+/// Into page-locked memory, a large batch is computed and copied back in overlapping
+/// chunks; the result must not change.
+#[test]
+fn pinned_chunked_batch_matches_pageable() {
+    let members = PDF::load_pdfs(common::HERMITE_SET);
+    let layout = DeviceGridLayout::build(&members).unwrap();
+    let ctx = CudaContext::new(0).unwrap();
+    let stream = ctx.default_stream();
+    let grid = DeviceGrid::upload(&stream, &layout).unwrap();
+
+    // several 64 MiB chunks with all members, the last one partial
+    let (base_xs, base_q2s) = common::points(&members[0]);
+    let n_events = 20_011;
+    let xs: Vec<f64> = base_xs.iter().copied().cycle().take(n_events).collect();
+    let q2s: Vec<f64> = base_q2s
+        .iter()
+        .copied()
+        .rev()
+        .cycle()
+        .take(n_events)
+        .collect();
+
+    let mut pageable = vec![0.0; grid.output_len(n_events)];
+    grid.xfxq2_batch_host(&stream, &xs, &q2s, &mut pageable)
+        .unwrap();
+    let mut pinned = PinnedHostBuffer::zeroed(&ctx, grid.output_len(n_events)).unwrap();
+    grid.xfxq2_batch_host(&stream, &xs, &q2s, &mut pinned)
+        .unwrap();
+    assert!(pinned
+        .iter()
+        .zip(&pageable)
+        .all(|(a, b)| a.to_bits() == b.to_bits()));
+
+    // a mismatched batch is rejected before anything is enqueued
+    assert!(grid
+        .xfxq2_batch_host(&stream, &xs, &q2s[1..], &mut pinned)
+        .is_err());
 }
 
 #[test]

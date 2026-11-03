@@ -5,10 +5,45 @@
 #include <neopdf_cuda.h>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 /** @brief Object Oriented interface to NeoPDF's GPU batch evaluation. */
 namespace neopdf {
+
+/**
+ * @brief Page-locked host memory for batch outputs, from `DeviceGrid::host_buffer`.
+ *
+ * Results are copied into it from the GPU several times faster than into a
+ * `std::vector`. Allocating it is slow, so allocate it once and reuse it.
+ */
+class HostBuffer {
+    private:
+        /** @brief Underlying raw object. */
+        NeoPDFHostBuffer* raw;
+
+        explicit HostBuffer(NeoPDFHostBuffer* raw) : raw(raw) {}
+        friend class DeviceGrid;
+
+    public:
+        /** @brief Deleted copy semantics; the buffer can be moved. */
+        HostBuffer(const HostBuffer&) = delete;
+        HostBuffer& operator=(const HostBuffer&) = delete;
+        HostBuffer(HostBuffer&& other) noexcept : raw(std::exchange(other.raw, nullptr)) {}
+        HostBuffer& operator=(HostBuffer&& other) noexcept {
+            std::swap(this->raw, other.raw);
+            return *this;
+        }
+
+        /** @brief Destructor, releasing the memory. */
+        ~HostBuffer() { neopdf_host_buffer_free(this->raw); }
+
+        /** @brief The values, valid while the buffer lives. */
+        double* data() { return neopdf_host_buffer_data(this->raw); }
+
+        /** @brief Number of values. */
+        size_t size() const { return neopdf_host_buffer_len(this->raw); }
+};
 
 /** @brief Every member of a PDF set, resident on a GPU. */
 class DeviceGrid {
@@ -81,6 +116,36 @@ class DeviceGrid {
             check(neopdf_device_grid_xfxq2_batch_host(this->raw, xs.data(), q2s.data(),
                                                       xs.size(), out.data(), out.size()));
             return out;
+        }
+
+        /**
+         * @brief Allocates page-locked host memory for the output of up to `n_events`
+         *        events, to pass to the `HostBuffer` overload of `xfxQ2_batch`.
+         */
+        HostBuffer host_buffer(size_t n_events) const {
+            NeoPDFHostBuffer* raw = neopdf_device_grid_host_buffer_new(this->raw, n_events);
+            if (raw == nullptr) {
+                throw std::runtime_error("neopdf_cuda: cannot allocate page-locked host memory");
+            }
+            return HostBuffer(raw);
+        }
+
+        /**
+         * @brief The same evaluation into `out`, whose first `output_len(xs.size())`
+         *        values are filled; faster than the `std::vector` version for large
+         *        batches.
+         */
+        void xfxQ2_batch(const std::vector<double>& xs, const std::vector<double>& q2s,
+                         HostBuffer& out) const {
+            if (xs.size() != q2s.size()) {
+                throw std::length_error("neopdf_cuda: xs and q2s differ in size");
+            }
+            size_t out_len = this->output_len(xs.size());
+            if (out.size() < out_len) {
+                throw std::length_error("neopdf_cuda: the host buffer is too small");
+            }
+            check(neopdf_device_grid_xfxq2_batch_host(this->raw, xs.data(), q2s.data(),
+                                                      xs.size(), out.data(), out_len));
         }
 
         /**

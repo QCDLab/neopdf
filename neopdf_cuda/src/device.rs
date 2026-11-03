@@ -6,11 +6,22 @@
 //! device. The launch is then enqueued on the caller's stream and nothing is
 //! synchronized. [`DeviceGrid::xfxq2_batch_host`] wraps it with the host transfers.
 //!
-//! The kernel runs one thread per entry of the `[n_events, n_members, n_flavors + 1]`
-//! output, each evaluating [`GridView::eval`]: adjacent threads read adjacent
-//! flavors of the same grid cell, which keeps the coefficient loads coalesced.
+//! The kernel runs one thread per row of the `[n_events, n_members, n_flavors + 1]`
+//! output, each evaluating [`GridView::eval_row`]: the logarithms and the knot search
+//! of an `(event, member)` are done once for all its flavors and `alpha_s`.
 
-use cuda_core::{CudaStream, DeviceBuffer, DriverError, LaunchConfig1D, LaunchContractError};
+use std::mem::{size_of, ManuallyDrop};
+use std::sync::Arc;
+
+use cuda_core::simt::memory::memcpy_dtoh_async;
+use cuda_core::sys::{
+    cuPointerGetAttribute, CUdeviceptr, CUmemorytype_enum_CU_MEMORYTYPE_HOST,
+    CUpointer_attribute_enum_CU_POINTER_ATTRIBUTE_MEMORY_TYPE,
+};
+use cuda_core::{
+    CudaEvent, CudaStream, DeviceBuffer, DeviceCopy, DriverError, IntoResult, LaunchConfig1D,
+    LaunchContractError,
+};
 use cuda_device::{kernel, launch_bounds, launch_contract, thread, DisjointSlice};
 use cuda_host::{cuda_module, EmbeddedModuleError};
 use thiserror::Error;
@@ -20,6 +31,10 @@ use crate::grid_prep::{DeviceGridLayout, Interpolation};
 
 /// Threads per block; must match the kernel's `launch_contract`.
 const BLOCK_SIZE: u32 = 256;
+
+/// Output bytes per chunk of [`DeviceGrid::xfxq2_batch_host`] into page-locked memory:
+/// large enough to keep launches and copies efficient, small enough to overlap.
+const CHUNK_BYTES: usize = 64 << 20;
 
 // `#[cuda_module]` generates the kernel's entry point and expects its items in scope.
 #[cuda_module]
@@ -70,14 +85,19 @@ mod kernels {
             alphas,
             alphas_offsets,
         };
-        let index = thread::index_1d();
-        let i = index.get();
-        if let Some(entry) = out.get_mut(index) {
-            *entry = if chebyshev {
-                grid.eval::<Chebyshev>(i, xs, q2s)
-            } else {
-                grid.eval::<Hermite>(i, xs, q2s)
+        let row = thread::index_1d().get();
+        let n_columns = grid.n_columns();
+        if (row + 1) * n_columns <= out.len() {
+            // SAFETY: thread `row` alone writes the entries `[row, row + 1) * n_columns`,
+            // which the check above keeps inside `out`.
+            let entries = unsafe {
+                core::slice::from_raw_parts_mut(out.as_mut_ptr().add(row * n_columns), n_columns)
             };
+            if chebyshev {
+                grid.eval_row::<Chebyshev>(row, xs, q2s, entries);
+            } else {
+                grid.eval_row::<Hermite>(row, xs, q2s, entries);
+            }
         }
     }
 }
@@ -128,6 +148,8 @@ pub struct DeviceGrid {
     alphas_log_q2s: DeviceBuffer<f64>,
     alphas: DeviceBuffer<f64>,
     alphas_offsets: DeviceBuffer<usize>,
+    /// Copies chunks back to the host while the next ones are computed.
+    copy_stream: Arc<CudaStream>,
 }
 
 impl DeviceGrid {
@@ -159,6 +181,7 @@ impl DeviceGrid {
             alphas_log_q2s: upload(&layout.alphas_log_q2s)?,
             alphas: upload(&layout.alphas)?,
             alphas_offsets: upload_offsets(&layout.alphas_offsets)?,
+            copy_stream: stream.context().new_stream()?,
         })
     }
 
@@ -209,7 +232,9 @@ impl DeviceGrid {
         if expected == 0 {
             return Ok(());
         }
-        let n_blocks = u32::try_from(expected.div_ceil(BLOCK_SIZE as usize))
+        // one thread per `(event, member)` row
+        let n_rows = expected / (self.n_flavors + 1);
+        let n_blocks = u32::try_from(n_rows.div_ceil(BLOCK_SIZE as usize))
             .map_err(|_| DeviceError::TooLarge(expected))?;
         let prepared = self
             .module
@@ -243,6 +268,13 @@ impl DeviceGrid {
     ///
     /// See [`Self::xfxq2_batch_device`] for the output layout.
     ///
+    /// The copy of `out` back to the host dominates for large batches. Into
+    /// page-locked memory, a [`cuda_core::PinnedHostBuffer`] passed as `out`, it runs
+    /// several times faster than into a pageable `Vec`, and a batch of more than 64 MiB
+    /// of output is computed in chunks, each copied back while the next one is computed
+    /// (on two chunk buffers rather than the whole output on the device). Allocating
+    /// pinned memory is slow, so allocate it once and reuse it across batches.
+    ///
     /// # Errors
     ///
     /// Returns an error if the buffer lengths are inconsistent, or a device
@@ -254,10 +286,104 @@ impl DeviceGrid {
         q2s: &[f64],
         out: &mut [f64],
     ) -> Result<(), DeviceError> {
+        let row_len = self.n_members * (self.n_flavors + 1);
+        let chunk_events = (CHUNK_BYTES / (row_len * size_of::<f64>())).max(1);
+        if xs.len() <= chunk_events || !is_page_locked(stream, out.as_ptr()) {
+            let xs = DeviceBuffer::from_host(stream, xs)?;
+            let q2s = DeviceBuffer::from_host(stream, q2s)?;
+            let mut out_dev = DeviceBuffer::zeroed(stream, out.len())?;
+            self.xfxq2_batch_device(stream, &xs, &q2s, &mut out_dev)?;
+            return Ok(out_dev.copy_to_host(stream, out)?);
+        }
+        let expected = self.output_len(xs.len());
+        if xs.len() != q2s.len() || out.len() != expected {
+            return Err(DeviceError::Shape {
+                xs: xs.len(),
+                q2s: q2s.len(),
+                out: out.len(),
+                expected,
+            });
+        }
+
         let xs = DeviceBuffer::from_host(stream, xs)?;
         let q2s = DeviceBuffer::from_host(stream, q2s)?;
-        let mut out_dev = DeviceBuffer::zeroed(stream, out.len())?;
-        self.xfxq2_batch_device(stream, &xs, &q2s, &mut out_dev)?;
-        Ok(out_dev.copy_to_host(stream, out)?)
+        let chunks = [
+            DeviceBuffer::<f64>::zeroed(stream, chunk_events * row_len)?,
+            DeviceBuffer::<f64>::zeroed(stream, chunk_events * row_len)?,
+        ];
+        let mut enqueue = || -> Result<(), DeviceError> {
+            // the last copy out of each chunk buffer, before it is overwritten
+            let mut copied: [Option<CudaEvent>; 2] = [None, None];
+            for (index, start) in (0..xs.len()).step_by(chunk_events).enumerate() {
+                let n_events = chunk_events.min(xs.len() - start);
+                let len = n_events * row_len;
+                let slot = index % 2;
+                if let Some(copied) = &copied[slot] {
+                    stream.wait(copied)?;
+                }
+                // SAFETY: each view lies inside its buffer, which outlives it.
+                let (chunk_xs, chunk_q2s, mut chunk_out) = unsafe {
+                    (
+                        view(&xs, start, n_events),
+                        view(&q2s, start, n_events),
+                        view(&chunks[slot], 0, len),
+                    )
+                };
+                self.xfxq2_batch_device(stream, &chunk_xs, &chunk_q2s, &mut chunk_out)?;
+                self.copy_stream.wait(&stream.record_event(None)?)?;
+                let host = &mut out[start * row_len..][..len];
+                // SAFETY: `host` is page-locked memory of `len` values, and the copy is
+                // complete before this function returns, through the synchronization
+                // below.
+                unsafe {
+                    memcpy_dtoh_async(
+                        host.as_mut_ptr(),
+                        chunks[slot].cu_deviceptr(),
+                        len * size_of::<f64>(),
+                        self.copy_stream.cu_stream(),
+                    )?;
+                }
+                copied[slot] = Some(self.copy_stream.record_event(None)?);
+            }
+            Ok(())
+        };
+        // Wait for every enqueued copy, even after an error, as they write into `out`.
+        let enqueued = enqueue();
+        let copied = self.copy_stream.synchronize();
+        enqueued?;
+        Ok(copied?)
     }
+}
+
+/// Whether `ptr` is page-locked host memory, so that a copy into it is asynchronous.
+fn is_page_locked(stream: &CudaStream, ptr: *const f64) -> bool {
+    let mut memory_type = 0u32;
+    stream.context().bind_to_thread().is_ok()
+        // SAFETY: the attribute is written as an `unsigned int`; the pointer is only
+        // looked up, never dereferenced.
+        && unsafe {
+            cuPointerGetAttribute(
+                (&raw mut memory_type).cast(),
+                CUpointer_attribute_enum_CU_POINTER_ATTRIBUTE_MEMORY_TYPE,
+                ptr as CUdeviceptr,
+            )
+        }
+        .result()
+        .is_ok()
+        && memory_type == CUmemorytype_enum_CU_MEMORYTYPE_HOST
+}
+
+/// The `len` values of `buffer` from `offset` on, as a buffer that is never freed.
+///
+/// # Safety
+///
+/// `offset + len` must not exceed `buffer.len()`, and the view must not outlive
+/// `buffer`.
+unsafe fn view<T: DeviceCopy>(
+    buffer: &DeviceBuffer<T>,
+    offset: usize,
+    len: usize,
+) -> ManuallyDrop<DeviceBuffer<T>> {
+    let ptr = buffer.cu_deviceptr() + (offset * size_of::<T>()) as CUdeviceptr;
+    ManuallyDrop::new(unsafe { DeviceBuffer::from_raw_parts(ptr, len, buffer.context().clone()) })
 }

@@ -3,7 +3,7 @@
 //! `cargo oxide test -- --features cuda --release --bench bench_batch -- --bench`.
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use cuda_core::{CudaContext, DeviceBuffer};
+use cuda_core::{CudaContext, DeviceBuffer, PinnedHostBuffer};
 use neopdf::pdf::PDF;
 use neopdf_cuda::device::DeviceGrid;
 use neopdf_cuda::grid_prep::DeviceGridLayout;
@@ -64,6 +64,16 @@ fn xfxq2_batch(c: &mut Criterion) {
         });
         group.bench_function(BenchmarkId::new("gpu_host", n_events), |b| {
             b.iter(|| grid.xfxq2_batch_host(&stream, &xs, &q2s, &mut out).unwrap());
+        });
+        // The same call into page-locked memory, allocated once as a caller reusing
+        // its output across batches would so that the copy back then runs at full
+        // speed.
+        let mut out_pinned = PinnedHostBuffer::zeroed(&ctx, grid.output_len(n_events)).unwrap();
+        group.bench_function(BenchmarkId::new("gpu_host_pinned", n_events), |b| {
+            b.iter(|| {
+                grid.xfxq2_batch_host(&stream, &xs, &q2s, &mut out_pinned)
+                    .unwrap();
+            });
         });
     }
     group.finish();

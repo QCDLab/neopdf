@@ -51,6 +51,11 @@ typedef enum {
  */
 typedef struct NeoPDFDeviceGrid NeoPDFDeviceGrid;
 
+/**
+ * Page-locked host memory for the output of `neopdf_device_grid_xfxq2_batch_host`.
+ */
+typedef struct NeoPDFHostBuffer NeoPDFHostBuffer;
+
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
@@ -73,11 +78,28 @@ extern "C" {
 NeoPDFDeviceGrid *neopdf_device_grid_new(const char *pdf_name, size_t device);
 
 /**
+ * Loads the single member `member` of a PDF set and uploads it to GPU `device`.
+ *
+ * The grid then holds one member, as `neopdf_device_grid_new` would for a
+ * one-member set. Returns `NULL` in the same cases, and is released the same way.
+ *
+ * # Panics
+ *
+ * Panics if `pdf_name` is not valid UTF-8, or the set or the member cannot be loaded.
+ *
+ * # Safety
+ *
+ * `pdf_name` must be a null-terminated C string.
+ */
+NeoPDFDeviceGrid *neopdf_device_grid_new_member(const char *pdf_name, size_t member, size_t device);
+
+/**
  * Frees a device grid and its device memory.
  *
  * # Safety
  *
- * `grid` must be `NULL` or come from `neopdf_device_grid_new`, and not be used afterwards.
+ * `grid` must be `NULL` or come from `neopdf_device_grid_new` or
+ * `neopdf_device_grid_new_member`, and not be used afterwards.
  */
 void neopdf_device_grid_free(NeoPDFDeviceGrid *grid);
 
@@ -122,11 +144,57 @@ NeopdfCudaResult neopdf_device_grid_pids(const NeoPDFDeviceGrid *grid,
 size_t neopdf_device_grid_output_len(const NeoPDFDeviceGrid *grid, size_t n_events);
 
 /**
+ * Allocates a zeroed page-locked host buffer for the output of `n_events` events,
+ * `neopdf_device_grid_output_len(grid, n_events)` values.
+ *
+ * Passing its data as the `out` of `neopdf_device_grid_xfxq2_batch_host` makes the
+ * copy back from the GPU several times faster than into ordinary memory. Allocating
+ * it is slow, so allocate it once and reuse it across batches, with any number of
+ * events up to `n_events`. Returns `NULL` if the allocation fails. Release the
+ * buffer with `neopdf_host_buffer_free`; it may outlive `grid`.
+ *
+ * # Safety
+ *
+ * `grid` must be a valid device grid.
+ */
+NeoPDFHostBuffer *neopdf_device_grid_host_buffer_new(const NeoPDFDeviceGrid *grid, size_t n_events);
+
+/**
+ * Frees a host buffer.
+ *
+ * # Safety
+ *
+ * `buffer` must be `NULL` or come from `neopdf_device_grid_host_buffer_new`, and not
+ * be used afterwards.
+ */
+void neopdf_host_buffer_free(NeoPDFHostBuffer *buffer);
+
+/**
+ * Returns the data of a host buffer, valid until it is freed.
+ *
+ * # Safety
+ *
+ * `buffer` must be a valid host buffer.
+ */
+double *neopdf_host_buffer_data(NeoPDFHostBuffer *buffer);
+
+/**
+ * Returns the number of values in a host buffer.
+ *
+ * # Safety
+ *
+ * `buffer` must be a valid host buffer.
+ */
+size_t neopdf_host_buffer_len(const NeoPDFHostBuffer *buffer);
+
+/**
  * Evaluates every member and flavor, plus `alpha_s`, at `n_events` host-resident
  * `(xs[i], q2s[i])` points into the host-resident `out`, returning once `out` is filled.
  *
  * `out` is laid out `[n_events][num_members][num_pids + 1]`, the last column holding
  * `alpha_s(Q²)`, and `out_len` must equal `neopdf_device_grid_output_len(grid, n_events)`.
+ * The copy into `out` dominates for large batches; it runs several times faster when
+ * `out` is page-locked memory, from `neopdf_device_grid_host_buffer_new`.
  *
  * # Safety
  *

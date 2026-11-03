@@ -7,11 +7,12 @@
 use std::error::Error;
 use std::iter::successors;
 
-use numpy::ndarray::Array3;
-use numpy::{AllowTypeChange, IntoPyArray, PyArray3, PyArrayLike1};
+use cuda_core::PinnedHostBuffer;
+use numpy::ndarray::{Array3, ArrayView3};
+use numpy::{AllowTypeChange, IntoPyArray, PyArray3, PyArrayDyn, PyArrayLike1, PyArrayMethods};
 use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
+use pyo3::types::{PyDict, PySlice};
 use pyo3::{intern, PyErr};
 
 use crate::device::DeviceError;
@@ -98,6 +99,10 @@ impl CudaArray {
     }
 }
 
+/// Owner of the page-locked memory behind the arrays of `DeviceGrid.host_buffer`.
+#[pyclass(frozen)]
+struct PinnedMemory(#[allow(dead_code)] PinnedHostBuffer<f64>);
+
 /// Every member of a PDF set, resident on a GPU.
 ///
 /// The batch methods evaluate all members and flavors, plus `alpha_s`, at a batch
@@ -135,21 +140,66 @@ impl PyDeviceGrid {
 
     /// Evaluates the host arrays `xs` and `q2s`, returning a `NumPy` array of shape
     /// `(n_events, num_members(), len(pids()) + 1)`.
-    #[pyo3(name = "xfxQ2_batch")]
+    ///
+    /// With `out`, a C-contiguous `float64` array of at least `output_len(n_events)`
+    /// values, its first `output_len(n_events)` values are filled in place and returned
+    /// with that shape. For large batches, an `out` from `host_buffer` is several times
+    /// faster than a new array.
+    #[pyo3(name = "xfxQ2_batch", signature = (xs, q2s, out = None))]
     #[allow(clippy::needless_pass_by_value)]
     fn xfxq2_batch<'py>(
         &self,
         py: Python<'py>,
         xs: PyArrayLike1<'py, f64, AllowTypeChange>,
         q2s: PyArrayLike1<'py, f64, AllowTypeChange>,
-    ) -> PyResult<Bound<'py, PyArray3<f64>>> {
+        out: Option<Bound<'py, PyArrayDyn<f64>>>,
+    ) -> PyResult<Bound<'py, PyAny>> {
         let (xs, q2s) = (xs.as_slice()?, q2s.as_slice()?);
-        let mut out = vec![0.0; self.0.output_len(xs.len())];
-        py.detach(|| self.0.xfxq2_batch_host(xs, q2s, &mut out))?;
+        let len = self.0.output_len(xs.len());
         let shape = (xs.len(), self.0.n_members(), self.0.pids().len() + 1);
-        Ok(Array3::from_shape_vec(shape, out)
-            .expect("the output length matches its shape")
-            .into_pyarray(py))
+        let Some(out) = out else {
+            let mut out = vec![0.0; len];
+            py.detach(|| self.0.xfxq2_batch_host(xs, q2s, &mut out))?;
+            return Ok(Array3::from_shape_vec(shape, out)
+                .expect("the output length matches its shape")
+                .into_pyarray(py)
+                .into_any());
+        };
+        {
+            let mut values = out.readwrite();
+            let values = values
+                .as_slice_mut()
+                .map_err(|_| PyValueError::new_err("`out` must be C-contiguous"))?;
+            let available = values.len();
+            let values = values.get_mut(..len).ok_or_else(|| {
+                PyValueError::new_err(format!(
+                    "`out` holds {available} values, the batch needs {len}"
+                ))
+            })?;
+            py.detach(|| self.0.xfxq2_batch_host(xs, q2s, values))?;
+        }
+        out.call_method1(intern!(py, "reshape"), (-1,))?
+            .get_item(PySlice::new(py, 0, len.try_into()?, 1))?
+            .call_method1(intern!(py, "reshape"), (shape,))
+    }
+
+    /// A zeroed `NumPy` array of shape `(n_events, num_members(), len(pids()) + 1)` in
+    /// page-locked host memory, for the `out` of `xfxQ2_batch`: the results are copied
+    /// into it from the GPU several times faster. Allocating it is slow, so allocate it
+    /// once and reuse it for batches of up to `n_events` events.
+    fn host_buffer<'py>(&self, py: Python<'py>, n_events: usize) -> PyResult<Bound<'py, PyAny>> {
+        let mut buffer = self.0.pinned_output(n_events)?;
+        let ptr = buffer.as_mut_ptr();
+        let shape = (n_events, self.0.n_members(), self.0.pids().len() + 1);
+        // The heap allocation does not move with `buffer` into its owner.
+        let owner = Bound::new(py, PinnedMemory(buffer))?;
+        // SAFETY: `ptr` holds `output_len(n_events)` values, the product of `shape`,
+        // and stays valid while `owner`, the base object of the array, is alive.
+        let array = unsafe {
+            let view = ArrayView3::from_shape_ptr(shape, ptr.cast_const());
+            PyArray3::borrow_from_array(&view, owner.into_any())
+        };
+        Ok(array.into_any())
     }
 
     /// Enqueues the same evaluation on device arrays, writing into `out` in place

@@ -1,4 +1,4 @@
-//! Per-output-element evaluation over a flattened [`DeviceGridLayout`].
+//! Per-`(event, member)` evaluation over a flattened [`DeviceGridLayout`].
 //!
 //! Everything here is plain, allocation-free Rust over borrowed slices, so the same
 //! code is compiled into the device kernels (see [`crate::device`]) and runs on the
@@ -10,8 +10,9 @@
 //! - `GridView::alphas_q2`: `AlphaSCubicInterpolation::interpolate`.
 //!
 //! The batch output is `[n_events, n_members, n_flavors + 1]` in C order, the last
-//! column holding `alpha_s(Q^2)`. [`GridView::eval`] computes one entry of it, which
-//! makes "one thread per output element" the natural device mapping.
+//! column holding `alpha_s(Q^2)`. [`GridView::eval_row`] computes one row of it, the
+//! flavors and `alpha_s` of one `(event, member)`, so the logarithms and the knot
+//! search are done once per row: "one thread per row" is the device mapping.
 //!
 //! [`DeviceGridLayout`]: crate::grid_prep::DeviceGridLayout
 
@@ -50,9 +51,16 @@ struct Subgrid<'a> {
 
 /// A collinear fast path a kernel can be specialized on.
 pub trait Interpolator {
-    /// Interpolated, unclipped `xf(x, Q^2)` of `flavor` for `member`, at `ln(x)`/`ln(Q^2)`,
-    /// or `None` outside the region this fast path evaluates.
-    fn xfxq2(grid: &GridView, member: usize, flavor: usize, lx: f64, lq2: f64) -> Option<f64>;
+    /// Writes the interpolated, unclipped `xf(x, Q^2)` of every flavor of `member`, at
+    /// `ln(x)`/`ln(Q^2)`, into `flavors` (`n_flavors` long). Returns `false`, leaving
+    /// `flavors` untouched, outside the region this fast path evaluates.
+    fn xfxq2_flavors(
+        grid: &GridView,
+        member: usize,
+        lx: f64,
+        lq2: f64,
+        flavors: &mut [f64],
+    ) -> bool;
 }
 
 /// Interleaved cubic Hermite (`LogBicubic`): zero outside the grid.
@@ -74,20 +82,26 @@ impl GridView<'_> {
         n_events * self.n_members * self.n_columns()
     }
 
-    /// Entry `index` of the `[n_events, n_members, n_flavors + 1]` batch output.
-    #[must_use]
-    pub fn eval<I: Interpolator>(&self, index: usize, xs: &[f64], q2s: &[f64]) -> f64 {
-        let column = index % self.n_columns();
-        let member = (index / self.n_columns()) % self.n_members;
-        let event = index / (self.n_columns() * self.n_members);
+    /// Row `row` (`event * n_members + member`) of the `[n_events, n_members,
+    /// n_flavors + 1]` batch output, written into `out` (`n_flavors + 1` long).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `out` is shorter than `n_flavors + 1`.
+    pub fn eval_row<I: Interpolator>(&self, row: usize, xs: &[f64], q2s: &[f64], out: &mut [f64]) {
+        let member = row % self.n_members;
+        let event = row / self.n_members;
         let q2 = q2s[event];
 
-        if column == self.n_flavors {
-            self.alphas_q2(member, q2)
+        let (flavors, alphas) = out.split_at_mut(self.n_flavors);
+        if I::xfxq2_flavors(self, member, xs[event].ln(), q2.ln(), flavors) {
+            for value in flavors.iter_mut() {
+                *value = value.max(self.clip_floor);
+            }
         } else {
-            I::xfxq2(self, member, column, xs[event].ln(), q2.ln())
-                .map_or(0.0, |value| value.max(self.clip_floor))
+            flavors.fill(0.0);
         }
+        alphas[0] = self.alphas_q2(member, q2);
     }
 
     /// Fills `out` with the whole batch output, on the host.
@@ -99,8 +113,8 @@ impl GridView<'_> {
     pub fn eval_batch<I: Interpolator>(&self, xs: &[f64], q2s: &[f64], out: &mut [f64]) {
         assert_eq!(xs.len(), q2s.len());
         assert_eq!(out.len(), self.output_len(xs.len()));
-        for (index, o) in out.iter_mut().enumerate() {
-            *o = self.eval::<I>(index, xs, q2s);
+        for (row, o) in out.chunks_exact_mut(self.n_columns()).enumerate() {
+            self.eval_row::<I>(row, xs, q2s, o);
         }
     }
 
@@ -167,43 +181,67 @@ impl GridView<'_> {
 }
 
 impl Interpolator for Hermite {
-    fn xfxq2(grid: &GridView, member: usize, flavor: usize, lx: f64, lq2: f64) -> Option<f64> {
-        let ix = find_interval(grid.log_xs, lx)?;
-        let sg = grid.subgrid(grid.subgrid_containing(lq2)?, member);
-        let iq2 = find_interval(sg.log_q2s, lq2)?;
+    fn xfxq2_flavors(
+        grid: &GridView,
+        member: usize,
+        lx: f64,
+        lq2: f64,
+        flavors: &mut [f64],
+    ) -> bool {
+        let Some(ix) = find_interval(grid.log_xs, lx) else {
+            return false;
+        };
+        let Some(s) = grid.subgrid_containing(lq2) else {
+            return false;
+        };
+        let sg = grid.subgrid(s, member);
+        let Some(iq2) = find_interval(sg.log_q2s, lq2) else {
+            return false;
+        };
 
         let knots = sg.log_q2s;
         let nq2 = knots.len();
         let u = (lx - grid.log_xs[ix]) / (grid.log_xs[ix + 1] - grid.log_xs[ix]);
         let v = (lq2 - knots[iq2]) / (knots[iq2 + 1] - knots[iq2]);
-        // Cubic in x at Q^2 knot `iq2 + offset`, from the precomputed coefficients.
-        let at = |offset: isize| {
-            let cell = ix * nq2 + iq2.wrapping_add_signed(offset);
-            let c = &sg.values[(cell * grid.n_flavors + flavor) * 4..][..4];
-            let u2 = u * u;
-            c[0] * (u2 * u) + c[1] * u2 + c[2] * u + c[3]
-        };
-
+        let u2 = u * u;
+        let u3 = u2 * u;
         let dq_1 = knots[iq2 + 1] - knots[iq2];
-        let (vl, vh) = (at(0), at(1));
-        let below = || (vl - at(-1)) * dq_1 * (1.0 / (knots[iq2] - knots[iq2 - 1]));
-        let above = || (at(2) - vh) * dq_1 * (1.0 / (knots[iq2 + 2] - knots[iq2 + 1]));
-        let (vdl, vdh) = if nq2 == 2 {
-            (vh - vl, vh - vl)
-        } else if iq2 == 0 {
-            (vh - vl, (vh - vl + above()) * 0.5)
-        } else if iq2 == nq2 - 2 {
-            ((vh - vl + below()) * 0.5, vh - vl)
-        } else {
-            ((vh - vl + below()) * 0.5, (vh - vl + above()) * 0.5)
-        };
 
-        Some(hermite(v, vl, vdl, vh, vdh))
+        for (flavor, out) in flavors.iter_mut().enumerate() {
+            // Cubic in x at Q^2 knot `iq2 + offset`, from the precomputed coefficients.
+            let at = |offset: isize| {
+                let cell = ix * nq2 + iq2.wrapping_add_signed(offset);
+                let c = &sg.values[(cell * grid.n_flavors + flavor) * 4..][..4];
+                c[0] * u3 + c[1] * u2 + c[2] * u + c[3]
+            };
+
+            let (vl, vh) = (at(0), at(1));
+            let below = || (vl - at(-1)) * dq_1 * (1.0 / (knots[iq2] - knots[iq2 - 1]));
+            let above = || (at(2) - vh) * dq_1 * (1.0 / (knots[iq2 + 2] - knots[iq2 + 1]));
+            let (vdl, vdh) = if nq2 == 2 {
+                (vh - vl, vh - vl)
+            } else if iq2 == 0 {
+                (vh - vl, (vh - vl + above()) * 0.5)
+            } else if iq2 == nq2 - 2 {
+                ((vh - vl + below()) * 0.5, vh - vl)
+            } else {
+                ((vh - vl + below()) * 0.5, (vh - vl + above()) * 0.5)
+            };
+
+            *out = hermite(v, vl, vdl, vh, vdh);
+        }
+        true
     }
 }
 
 impl Interpolator for Chebyshev {
-    fn xfxq2(grid: &GridView, member: usize, flavor: usize, lx: f64, lq2: f64) -> Option<f64> {
+    fn xfxq2_flavors(
+        grid: &GridView,
+        member: usize,
+        lx: f64,
+        lq2: f64,
+        flavors: &mut [f64],
+    ) -> bool {
         // Out of every subgrid's range: the nearest one, as `GridArray::find_subgrid`.
         let s = grid.subgrid_containing(lq2).unwrap_or_else(|| {
             if lq2 < grid.log_q2s[0] {
@@ -217,17 +255,20 @@ impl Interpolator for Chebyshev {
         let bq2 = Barycentric::new(lq2, sg.log_q2s, sg.q2_nodes);
 
         let (nx, nq2) = (grid.log_xs.len(), sg.log_q2s.len());
-        let table = &sg.values[flavor * nx * nq2..][..nx * nq2];
-        let mut result = 0.0;
-        for i in 0..nx {
-            let row = &table[i * nq2..][..nq2];
-            let mut acc = 0.0;
-            for (j, &value) in row.iter().enumerate() {
-                acc += bq2.coeff(j) * value;
+        for (flavor, out) in flavors.iter_mut().enumerate() {
+            let table = &sg.values[flavor * nx * nq2..][..nx * nq2];
+            let mut result = 0.0;
+            for i in 0..nx {
+                let row = &table[i * nq2..][..nq2];
+                let mut acc = 0.0;
+                for (j, &value) in row.iter().enumerate() {
+                    acc += bq2.coeff(j) * value;
+                }
+                result += bx.coeff(i) * acc;
             }
-            result += bx.coeff(i) * acc;
+            *out = result;
         }
-        Some(result)
+        true
     }
 }
 

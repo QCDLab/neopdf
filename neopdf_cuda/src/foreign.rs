@@ -11,7 +11,7 @@ use std::sync::Arc;
 use cuda_core::sys::{
     cuEventRecord, cuStreamWaitEvent, CUevent_wait_flags_enum_CU_EVENT_WAIT_DEFAULT,
 };
-use cuda_core::{CudaContext, CudaStream, DeviceBuffer, IntoResult};
+use cuda_core::{CudaContext, CudaStream, DeviceBuffer, IntoResult, PinnedHostBuffer};
 use neopdf::pdf::PDF;
 use thiserror::Error;
 
@@ -50,7 +50,30 @@ impl NeoPDFDeviceGrid {
     ///
     /// Panics if the set cannot be loaded.
     pub fn new(pdf_name: &str, device: usize) -> Result<Self, NeoPDFDeviceGridError> {
-        let layout = DeviceGridLayout::build(&PDF::load_pdfs(pdf_name))?;
+        Self::upload(&PDF::load_pdfs(pdf_name), device)
+    }
+
+    /// Loads the single member `member` of `pdf_name` and uploads it to GPU `device`,
+    /// for callers that evaluate one member, such as an event generator.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the set can't be laid out for the device, or the device
+    /// can't be initialized.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the set or the member cannot be loaded.
+    pub fn new_member(
+        pdf_name: &str,
+        member: usize,
+        device: usize,
+    ) -> Result<Self, NeoPDFDeviceGridError> {
+        Self::upload(&[PDF::load(pdf_name, member)], device)
+    }
+
+    fn upload(members: &[PDF], device: usize) -> Result<Self, NeoPDFDeviceGridError> {
+        let layout = DeviceGridLayout::build(members)?;
         let stream = CudaContext::new(device)
             .and_then(|ctx| ctx.new_stream())
             .map_err(DeviceError::from)?;
@@ -78,6 +101,21 @@ impl NeoPDFDeviceGrid {
     #[must_use]
     pub const fn output_len(&self, n_events: usize) -> usize {
         self.grid.output_len(n_events)
+    }
+
+    /// A zeroed page-locked host buffer for the output of `n_events` events.
+    ///
+    /// Passed as the `out` of [`Self::xfxq2_batch_host`], the copy back runs at
+    /// full speed. Allocating it is slow, so allocate it once and reuse it.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the allocation fails.
+    pub fn pinned_output(&self, n_events: usize) -> Result<PinnedHostBuffer<f64>, DeviceError> {
+        Ok(PinnedHostBuffer::zeroed(
+            self.stream.context(),
+            self.output_len(n_events),
+        )?)
     }
 
     /// Evaluates host-resident `xs`/`q2s` into the host-resident `out`; see

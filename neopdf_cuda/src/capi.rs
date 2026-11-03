@@ -8,6 +8,8 @@
 use std::ffi::{c_char, c_void, CStr};
 use std::slice;
 
+use cuda_core::PinnedHostBuffer;
+
 use crate::device::DeviceError;
 pub use crate::foreign::NeoPDFDeviceGrid;
 
@@ -60,11 +62,37 @@ pub unsafe extern "C" fn neopdf_device_grid_new(
         .map_or(std::ptr::null_mut(), |grid| Box::into_raw(Box::new(grid)))
 }
 
+/// Loads the single member `member` of a PDF set and uploads it to GPU `device`.
+///
+/// The grid then holds one member, as `neopdf_device_grid_new` would for a
+/// one-member set. Returns `NULL` in the same cases, and is released the same way.
+///
+/// # Panics
+///
+/// Panics if `pdf_name` is not valid UTF-8, or the set or the member cannot be loaded.
+///
+/// # Safety
+///
+/// `pdf_name` must be a null-terminated C string.
+#[no_mangle]
+pub unsafe extern "C" fn neopdf_device_grid_new_member(
+    pdf_name: *const c_char,
+    member: usize,
+    device: usize,
+) -> *mut NeoPDFDeviceGrid {
+    let pdf_name = unsafe { CStr::from_ptr(pdf_name) }
+        .to_str()
+        .expect("Invalid UTF-8 string");
+    NeoPDFDeviceGrid::new_member(pdf_name, member, device)
+        .map_or(std::ptr::null_mut(), |grid| Box::into_raw(Box::new(grid)))
+}
+
 /// Frees a device grid and its device memory.
 ///
 /// # Safety
 ///
-/// `grid` must be `NULL` or come from `neopdf_device_grid_new`, and not be used afterwards.
+/// `grid` must be `NULL` or come from `neopdf_device_grid_new` or
+/// `neopdf_device_grid_new_member`, and not be used afterwards.
 #[no_mangle]
 pub unsafe extern "C" fn neopdf_device_grid_free(grid: *mut NeoPDFDeviceGrid) {
     if !grid.is_null() {
@@ -131,11 +159,76 @@ pub const unsafe extern "C" fn neopdf_device_grid_output_len(
     unsafe { &*grid }.output_len(n_events)
 }
 
+/// Page-locked host memory for the output of `neopdf_device_grid_xfxq2_batch_host`.
+pub struct NeoPDFHostBuffer(PinnedHostBuffer<f64>);
+
+/// Allocates a zeroed page-locked host buffer for the output of `n_events` events,
+/// `neopdf_device_grid_output_len(grid, n_events)` values.
+///
+/// Passing its data as the `out` of `neopdf_device_grid_xfxq2_batch_host` makes the
+/// copy back from the GPU several times faster than into ordinary memory. Allocating
+/// it is slow, so allocate it once and reuse it across batches, with any number of
+/// events up to `n_events`. Returns `NULL` if the allocation fails. Release the
+/// buffer with `neopdf_host_buffer_free`; it may outlive `grid`.
+///
+/// # Safety
+///
+/// `grid` must be a valid device grid.
+#[no_mangle]
+pub unsafe extern "C" fn neopdf_device_grid_host_buffer_new(
+    grid: *const NeoPDFDeviceGrid,
+    n_events: usize,
+) -> *mut NeoPDFHostBuffer {
+    if grid.is_null() {
+        return std::ptr::null_mut();
+    }
+    unsafe { &*grid }
+        .pinned_output(n_events)
+        .map_or(std::ptr::null_mut(), |buffer| {
+            Box::into_raw(Box::new(NeoPDFHostBuffer(buffer)))
+        })
+}
+
+/// Frees a host buffer.
+///
+/// # Safety
+///
+/// `buffer` must be `NULL` or come from `neopdf_device_grid_host_buffer_new`, and not
+/// be used afterwards.
+#[no_mangle]
+pub unsafe extern "C" fn neopdf_host_buffer_free(buffer: *mut NeoPDFHostBuffer) {
+    if !buffer.is_null() {
+        drop(unsafe { Box::from_raw(buffer) });
+    }
+}
+
+/// Returns the data of a host buffer, valid until it is freed.
+///
+/// # Safety
+///
+/// `buffer` must be a valid host buffer.
+#[no_mangle]
+pub unsafe extern "C" fn neopdf_host_buffer_data(buffer: *mut NeoPDFHostBuffer) -> *mut f64 {
+    unsafe { &mut *buffer }.0.as_mut_ptr()
+}
+
+/// Returns the number of values in a host buffer.
+///
+/// # Safety
+///
+/// `buffer` must be a valid host buffer.
+#[no_mangle]
+pub unsafe extern "C" fn neopdf_host_buffer_len(buffer: *const NeoPDFHostBuffer) -> usize {
+    unsafe { &*buffer }.0.len()
+}
+
 /// Evaluates every member and flavor, plus `alpha_s`, at `n_events` host-resident
 /// `(xs[i], q2s[i])` points into the host-resident `out`, returning once `out` is filled.
 ///
 /// `out` is laid out `[n_events][num_members][num_pids + 1]`, the last column holding
 /// `alpha_s(Q²)`, and `out_len` must equal `neopdf_device_grid_output_len(grid, n_events)`.
+/// The copy into `out` dominates for large batches; it runs several times faster when
+/// `out` is page-locked memory, from `neopdf_device_grid_host_buffer_new`.
 ///
 /// # Safety
 ///

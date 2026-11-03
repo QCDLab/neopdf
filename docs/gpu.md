@@ -36,7 +36,7 @@ wrapper, and as a Python module.
     {"id": "layout", "color": "orange", "title": "Host Layout", "detail": "DeviceGridLayout", "row": 1},
     {"id": "grid", "color": "red", "title": "Device Grid", "detail": "DeviceGrid (GPU memory)", "row": 2},
     {"id": "points", "color": "cyan", "title": "Phase-Space Points", "detail": "batch of (x, Q²)", "row": 2, "col": 1},
-    {"id": "kernel", "color": "red", "title": "Batch Kernel", "detail": "one thread per output entry", "row": 3, "col": 0.5},
+    {"id": "kernel", "color": "red", "title": "Batch Kernel", "detail": "one thread per (event, member)", "row": 3, "col": 0.5},
     {"id": "out", "color": "green", "title": "Output", "detail": "out[event][member][flavor + αs]", "row": 4, "col": 0.5}
   ],
   "edges": [
@@ -57,8 +57,9 @@ the per-batch inputs in cyan and the output in green.
    buffers (the grids and the interpolation coefficients of all subgrids, and the
    $\alpha_s$ tables). This step is pure Rust and runs on the CPU.
 2. `DeviceGrid::upload` copies the layout to the GPU and loads the evaluation kernel.
-3. Each batch call launches one GPU thread per output entry and fills an array of shape
-   `[n_events][n_members][n_flavors + 1]`.
+3. Each batch call launches one GPU thread per `(event, member)` and fills an array of
+   shape `[n_events][n_members][n_flavors + 1]`. A thread computes the logarithms and
+   locates the point in the grid once, then evaluates every flavor and $\alpha_s$.
 
 The kernel runs the same interpolation code as the CPU path, written once in plain Rust and
 compiled for both the host and the device.
@@ -187,7 +188,13 @@ Output on an NVIDIA RTX 4090:
 - `DeviceGridLayout::build` checks that all members share the same grids, flavors and
   interpolation, and returns an error otherwise (e.g. for an unsupported set).
 - `xfxq2_batch_host` copies the inputs to the device, launches the kernel and copies the
-  results back into `out`, returning once `out` is filled.
+  results back into `out`, returning once `out` is filled. For large batches that copy
+  dominates. Pass a `cuda_core::PinnedHostBuffer` as `out`, allocated once and reused
+  across batches: the copy into page-locked memory is faster, and large batches are then
+  computed in chunks that are copied back while the next ones are computed, which makes
+  the call 2-4 times faster. In C, C++ and Python, the same memory comes from
+  `neopdf_device_grid_host_buffer_new`, `DeviceGrid::host_buffer` and
+  `DeviceGrid.host_buffer`.
 - One batch gives all 101 members, so the PDF uncertainty costs a single call.
 
 ---
@@ -251,6 +258,7 @@ The `neopdf::DeviceGrid` class manages the device memory (RAII) and throws on er
 | `num_members()`, `pids()` | Number of members, and flavor PIDs in output column order |
 | `output_len(n_events)` | `n_events * num_members() * (pids().size() + 1)` |
 | `xfxQ2_batch(xs, q2s)` | Host vectors in, host vector out |
+| `host_buffer(n_events)`, `xfxQ2_batch(xs, q2s, out)` | A `neopdf::HostBuffer` of page-locked memory for up to `n_events` events, allocated once and filled by the overload, faster for large batches |
 | `xfxQ2_batch_device(xs, q2s, n_events, out, stream)` | Device pointers in and out, ordered on a `cudaStream_t`, without synchronizing |
 
 ---
@@ -331,6 +339,7 @@ API: an opaque handle released by a `_free` function, and status codes.
 | `neopdf_device_grid_pids(grid, pids, num_pids)` | Flavor PIDs, in output column order |
 | `neopdf_device_grid_output_len(grid, n_events)` | Required output length |
 | `neopdf_device_grid_xfxq2_batch_host(grid, xs, q2s, n_events, out, out_len)` | Host arrays in and out |
+| `neopdf_device_grid_host_buffer_new(grid, n_events)`, `neopdf_host_buffer_data(buffer)`, `neopdf_host_buffer_len(buffer)`, `neopdf_host_buffer_free(buffer)` | Page-locked memory for the `out` of up to `n_events` events, allocated once; the batch is faster into it |
 | `neopdf_device_grid_xfxq2_batch_device(grid, xs, q2s, n_events, out, stream)` | Device arrays in and out, on a `CUstream`/`cudaStream_t` |
 
 The fallible calls return a `NeopdfCudaResult`: `NEOPDF_CUDA_RESULT_SUCCESS`,
@@ -373,7 +382,8 @@ The `neopdf_cuda.DeviceGrid` class mirrors its C++ counterpart:
 | `DeviceGrid(pdf_name, device=0)` | Loads every member of a set and uploads it to GPU `device`; raises `ValueError` if the set is not supported, `RuntimeError` if the device cannot be used |
 | `num_members()`, `pids()` | Number of members, and flavor PIDs in output column order |
 | `output_len(n_events)` | `n_events * num_members() * (len(pids()) + 1)` |
-| `xfxQ2_batch(xs, q2s)` | Host arrays in, a NumPy array of shape `(n_events, num_members(), len(pids()) + 1)` out |
+| `xfxQ2_batch(xs, q2s, out=None)` | Host arrays in, a NumPy array of shape `(n_events, num_members(), len(pids()) + 1)` out; with `out`, written into it in place |
+| `host_buffer(n_events)` | A NumPy array in page-locked memory for the `out` of up to `n_events` events, allocated once; the batch is faster into it |
 | `xfxQ2_batch_device(xs, q2s, out, stream=0)` | Device arrays in, written into the device array `out`, ordered on a raw `cudaStream_t` handle, without synchronizing |
 
 ---
@@ -428,15 +438,17 @@ CuPy or `neopdf` if they are not installed, while the second example needs CuPy.
 
 ## Performance
 
-The table compares the device-resident GPU evaluation (Rust example 2 above) with a
-`rayon`-parallel CPU evaluation of `xfxq2_allpids` and `alphas_q2` over all members,
-for `NNPDF40_nnlo_as_01180` (101 members, 11 flavors plus $\alpha_s$).
+The table compares the GPU evaluation on an RTX 4090, with the data resident on the
+device (Rust example 2 above) and from host arrays into a reused page-locked output, with
+a `rayon`-parallel CPU evaluation of `xfxq2_allpids` and `alphas_q2` over all members, for
+`NNPDF40_nnlo_as_01180` (101 members, 11 flavors plus $\alpha_s$). The speedups are over
+the CPU.
 
-| Events per batch | CPU (96 threads) | GPU (device-resident) | Speedup |
+| Events per batch | CPU (96 threads) | GPU (host arrays) | GPU (device-resident) |
 |---|---|---|---|
-| 1 000 | 20 M pairs/s | 195 M pairs/s | 9.7× |
-| 10 000 | 36 M pairs/s | 199 M pairs/s | 5.5× |
-| 100 000 | 49 M pairs/s | 200 M pairs/s | 4.1× |
+| 1 000 | 20 M pairs/s | 96 M pairs/s (4.8×) | 284 M pairs/s (14.2×) |
+| 10 000 | 36 M pairs/s | 132 M pairs/s (3.7×) | 579 M pairs/s (16.1×) |
+| 100 000 | 49 M pairs/s | 245 M pairs/s (5.0×) | 770 M pairs/s (15.8×) |
 
 The benchmark and the plotting script are in
 [neopdf_cuda/benches](https://github.com/QCDLab/neopdf/tree/master/neopdf_cuda/benches).

@@ -105,7 +105,7 @@ First, install the pinned toolchain and `cargo-oxide`, then check the environmen
 
 ```bash
 rustup toolchain install 1.99.1 --profile minimal -c rust-src,rustc-dev,llvm-tools,clippy,rustfmt
-cargo +1.99.1 install --git https://github.com/NVIDIA/cuda-rust.git cargo-oxide
+cargo +1.99.1 install --git https://github.com/NVIDIA/cuda-rust.git --tag cuda-oxide/v0.3.0 cargo-oxide
 
 cd neopdf_cuda
 export CUDA_TOOLKIT_PATH=/usr/local/cuda   # the toolkit root, e.g. /opt/cuda on Arch Linux
@@ -135,7 +135,7 @@ the same source so that both crates share the same `PDF` type:
 [dependencies]
 neopdf = { git = "https://github.com/QCDLab/neopdf" }
 neopdf_cuda = { git = "https://github.com/QCDLab/neopdf", features = ["cuda"] }
-cuda-core = { git = "https://github.com/NVIDIA/cuda-rust.git", rev = "76ac1021660b0324c579d7cb57e847e7ffa3b9e1" }
+cuda-core = { git = "https://github.com/NVIDIA/cuda-rust.git", tag = "cuda-oxide/v0.3.0" }
 ```
 
 and pin the toolchain with a `rust-toolchain.toml` containing `channel = "1.99.1"`

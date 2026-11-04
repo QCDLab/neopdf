@@ -13,7 +13,7 @@
 use std::mem::{size_of, ManuallyDrop};
 use std::sync::Arc;
 
-use cuda_core::simt::memory::memcpy_dtoh_async;
+use cuda_core::memory::memcpy_dtoh_async;
 use cuda_core::sys::{
     cuPointerGetAttribute, CUdeviceptr, CUmemorytype_enum_CU_MEMORYTYPE_HOST,
     CUpointer_attribute_enum_CU_POINTER_ATTRIBUTE_MEMORY_TYPE,

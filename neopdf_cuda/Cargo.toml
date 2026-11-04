@@ -41,11 +41,11 @@ numpy = { version = "0.28", optional = true }
 pyo3 = { version = "0.28", features = ["extension-module"], optional = true }
 thiserror = "1.0.69"
 
-# `cuda-oxide` is alpha and breaks its API between commits, so it
-# is pinned to the revision this crate was written against.
-cuda-core = { git = "https://github.com/NVIDIA/cuda-rust.git", rev = "76ac1021660b0324c579d7cb57e847e7ffa3b9e1", optional = true }
-cuda-device = { git = "https://github.com/NVIDIA/cuda-rust.git", rev = "76ac1021660b0324c579d7cb57e847e7ffa3b9e1", optional = true }
-cuda-host = { git = "https://github.com/NVIDIA/cuda-rust.git", rev = "76ac1021660b0324c579d7cb57e847e7ffa3b9e1", optional = true }
+# `cuda-oxide` is alpha and breaks its API between releases, so it
+# is pinned to the release this crate was written against.
+cuda-core = { git = "https://github.com/NVIDIA/cuda-rust.git", tag = "cuda-oxide/v0.3.0", optional = true }
+cuda-device = { git = "https://github.com/NVIDIA/cuda-rust.git", tag = "cuda-oxide/v0.3.0", optional = true }
+cuda-host = { git = "https://github.com/NVIDIA/cuda-rust.git", tag = "cuda-oxide/v0.3.0", optional = true }
 
 [build-dependencies]
 cbindgen = { version = "0.26.0", optional = true }

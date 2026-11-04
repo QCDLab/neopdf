@@ -168,7 +168,7 @@ impl NeoPDFDeviceGrid {
                 Borrowed::new(out, self.output_len(n_events), ctx),
             )
         };
-        let ready = ctx.new_event(None)?;
+        let ready = ctx.new_event_with_flags(None)?;
         // SAFETY: `stream` is a valid stream of this context, as required by the caller.
         unsafe { cuEventRecord(ready.cu_event(), stream).result()? };
         self.stream.wait(&ready)?;

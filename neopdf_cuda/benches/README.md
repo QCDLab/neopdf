@@ -21,7 +21,7 @@ every flavor plus `alpha_s`.
 
 ## Reproducing
 
-Needs an sm_80+ GPU with a CUDA 13 (R580+) driver, `cargo-oxide`,
+Needs an `sm_80+` GPU with a CUDA 13 (R580+) driver, `cargo-oxide`,
 and `NEOPDF_DATA_PATH` pointing at a directory containing the
 `NNPDF40_nnlo_as_01180` set.
 

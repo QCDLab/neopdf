@@ -1,6 +1,21 @@
 [workspace]
-members = ["neopdf", "neopdf_capi", "neopdf_cli", "neopdf_gui", "neopdf_legacy", "neopdf_pyapi", "neopdf_tmdlib", "neopdf_wolfram"]
-default-members = ["neopdf", "neopdf_capi", "neopdf_cli", "neopdf_pyapi"]
+members = [
+  "neopdf",
+  "neopdf_capi",
+  "neopdf_cli",
+  "neopdf_gui",
+  "neopdf_legacy",
+  "neopdf_pyapi",
+  "neopdf_tmdlib",
+  "neopdf_wolfram"
+]
+default-members = [
+  "neopdf",
+  "neopdf_capi",
+  "neopdf_cli",
+  "neopdf_pyapi"
+]
+exclude = ["neopdf_cuda"]
 resolver = "2"
 
 [workspace.package]
@@ -8,7 +23,7 @@ categories = ["science"]
 edition = "2021"
 keywords = ["high-energy-physics", "physics"]
 license = "GPL-3.0-or-later"
-repository = "https://github.com/Radonirinaunimi/neopdf"
+repository = "https://github.com/QCDLab/neopdf"
 rust-version = "1.83.0"
 version = "0.4.0"
 

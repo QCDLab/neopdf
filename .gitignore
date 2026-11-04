@@ -9,6 +9,7 @@
 /neopdf_gui/icons/Square*.png
 /neopdf_gui/icons/StoreLogo.png
 
+/neopdf_cuda/benches/results/
 /neopdf_capi/docs/build/
 /neopdf_capi/docs/xml/
 /neopdf_capi/docs/html/

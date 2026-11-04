@@ -19,7 +19,7 @@ hide:
     <img src="https://img.shields.io/crates/v/neopdf?style=flat-square&logo=rust&color=blue" alt="Crates.io">
     <img src="https://img.shields.io/pypi/pyversions/neopdf-hep?style=flat-square&logo=python" alt="PyPI - Python Version">
     <img src="https://img.shields.io/pypi/v/neopdf-hep?style=flat-square&logo=python&logoColor=yellow&color=%231d881d" alt="PyPI - Version">
-    <img src="https://img.shields.io/github/license/Radonirinaunimi/neopdf?style=flat-square&logo=gplv3&logoColor=red" alt="GitHub License">
+    <img src="https://img.shields.io/github/license/QCDLab/neopdf?style=flat-square&logo=gplv3&logoColor=red" alt="GitHub License">
 </p>
 </div>
 

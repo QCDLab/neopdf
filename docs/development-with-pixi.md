@@ -41,7 +41,7 @@ After the installation, restart your terminal or source your shell configuration
 1. **Clone the repository and navigate to the project:**
 
    ```bash
-   git clone https://github.com/Radonirinaunimi/neopdf
+   git clone https://github.com/QCDLab/neopdf
    cd neopdf
    ```
 

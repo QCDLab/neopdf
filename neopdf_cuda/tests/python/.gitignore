@@ -1,0 +1,3 @@
+neopdf_cuda*.so
+__pycache__/
+.pytest_cache/

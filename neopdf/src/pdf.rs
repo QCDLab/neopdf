@@ -414,6 +414,15 @@ impl PDF {
         self.grid_pdf.alphas_q2(q2)
     }
 
+    /// Exports this PDF member for a device/GPU backend, e.g. `neopdf_cuda`.
+    ///
+    /// Abstraction to the `GridPDF::collinear_export` method.
+    pub fn collinear_export(
+        &self,
+    ) -> Result<super::gpu_export::CollinearExport, super::gpu_export::CollinearExportError> {
+        self.grid_pdf.collinear_export()
+    }
+
     /// Prepares `xfxq2` and `alphas_q2` in the arithmetic `a`, from the same data and with the
     /// same subgrid selection, flavour lookup and positivity policy as this `PDF`.
     ///

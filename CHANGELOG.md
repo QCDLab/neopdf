@@ -27,6 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Bump `ninterp` to `v0.11.2`.
+- Bump PyO3 to `v0.30.1` (and `numpy` to `v0.30.0`), which drops support for
+  Python 3.7 and 3.8: the Python API now requires Python 3.9 or newer.
+- Bump the MSRV to Rust 1.85.0, as required by PyO3 `v0.30`.
 - Promote `SetIndex` from `u32` to `u64` ([#96](https://github.com/QCDLab/neopdf/pull/96)).
 
 ## [0.4.0] - 15/07/2026

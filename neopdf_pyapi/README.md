@@ -1,6 +1,6 @@
 # NeoPDF-HEP
 
-![Static Badge](https://img.shields.io/badge/Python-3.9--3.14-00A800?style=flat-square&logo=python&logoColor=yellow)
+![Static Badge](https://img.shields.io/badge/Python-3.9--3.15-00A800?style=flat-square&logo=python&logoColor=yellow)
 ![GitHub Tag](https://img.shields.io/github/v/tag/Radonirinaunimi/neopdf?include_prereleases&style=flat-square&logo=github&color=blue)
 ![Crates.io Version](https://img.shields.io/crates/v/neopdf?style=flat-square&logo=rust&color=blue)
 ![GitHub License](https://img.shields.io/github/license/Radonirinaunimi/neopdf?style=flat-square&color=red)

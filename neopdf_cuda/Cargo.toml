@@ -37,8 +37,8 @@ python = ["cuda", "dep:numpy", "dep:pyo3"]
 
 [dependencies]
 neopdf = { path = "../neopdf", version = "0.5.0" }
-numpy = { version = "0.28", optional = true }
-pyo3 = { version = "0.28", features = ["extension-module"], optional = true }
+numpy = { version = "0.30", optional = true }
+pyo3 = { version = "0.30.1", features = ["extension-module"], optional = true }
 thiserror = "1.0.69"
 
 # `cuda-oxide` is alpha and breaks its API between releases, so it

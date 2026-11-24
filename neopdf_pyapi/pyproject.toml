@@ -25,9 +25,9 @@ readme = "README.md"
 test = ["pytest", "pytest-cov", "pytest-mpl", "matplotlib", "pydantic>=2.0"]
 
 [project.urls]
-homepage = "https://github.com/Radonirinaunimi/neopdf"
+homepage = "https://github.com/QCDLab/neopdf"
 documentation = "https://radonirinaunimi.github.io/neopdf/"
-changelog = "https://github.com/Radonirinaunimi/neopdf/blob/master/CHANGELOG.md"
+changelog = "https://github.com/QCDLab/neopdf/blob/master/CHANGELOG.md"
 
 [tool.maturin]
 bindings = "pyo3"

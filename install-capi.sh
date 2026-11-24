@@ -77,7 +77,7 @@ if [ -z "${version}" ]; then
         sed -n 's/[ ]*"tag_name"[ ]*:[ ]*"v\([^"]*\)"[ ]*,[ ]*$/\1/p')
 fi
 
-url="https://github.com/Radonirinaunimi/neopdf/releases/download/v${version}/neopdf_capi-${target}.tar.gz"
+url="https://github.com/QCDLab/neopdf/releases/download/v${version}/neopdf_capi-${target}.tar.gz"
 
 echo "prefix:  '${prefix}'"
 echo "target:  '${target}'"

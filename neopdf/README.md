@@ -2,8 +2,8 @@
 
 ![Crates.io MSRV](https://img.shields.io/crates/msrv/neopdf?style=flat-square&logo=rust&color=orange)
 ![Crates.io Version](https://img.shields.io/crates/v/neopdf?style=flat-square&logo=rust&color=blue)
-![GitHub Tag](https://img.shields.io/github/v/tag/Radonirinaunimi/neopdf?include_prereleases&style=flat-square&logo=github&color=blue)
-![GitHub License](https://img.shields.io/github/license/Radonirinaunimi/neopdf?style=flat-square&color=red)
+![GitHub Tag](https://img.shields.io/github/v/tag/QCDLab/neopdf?include_prereleases&style=flat-square&logo=github&color=blue)
+![GitHub License](https://img.shields.io/github/license/QCDLab/neopdf?style=flat-square&color=red)
 
 **NeoPDF** is a fast, reliable, and scalable interpolation library for both **Collinear** Parton
 Distribution Functions (PDFs) and **Transverse Momentum Dependent** Distributions (TMDs) with

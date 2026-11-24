@@ -1108,7 +1108,7 @@ impl GridPDF {
         PrecisionPDF::new(self, a)
     }
 
-    /// Gets the alpha_s value at a given `Q²`.
+    /// Gets the alpha_s value at a given `Q^2`.
     ///
     /// # Arguments
     ///
@@ -1119,6 +1119,93 @@ impl GridPDF {
     /// The interpolated alpha_s value.
     pub fn alphas_q2(&self, q2: f64) -> f64 {
         self.alphas.alphas_q2(q2)
+    }
+
+    /// Exports this PDF member for a device/GPU backend, e.g. `neopdf_cuda`.
+    ///
+    /// Only succeeds for the plain 2D `(x, Q^2)` "collinear" case: Q^2-contiguous
+    /// subgrids sharing one x grid, `LogBicubic` or `LogChebyshev` interpolation,
+    /// and a table-or-constant `alpha_s`. See [`gpu_export`](super::gpu_export).
+    pub fn collinear_export(
+        &self,
+    ) -> Result<super::gpu_export::CollinearExport, super::gpu_export::CollinearExportError> {
+        use super::gpu_export::{
+            AlphaSValues, CollinearExport, CollinearExportError, CollinearSubgrid, CollinearValues,
+        };
+
+        let n_subgrids = self.knot_array.subgrids.len();
+        let mut log_xs: Option<Vec<f64>> = None;
+        let mut subgrids: Vec<CollinearSubgrid> = Vec::with_capacity(n_subgrids);
+
+        for i in 0..n_subgrids {
+            let (xs, log_q2s, values) = if let Some(interleaved) = &self.interleaved {
+                let view = interleaved[i]
+                    .as_collinear()
+                    .ok_or(CollinearExportError::NotCollinear(i))?;
+                (
+                    view.log_xs.to_vec(),
+                    view.log_q2s.to_vec(),
+                    CollinearValues::Hermite {
+                        coeffs: view.coeffs.to_vec(),
+                    },
+                )
+            } else if let Some(chebyshev) = &self.chebyshev_fast {
+                let view = chebyshev[i]
+                    .as_collinear()
+                    .ok_or(CollinearExportError::NotCollinear(i))?;
+                (
+                    view.log_xs.to_vec(),
+                    view.log_q2s.to_vec(),
+                    CollinearValues::Chebyshev {
+                        values: view.values.to_vec(),
+                        x_nodes: view.x_nodes.to_vec(),
+                        q2_nodes: view.q2_nodes.to_vec(),
+                    },
+                )
+            } else {
+                return Err(CollinearExportError::UnsupportedInterpolatorType(
+                    self.info.interpolator_type.clone(),
+                ));
+            };
+
+            match &log_xs {
+                None => log_xs = Some(xs),
+                Some(expected) if *expected == xs => {}
+                Some(_) => return Err(CollinearExportError::XGridMismatch { at: i }),
+            }
+
+            if let Some(prev) = subgrids.last() {
+                let expected = *prev
+                    .log_q2s
+                    .last()
+                    .expect("subgrid has at least 2 Q^2 knots");
+                let found = *log_q2s.first().expect("subgrid has at least 2 Q^2 knots");
+                if expected != found {
+                    return Err(CollinearExportError::QGridNotContiguous {
+                        at: i,
+                        expected,
+                        found,
+                    });
+                }
+            }
+
+            subgrids.push(CollinearSubgrid { log_q2s, values });
+        }
+
+        let alphas = match self.alphas.as_gpu_export() {
+            Some(super::alphas::AlphaSExport::Constant(v)) => AlphaSValues::Constant(v),
+            Some(super::alphas::AlphaSExport::Cubic { log_q2s, alphas }) => {
+                AlphaSValues::Cubic { log_q2s, alphas }
+            }
+            None => return Err(CollinearExportError::AnalyticAlphaSUnsupported),
+        };
+
+        Ok(CollinearExport {
+            log_xs: log_xs.unwrap_or_default(),
+            pids: self.knot_array.pids.to_vec(),
+            subgrids,
+            alphas,
+        })
     }
 
     /// Returns a reference to the PDF metadata.
@@ -1167,7 +1254,7 @@ mod tests {
         let flavors = vec![21, 22];
         let grid_array = GridArray::new(subgrid_data, flavors);
 
-        // Grid shape is 6D: [nucleons, alphas, pids, kT, x, Q²]
+        // Grid shape is 6D: [nucleons, alphas, pids, kT, x, Q^2]
         match &grid_array.subgrids[0].grid {
             crate::subgrid::GridData::Grid6D(grid) => {
                 assert_eq!(grid.shape(), &[1, 1, 2, 1, 3, 2]);

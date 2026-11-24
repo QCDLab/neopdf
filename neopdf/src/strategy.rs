@@ -114,7 +114,7 @@ where
 /// before performing bilinear interpolation, which is suitable for data
 /// that is linear in log-log space. It is particularly useful for physical
 /// quantities that span several orders of magnitude, such as momentum transfer
-/// squared (Q²) or Bjorken x.
+/// squared (Q^2) or Bjorken x.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct LogBilinearInterpolation;
 
@@ -187,7 +187,7 @@ where
 /// This strategy implements bicubic interpolation with logarithmic coordinate scaling.
 /// It is designed for interpolating Parton Distribution Functions (PDFs) where:
 /// - x-coordinates (e.g., Bjorken x) are logarithmically spaced.
-/// - y-coordinates (e.g., Q² values) are logarithmically spaced.
+/// - y-coordinates (e.g., Q^2 values) are logarithmically spaced.
 /// - z-values (PDF values) are interpolated using bicubic splines.
 ///
 /// Bicubic interpolation uses a 4x4 grid of points around the interpolation point
@@ -429,7 +429,7 @@ where
 ///
 /// This strategy implements tricubic interpolation with logarithmic coordinate scaling:
 /// - x-coordinates are logarithmically spaced (e.g., 1e-9 to 1)
-/// - y-coordinates are logarithmically spaced (e.g., Q² values)
+/// - y-coordinates are logarithmically spaced (e.g., Q^2 values)
 /// - z-coordinates are logarithmically spaced (e.g., Mass Atomic A, AlphaS)
 /// - w-values (PDF values) are interpolated using tricubic splines
 ///
@@ -1527,7 +1527,39 @@ pub(crate) struct ChebyshevAllPids {
     shape: Vec<usize>,
 }
 
+/// Borrowed view of a plain 2D (x, Q^2) `ChebyshevAllPids` table, for exporting to a
+/// device/GPU backend. See [`ChebyshevAllPids::as_collinear`].
+pub(crate) struct CollinearChebyshevView<'a> {
+    /// Log-transformed x grid knots.
+    pub(crate) log_xs: &'a [f64],
+    /// Log-transformed Q^2 grid knots.
+    pub(crate) log_q2s: &'a [f64],
+    /// Chebyshev nodes in `[-1, 1]` matching `log_xs`.
+    pub(crate) x_nodes: &'a [f64],
+    /// Chebyshev nodes in `[-1, 1]` matching `log_q2s`.
+    pub(crate) q2_nodes: &'a [f64],
+    /// One flat, C-order `[n_x * n_q2]` array per flavor, in internal PID order.
+    pub(crate) values: &'a [Vec<f64>],
+}
+
 impl ChebyshevAllPids {
+    /// Borrows this table as a plain 2D `(x, Q^2)` view, for a device/GPU export.
+    ///
+    /// Returns `None` for a 3-D+ table (nucleon/kT/xi/delta axes present), since
+    /// those don't fit the plain collinear case a GPU export models.
+    pub(crate) fn as_collinear(&self) -> Option<CollinearChebyshevView<'_>> {
+        if self.shape.len() != 2 {
+            return None;
+        }
+        Some(CollinearChebyshevView {
+            log_xs: &self.coords[0],
+            log_q2s: &self.coords[1],
+            x_nodes: &self.t_coords[0],
+            q2_nodes: &self.t_coords[1],
+            values: &self.values,
+        })
+    }
+
     pub(crate) fn build<F>(coord_vecs: Vec<Vec<f64>>, n_pids: usize, get_value: F) -> Self
     where
         F: Fn(usize, &[usize]) -> f64, // (pid_idx, multi_index) -> value

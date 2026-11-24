@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/Radonirinaunimi/neopdf/blob/master/logo/neopdf.svg" alt="NeoPDF Logo" width="450">
+  <img src="https://github.com/QCDLab/neopdf/blob/master/logo/neopdf.svg" alt="NeoPDF Logo" width="450">
 </p>
 <div align="center">
     <a href="https://app.codecov.io/gh/QCDLab/neopdf/tree/master"><img

@@ -221,6 +221,7 @@
 
 pub mod alphas;
 pub mod converter;
+pub mod gpu_export;
 pub mod gridpdf;
 pub mod interleaved;
 pub mod interpolator;

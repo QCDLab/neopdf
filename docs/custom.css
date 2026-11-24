@@ -117,3 +117,78 @@ pre {
 .md-header__title .md-header__topic {
   display: none;
 }
+
+/* React Flow diagrams (docs/assets/javascripts/flow.js), in the Dracula palette of the
+   site's red. Nodes and edges pick a colour by name. */
+.neopdf-flow {
+  --neopdf-flow-orange: #ffb86c;
+  --neopdf-flow-red: #ff5555;
+  --neopdf-flow-cyan: #8be9fd;
+  --neopdf-flow-green: #50fa7b;
+  --neopdf-flow-purple: #bd93f9;
+  --neopdf-flow-pink: #ff79c6;
+  height: calc(var(--neopdf-flow-rows, 5) * 5.4rem);
+  margin: 1.5rem 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 85, 85, 0.08), transparent 70%),
+    var(--md-default-bg-color);
+}
+
+.neopdf-flow .react-flow {
+  --xy-background-color: transparent;
+  --xy-edge-label-background-color: var(--md-default-bg-color);
+  --xy-edge-label-color: var(--md-default-fg-color--light);
+  --xy-attribution-background-color: transparent;
+}
+
+.neopdf-flow .react-flow__attribution a {
+  color: var(--md-default-fg-color--lighter);
+}
+
+.neopdf-flow .react-flow__handle {
+  opacity: 0;
+}
+
+.neopdf-flow .react-flow__edge-text {
+  font-size: 11px;
+  font-style: italic;
+}
+
+.neopdf-flow .react-flow__edge-path {
+  stroke: var(--color);
+  stroke-width: 2;
+}
+
+.neopdf-flow__node {
+  box-sizing: border-box;
+  width: 230px;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--color) 55%, transparent);
+  border-top: 3px solid var(--color);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color) 9%, #1e1f29);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--color) 18%, transparent);
+  text-align: center;
+}
+
+.neopdf-flow__title {
+  color: var(--color);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.neopdf-flow__detail {
+  margin-top: 0.2rem;
+  color: #d6d8e0;
+  font-family: var(--md-code-font-family), monospace;
+  font-size: 10.5px;
+}
+
+.neopdf-flow [class*="--orange"] { --color: var(--neopdf-flow-orange); }
+.neopdf-flow [class*="--red"] { --color: var(--neopdf-flow-red); }
+.neopdf-flow [class*="--cyan"] { --color: var(--neopdf-flow-cyan); }
+.neopdf-flow [class*="--green"] { --color: var(--neopdf-flow-green); }
+.neopdf-flow [class*="--purple"] { --color: var(--neopdf-flow-purple); }
+.neopdf-flow [class*="--pink"] { --color: var(--neopdf-flow-pink); }

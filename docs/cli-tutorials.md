@@ -96,7 +96,7 @@ neopdf write metadata --path NNPDF40_nnlo_as_01180.neopdf.lz4 --key SetType --va
 
 - `--path`: Path to the `NeoPDF` set.
 - `--key`: The key value of the metadata to be updated, see the `rename` field of the
-  [MetaData](https://github.com/Radonirinaunimi/neopdf/blob/master/neopdf/src/metadata.rs#L33-L121)
+  [MetaData](https://github.com/QCDLab/neopdf/blob/master/neopdf/src/metadata.rs#L33-L121)
   struct for the available keys.
 - `--value`: The updated value of the metadata.
 

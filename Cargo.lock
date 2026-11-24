@@ -2483,7 +2483,7 @@ dependencies = [
 
 [[package]]
 name = "neopdf"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "bincode",
  "criterion",
@@ -2507,7 +2507,7 @@ dependencies = [
 
 [[package]]
 name = "neopdf_capi"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "cbindgen",
  "ndarray",
@@ -2516,7 +2516,7 @@ dependencies = [
 
 [[package]]
 name = "neopdf_cli"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -2533,7 +2533,7 @@ dependencies = [
 
 [[package]]
 name = "neopdf_gui"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "neopdf",
  "rayon",
@@ -2547,7 +2547,7 @@ dependencies = [
 
 [[package]]
 name = "neopdf_legacy"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "bincode",
  "flate2",
@@ -2569,7 +2569,7 @@ dependencies = [
 
 [[package]]
 name = "neopdf_pyapi"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "ndarray",
  "neopdf",
@@ -2580,7 +2580,7 @@ dependencies = [
 
 [[package]]
 name = "neopdf_tmdlib"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "cc",
  "cxx",
@@ -2590,7 +2590,7 @@ dependencies = [
 
 [[package]]
 name = "neopdf_wolfram"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "lazy_static",
  "neopdf",

@@ -98,6 +98,33 @@ fn test_inconsistent_inputs() {
 }
 
 #[test]
+fn test_xfxq2_allpids_many_flavors() {
+    // More flavors than the stack buffer of `xfxq2_allpids` holds, through the interleaved
+    // (`LogBicubic`) and the Chebyshev (`LogChebyshev`) fast paths.
+    let cases: [(&str, &[f64]); 2] = [
+        ("NNPDF40_nnlo_as_01180", &[1e-3, 100.0]),
+        ("MAP22_grids_FF_Km_N3LL.neopdf.lz4", &[1e-2, 0.5, 100.0]),
+    ];
+    for (set, point) in cases {
+        let pdf = PDF::load(set, 0);
+        let pids: Vec<i32> = pdf
+            .pids()
+            .iter()
+            .copied()
+            .chain([7])
+            .cycle()
+            .take(40)
+            .collect();
+        let mut out = vec![f64::NAN; pids.len()];
+        pdf.xfxq2_allpids(&pids, point, &mut out);
+
+        for (&pid, &value) in pids.iter().zip(&out) {
+            assert_eq!(value.to_bits(), pdf.xfxq2(pid, point).to_bits());
+        }
+    }
+}
+
+#[test]
 fn test_combined_npdfs_range() {
     let pdf = PDF::load("nNNPDF30_nlo_as_0118.neopdf.lz4", 0);
 
